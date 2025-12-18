@@ -67,18 +67,11 @@ export default function Login() {
                 </button>
               </div>
             </div>
-            
-            <Link to="/recuperarclave" className="forgot-password-link">
-              ¿Olvidó su contraseña?
-            </Link>
 
             <div className="button-group">
               <button className="ingresar-btn" type="submit">
                 Ingresar
               </button>
-              <Link to="/registro" className="registro-btn">
-                Registrarse
-              </Link>
             </div>
           </form>
         </div>
