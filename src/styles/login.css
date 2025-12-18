@@ -1,0 +1,189 @@
+/* Contenedor principal de la página */
+.login-page {
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #F3F2F3; 
+    margin: 0;
+    padding: 0;
+}
+/* Fondo decorativo */
+.decorative-background .shape-top {
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    background: #0198CC;
+    border-radius: 50%;
+    opacity: 0.1;
+}
+
+.decorative-background .shape-bottom {
+    position: absolute;
+    bottom: -150px;
+    left: -150px;
+    width: 500px;
+    height: 500px;
+    background: #0198CC;
+    border-radius: 50%;
+    opacity: 0.1;
+}
+
+/* Tarjeta de Login */
+.login-card {
+    background: white;
+    display: flex;
+    width: 900px;
+    min-height: 500px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    overflow: hidden;
+}
+
+/* Columna Izquierda (Logo) */
+.card-left-column {
+    flex: 1;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    border-right: 1px solid #eee;
+}
+
+.card-logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+/* Columna Derecha (Formulario) */
+.card-right-column {
+    flex: 1.2;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.card-title {
+    color: #333;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.card-subtitle {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* Estilos de los inputs y campos */
+.field-wrapper {
+    margin-bottom: 20px;
+}
+
+.identifier-container, .password-container {
+    display: flex;
+    align-items: center;
+    background: #f3f3f3;
+    border-radius: 8px;
+    padding: 5px 15px;
+    border: 1px solid transparent;
+    transition: 0.3s;
+}
+
+.identifier-container:focus-within, .password-container:focus-within {
+    border-color: #0198CC;
+    background: white;
+}
+
+.input-icon {
+    color: #0198CC;
+    margin-right: 10px;
+}
+
+.login-form input {
+    border: none;
+    background: transparent;
+    padding: 12px 5px;
+    width: 100%;
+    outline: none;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Botón de ver contraseña */
+.toggle-password-btn {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* Links */
+.forgot-password-link {
+    display: block;
+    color: #0198CC;
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+.forgot-password-link:hover {
+    text-decoration: underline;
+}
+
+/* Botones inferiores */
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.ingresar-btn {
+    background-color: #0198CC;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 5px 15px -5px rgba(1, 152, 204, 0.6);
+    transition: 0.3s;
+}
+
+.ingresar-btn:hover {
+    background-color: #0178a3;
+}
+
+.registro-btn {
+    text-align: center;
+    color: #666;
+    text-decoration: none;
+    font-size: 0.95rem;
+    padding: 10px;
+}
+
+.registro-btn:hover {
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .login-card {
+        flex-direction: column;
+        width: 90%;
+        margin: 20px;
+    }
+    .card-left-column {
+        padding: 20px;
+    }
+}
