@@ -330,7 +330,6 @@ export default function Resultados() {
                 )}
               </tbody>
             </table>
-            {/* ... </table> ... */}
           
           {/* BARRA DE PAGINACIÓN */}
           <div className="pagination-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderTop: '1px solid #eee' }}>
@@ -362,7 +361,6 @@ export default function Resultados() {
 
               <button 
                 onClick={handleNextPage}
-                // Deshabilitamos si: está cargando O trajo menos registros de los pedidos (fin de lista)
                 disabled={isLoading || (data?.protocolos?.length || 0) < Number(formValues.page_size)}
                 className="btn-pagination"
                 style={{
