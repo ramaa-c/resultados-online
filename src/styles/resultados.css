@@ -16,6 +16,11 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--secondary);
   margin: 0;
+  outline: none;
+}
+
+body button:focus{
+  outline: none;
 }
 
 .dashboard-container {
@@ -41,7 +46,6 @@ body {
 .sidebar-logo {
   max-width: 200px;
   margin-bottom: 15px;
-  display: block;
 }
 
 .filter-title {
@@ -442,12 +446,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .filters-collapsible {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0, 1, 0, 1); /* Animación suave de apertura */
+  transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
   opacity: 0;
 }
 
 .filters-collapsible.show {
-  max-height: 2000px; /* Suficiente para todos los inputs */
+  max-height: 2000px;
   opacity: 1;
   transition: max-height 0.4s ease-in-out;
   padding-bottom: 20px;
