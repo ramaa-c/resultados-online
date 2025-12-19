@@ -1,82 +1,81 @@
-import React from "react";
+import React, { useState } from "react";
+import { useProtocols } from "../hooks/useProtocols";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 
 import {
-  FiCalendar,
-  FiUser,
-  FiSearch,
   FiFilter,
+  FiSearch,
   FiFileText,
   FiEye,
   FiDownload,
   FiPrinter,
   FiActivity,
-  FiHash,
   FiCheckCircle,
   FiClock,
+  FiMail,
 } from "react-icons/fi";
-import { BiCapsule, BiPaste } from "react-icons/bi";
+import { BiCapsule } from "react-icons/bi";
 
 export default function Resultados() {
-  const resultadosFake = [
-    {
-      dni: "25.459.023",
-      apellido: "DE ARMAS",
-      nombre: "ADRIAN ALFREDO",
-      fecha: "26/01/2024",
-      servicio: "RET",
-      id: "480011685",
-      estado: "Completo",
-      debe: false,
-    },
-    {
-      dni: "25.459.633",
-      apellido: "DE ARMAS",
-      nombre: "ADRIAN ALFREDO",
-      fecha: "09/03/2022",
-      servicio: "PHW",
-      id: "450011830",
-      estado: "En Proceso",
-      debe: true,
-    },
-    {
-      dni: "44.724.320",
-      apellido: "TORRES",
-      nombre: "MATIAS ALEXIS",
-      fecha: "07/11/2025",
-      servicio: "CAI-SSL",
-      id: "SSLLA32511",
-      estado: "Completo",
-      debe: false,
-    },
-    {
-      dni: "29.941.506",
-      apellido: "HERMIDA",
-      nombre: "CHRISTIAN MATIAS",
-      fecha: "06/11/2025",
-      servicio: "GUA-SSL",
-      id: "SSLLA22511",
-      estado: "Completo",
-      debe: true,
-    },
-    {
-      dni: "38.691.179",
-      apellido: "MONICAT",
-      nombre: "MATIAS AGUSTIN",
-      fecha: "05/11/2025",
-      servicio: "AMB-SSL",
-      id: "SSLLA42511",
-      estado: "Completo",
-      debe: false,
-    },
-  ];
+  const [formValues, setFormValues] = useState({
+    date_from: "",
+    date_to: "",
+    patient_id_number: "",
+    patient_name: "",
+    apellido_paciente: "",
+    accession_number: "",
+    page: 1,
+    page_size: 15,
+    branch_id: "",
+  });
+
+  const [activeFilters, setActiveFilters] = useState(formValues);
+
+  const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+
+  // MANEJADORES
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const newFilters = { ...formValues, page: 1 };
+    setFormValues(newFilters);
+    setActiveFilters(newFilters);
+  };
+
+  const handlePageChange = (newPage) => {
+    const updatedValues = { ...formValues, page: Number(newPage) };
+    setFormValues(updatedValues);
+    setActiveFilters(updatedValues);
+  };
+
+  const handlePreviousPage = () => {
+    if (formValues.page > 1) {
+      handlePageChange(formValues.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (data?.protocolos?.length === Number(formValues.page_size)) {
+      handlePageChange(formValues.page + 1);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
+  };
 
   return (
     <div className="dashboard-container">
+      {/* SIDEBAR FILTROS */}
       <aside className="sidebar-filters">
         <div className="sidebar-header">
-          {/* Logo o Texto de respaldo */}
           {centraLabLogo ? (
             <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" />
           ) : (
@@ -87,37 +86,56 @@ export default function Resultados() {
           </div>
         </div>
 
-        <form className="filters-form">
-          {/* Grupo: Fecha Desde */}
+        <form className="filters-form" onSubmit={handleSearch}>
+          {/* FECHA DESDE */}
           <div className="filter-group">
             <label>Fecha Desde</label>
             <div className="input-wrapper">
-              <input type="date" className="input-modern pl-icon" />
+              <input
+                type="date"
+                name="date_from"
+                value={formValues.date_from}
+                onChange={handleInputChange}
+                className="input-modern pl-icon"
+              />
             </div>
           </div>
 
-          {/* Grupo: Fecha Hasta */}
+          {/* FECHA HASTA */}
           <div className="filter-group">
             <label>Fecha Hasta</label>
             <div className="input-wrapper">
-              <input type="date" className="input-modern pl-icon" />
+              <input
+                type="date"
+                name="date_to"
+                value={formValues.date_to}
+                onChange={handleInputChange}
+                className="input-modern pl-icon"
+              />
             </div>
           </div>
 
-          {/* Grupo: Datos Paciente */}
+          {/* DNI */}
           <div className="filter-group">
             <label>DNI Paciente</label>
             <input
               type="text"
+              name="patient_id_number"
+              value={formValues.patient_id_number}
+              onChange={handleInputChange}
               className="input-modern"
               placeholder="Ej: 25459633"
             />
           </div>
 
+          {/* APELLIDO / NOMBRE */}
           <div className="filter-group">
             <label>Apellido del Paciente</label>
             <input
               type="text"
+              name="apellido_paciente"
+              value={formValues.apellido_paciente}
+              onChange={handleInputChange}
               className="input-modern"
               placeholder="Buscar apellido..."
             />
@@ -127,47 +145,67 @@ export default function Resultados() {
             <label>Nombre Paciente</label>
             <input
               type="text"
+              name="patient_name"
+              value={formValues.patient_name}
+              onChange={handleInputChange}
               className="input-modern"
               placeholder="Buscar nombre..."
             />
           </div>
 
-          {/* Grupo: Protocolo */}
+          {/* PROTOCOLO ID */}
           <div className="filter-group">
             <label>ID Petición / Protocolo</label>
             <div className="input-wrapper">
               <input
                 type="text"
+                name="accession_number"
+                value={formValues.accession_number}
+                onChange={handleInputChange}
                 className="input-modern pl-icon"
                 placeholder="Protocolo / ID"
               />
             </div>
           </div>
 
-          {/* Grupo: Paginación y Servicio */}
+          {/* PAGINADO Y FILAS */}
           <div className="filter-row">
             <div className="filter-group half">
               <label>Pág.</label>
               <input
                 type="number"
+                name="page"
+                value={formValues.page}
+                onChange={(e) => handlePageChange(e.target.value)}
                 className="input-modern"
-                defaultValue={1}
                 min={1}
               />
             </div>
             <div className="filter-group half">
               <label>Filas</label>
-              <select className="input-modern">
-                <option>25</option>
-                <option>50</option>
-                <option>100</option>
+              <select
+                name="page_size"
+                value={formValues.page_size}
+                onChange={handleInputChange}
+                className="input-modern"
+              >
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
               </select>
             </div>
           </div>
 
+          {/* SERVICIO (BRANCH) */}
           <div className="filter-group">
             <label>Servicio Médico</label>
-            <select className="input-modern">
+            <select
+              name="branch_id"
+              value={formValues.branch_id}
+              onChange={handleInputChange}
+              className="input-modern"
+            >
               <option value="">Todos los servicios</option>
               <option value="RET">RET</option>
               <option value="PHW">PHW</option>
@@ -175,20 +213,24 @@ export default function Resultados() {
             </select>
           </div>
 
-          <button type="button" className="btn-filtrar">
-            <FiSearch /> Buscar
+          <button type="submit" className="btn-filtrar" disabled={isLoading}>
+            {isLoading ? (
+              "Buscando..."
+            ) : (
+              <>
+                <FiSearch /> Buscar
+              </>
+            )}
           </button>
         </form>
       </aside>
 
-      {/* --- ÁREA PRINCIPAL (SPLIT VIEW) --- */}
+      {/* MAIN CONTENT */}
       <main className="split-view">
-        {/* Tabla de Resultados */}
         <section className="list-panel">
-          {/* Barra de Acciones */}
           <div className="panel-header-actions">
             <button className="btn-mini-action">
-              <BiPaste size={20} /> Historia Clínica
+              <FiMail size={20} /> Enviar por Email
             </button>
             <button className="btn-mini-action">
               <FiFileText size={20} /> Visualizar PDF
@@ -199,38 +241,61 @@ export default function Resultados() {
             <button className="btn-mini-action">
               <FiDownload size={20} /> Descargar
             </button>
-            <button className="btn-mini-action">
-              <BiCapsule size={20} /> Vademecum
-            </button>
           </div>
 
-          {/* Tabla */}
           <div className="table-wrapper">
+            {/* INDICADOR DE REFRESH EN BACKGROUND */}
+            {isFetching && !isLoading && (
+              <div
+                style={{
+                  padding: "5px",
+                  background: "#f0f9ff",
+                  fontSize: "12px",
+                  textAlign: "center",
+                }}
+              >
+                Actualizando datos...
+              </div>
+            )}
+
+            {/* MANEJO DE ERRORES */}
+            {isError && (
+              <div style={{ color: "red", padding: "20px" }}>
+                Error al cargar los datos.
+              </div>
+            )}
+
             <table className="resultados-table">
               <thead>
                 <tr>
+                  <th>Petición ID</th>
+                  <th>Fecha</th>
+                  <th>Origen</th>
                   <th>DNI Paciente</th>
                   <th>Apellido</th>
                   <th>Nombre</th>
-                  <th>Fecha</th>
-                  <th>Servicio</th>
-                  <th>Petición ID</th>
                   <th style={{ textAlign: "center" }}>Debe</th>
                   <th>Estado</th>
                 </tr>
               </thead>
-              <tbody>
-                {resultadosFake.map((item, index) => (
-                  <tr key={index} className={index === 0 ? "selected-row" : ""}>
-                    <td className="font-mono">{item.dni}</td>
-                    <td className="font-bold">{item.apellido}</td>
-                    <td>{item.nombre}</td>
-                    <td>{item.fecha}</td>
+              <tbody
+                style={{
+                  opacity: isFetching ? 0.6 : 1,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                {data?.protocolos?.map((item) => (
+                  <tr key={item.protocoloid}>
+                    <td className="font-mono">{item.accessionnumber}</td>
+                    <td>{formatDate(item.ordereddate)}</td>
                     <td>
-                      <span className="badge-service">{item.servicio}</span>
+                      <span className="badge-service">
+                        {item.paclocid || "GRL"}
+                      </span>
                     </td>
-                    <td className="font-mono">{item.id}</td>
-
+                    <td className="font-mono">{item.pacid}</td>
+                    <td className="font-bold">{item.apellidopaciente}</td>
+                    <td>{item.nombrepaciente}</td>
                     <td style={{ textAlign: "center" }}>
                       <span
                         className={`indicator-dot ${
@@ -239,26 +304,83 @@ export default function Resultados() {
                         title={item.debe ? "Posee Deuda" : "Sin Deuda"}
                       ></span>
                     </td>
-
                     <td>
-                      {item.estado === "Completo" ? (
+                      {item.completo !== "" ? (
                         <span className="status-badge status-complete">
-                          <FiCheckCircle /> {item.estado}
+                          <FiCheckCircle /> Completo
                         </span>
                       ) : (
                         <span className="status-badge status-pending">
-                          <FiClock /> {item.estado}
+                          <FiClock /> Pendiente
                         </span>
                       )}
                     </td>
                   </tr>
                 ))}
+
+                {data?.protocolos?.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      style={{ textAlign: "center", padding: "20px" }}
+                    >
+                      No se encontraron resultados
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
+            {/* ... </table> ... */}
+          
+          {/* BARRA DE PAGINACIÓN */}
+          <div className="pagination-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderTop: '1px solid #eee' }}>
+            
+            <span style={{ color: '#666', fontSize: '0.9rem' }}>
+              Mostrando {data?.protocolos?.length || 0} resultados
+            </span>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button 
+                onClick={handlePreviousPage}
+                disabled={formValues.page === 1 || isLoading}
+                className="btn-pagination"
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  background: formValues.page === 1 ? '#f5f5f5' : 'white',
+                  cursor: formValues.page === 1 ? 'not-allowed' : 'pointer',
+                  color: formValues.page === 1 ? '#aaa' : '#333'
+                }}
+              >
+                &lt; Anterior
+              </button>
+
+              <span style={{ fontWeight: 'bold', minWidth: '30px', textAlign: 'center' }}>
+                {formValues.page}
+              </span>
+
+              <button 
+                onClick={handleNextPage}
+                // Deshabilitamos si: está cargando O trajo menos registros de los pedidos (fin de lista)
+                disabled={isLoading || (data?.protocolos?.length || 0) < Number(formValues.page_size)}
+                className="btn-pagination"
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  background: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? '#f5f5f5' : 'white',
+                  cursor: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? 'not-allowed' : 'pointer',
+                  color: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? '#aaa' : '#333'
+                }}
+              >
+                Siguiente &gt;
+              </button>
+            </div>
+          </div>
           </div>
         </section>
 
-        {/* Detalle / Reporte */}
         <section className="detail-panel">
           <div className="detail-header">
             <div className="patient-info">
