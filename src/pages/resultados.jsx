@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 
@@ -19,6 +19,9 @@ import {
 import { BiCapsule, BiPaste } from "react-icons/bi";
 
 export default function Resultados() {
+  // Estado para controlar si los filtros están visibles o no
+  const [showFilters, setShowFilters] = useState(false);
+
   const resultadosFake = [
     {
       dni: "25.459.023",
@@ -76,116 +79,118 @@ export default function Resultados() {
     <div className="dashboard-container">
       <aside className="sidebar-filters">
         <div className="sidebar-header">
-          {/* Logo o Texto de respaldo */}
           {centraLabLogo ? (
             <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" />
           ) : (
             <h2>CentraLab</h2>
           )}
-          <div className="filter-title">
-            <FiFilter /> <span>Filtros</span>
+          
+          {/* BOTÓN PARA MOSTRAR/OCULTAR FILTROS */}
+          <div 
+            className={`filter-toggle-btn ${showFilters ? 'active' : ''}`} 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <FiFilter /> 
+            <span>{showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}</span>
+            <span className="arrow-icon">{showFilters ? '▲' : '▼'}</span>
           </div>
         </div>
 
-        <form className="filters-form">
-          {/* Grupo: Fecha Desde */}
-          <div className="filter-group">
-            <label>Fecha Desde</label>
-            <div className="input-wrapper">
-              <input type="date" className="input-modern pl-icon" />
+        {/* CONTENEDOR COLAPSABLE DE FILTROS */}
+        <div className={`filters-collapsible ${showFilters ? 'show' : ''}`}>
+          <form className="filters-form">
+            <div className="filter-group">
+              <label>Fecha Desde</label>
+              <div className="input-wrapper">
+                <input type="date" className="input-modern pl-icon" />
+              </div>
             </div>
-          </div>
 
-          {/* Grupo: Fecha Hasta */}
-          <div className="filter-group">
-            <label>Fecha Hasta</label>
-            <div className="input-wrapper">
-              <input type="date" className="input-modern pl-icon" />
+            <div className="filter-group">
+              <label>Fecha Hasta</label>
+              <div className="input-wrapper">
+                <input type="date" className="input-modern pl-icon" />
+              </div>
             </div>
-          </div>
 
-          {/* Grupo: Datos Paciente */}
-          <div className="filter-group">
-            <label>DNI Paciente</label>
-            <input
-              type="text"
-              className="input-modern"
-              placeholder="Ej: 25459633"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Apellido del Paciente</label>
-            <input
-              type="text"
-              className="input-modern"
-              placeholder="Buscar apellido..."
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Nombre Paciente</label>
-            <input
-              type="text"
-              className="input-modern"
-              placeholder="Buscar nombre..."
-            />
-          </div>
-
-          {/* Grupo: Protocolo */}
-          <div className="filter-group">
-            <label>ID Petición / Protocolo</label>
-            <div className="input-wrapper">
+            <div className="filter-group">
+              <label>DNI Paciente</label>
               <input
                 type="text"
-                className="input-modern pl-icon"
-                placeholder="Protocolo / ID"
-              />
-            </div>
-          </div>
-
-          {/* Grupo: Paginación y Servicio */}
-          <div className="filter-row">
-            <div className="filter-group half">
-              <label>Pág.</label>
-              <input
-                type="number"
                 className="input-modern"
-                defaultValue={1}
-                min={1}
+                placeholder="Ej: 25459633"
               />
             </div>
-            <div className="filter-group half">
-              <label>Filas</label>
+
+            <div className="filter-group">
+              <label>Apellido del Paciente</label>
+              <input
+                type="text"
+                className="input-modern"
+                placeholder="Buscar apellido..."
+              />
+            </div>
+
+            <div className="filter-group">
+              <label>Nombre Paciente</label>
+              <input
+                type="text"
+                className="input-modern"
+                placeholder="Buscar nombre..."
+              />
+            </div>
+
+            <div className="filter-group">
+              <label>ID Petición / Protocolo</label>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  className="input-modern pl-icon"
+                  placeholder="Protocolo / ID"
+                />
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <div className="filter-group half">
+                <label>Pág.</label>
+                <input
+                  type="number"
+                  className="input-modern"
+                  defaultValue={1}
+                  min={1}
+                />
+              </div>
+              <div className="filter-group half">
+                <label>Filas</label>
+                <select className="input-modern">
+                  <option>25</option>
+                  <option>50</option>
+                  <option>100</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label>Servicio Médico</label>
               <select className="input-modern">
-                <option>25</option>
-                <option>50</option>
-                <option>100</option>
+                <option value="">Todos los servicios</option>
+                <option value="RET">RET</option>
+                <option value="PHW">PHW</option>
+                <option value="CAI">CAI-SSL</option>
               </select>
             </div>
-          </div>
 
-          <div className="filter-group">
-            <label>Servicio Médico</label>
-            <select className="input-modern">
-              <option value="">Todos los servicios</option>
-              <option value="RET">RET</option>
-              <option value="PHW">PHW</option>
-              <option value="CAI">CAI-SSL</option>
-            </select>
-          </div>
-
-          <button type="button" className="btn-filtrar">
-            <FiSearch /> Buscar
-          </button>
-        </form>
+            <button type="button" className="btn-filtrar">
+              <FiSearch /> Buscar
+            </button>
+          </form>
+        </div>
       </aside>
 
       {/* --- ÁREA PRINCIPAL (SPLIT VIEW) --- */}
       <main className="split-view">
-        {/* Tabla de Resultados */}
         <section className="list-panel">
-          {/* Barra de Acciones */}
           <div className="panel-header-actions">
             <button className="btn-mini-action">
               <BiPaste size={20} /> Historia Clínica
@@ -204,7 +209,6 @@ export default function Resultados() {
             </button>
           </div>
 
-          {/* Tabla */}
           <div className="table-wrapper">
             <table className="resultados-table">
               <thead>
@@ -258,7 +262,6 @@ export default function Resultados() {
           </div>
         </section>
 
-        {/* Detalle / Reporte */}
         <section className="detail-panel">
           <div className="detail-header">
             <div className="patient-info">
