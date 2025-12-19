@@ -14,8 +14,8 @@ import {
   FiCheckCircle,
   FiClock,
   FiMail,
+  FiTrash2,
 } from "react-icons/fi";
-import { BiCapsule } from "react-icons/bi";
 
 export default function Resultados() {
   const [formValues, setFormValues] = useState({
@@ -31,6 +31,7 @@ export default function Resultados() {
   });
 
   const [activeFilters, setActiveFilters] = useState(formValues);
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
@@ -45,6 +46,22 @@ export default function Resultados() {
     const newFilters = { ...formValues, page: 1 };
     setFormValues(newFilters);
     setActiveFilters(newFilters);
+  };
+
+  const handleReset = () => {
+    const resetValues = {
+      date_from: "",
+      date_to: "",
+      patient_id_number: "",
+      patient_name: "",
+      apellido_paciente: "",
+      accession_number: "",
+      page: 1,
+      page_size: 15,
+      branch_id: "",
+    };
+    setFormValues(resetValues);
+    setActiveFilters(resetValues);
   };
 
   const handlePageChange = (newPage) => {
@@ -67,8 +84,7 @@ export default function Resultados() {
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    const [year, month, day] = dateString.split("-");
-    return `${day}/${month}/${year}`;
+    return dateString;
   };
 
   return (
@@ -81,148 +97,195 @@ export default function Resultados() {
           ) : (
             <h2>CentraLab</h2>
           )}
-          <div className="filter-title">
-            <FiFilter /> <span>Filtros</span>
+
+          <div
+            className={`filter-toggle-btn ${showFilters ? "active" : ""}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <FiFilter />
+            <span>{showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}</span>
+            <span className="arrow-icon">{showFilters ? "▲" : "▼"}</span>
           </div>
         </div>
 
-        <form className="filters-form" onSubmit={handleSearch}>
-          {/* FECHA DESDE */}
-          <div className="filter-group">
-            <label>Fecha Desde</label>
-            <div className="input-wrapper">
-              <input
-                type="date"
-                name="date_from"
-                value={formValues.date_from}
-                onChange={handleInputChange}
-                className="input-modern pl-icon"
-              />
+        <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
+          <form className="filters-form" onSubmit={handleSearch}>
+            {/* FECHA DESDE */}
+            <div className="filter-group">
+              <label>Fecha Desde</label>
+              <div className="input-wrapper">
+                <input
+                  type="date"
+                  name="date_from"
+                  value={formValues.date_from}
+                  onChange={handleInputChange}
+                  className="input-modern pl-icon"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* FECHA HASTA */}
-          <div className="filter-group">
-            <label>Fecha Hasta</label>
-            <div className="input-wrapper">
-              <input
-                type="date"
-                name="date_to"
-                value={formValues.date_to}
-                onChange={handleInputChange}
-                className="input-modern pl-icon"
-              />
+            {/* FECHA HASTA */}
+            <div className="filter-group">
+              <label>Fecha Hasta</label>
+              <div className="input-wrapper">
+                <input
+                  type="date"
+                  name="date_to"
+                  value={formValues.date_to}
+                  onChange={handleInputChange}
+                  className="input-modern pl-icon"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* DNI */}
-          <div className="filter-group">
-            <label>DNI Paciente</label>
-            <input
-              type="text"
-              name="patient_id_number"
-              value={formValues.patient_id_number}
-              onChange={handleInputChange}
-              className="input-modern"
-              placeholder="Ej: 25459633"
-            />
-          </div>
-
-          {/* APELLIDO / NOMBRE */}
-          <div className="filter-group">
-            <label>Apellido del Paciente</label>
-            <input
-              type="text"
-              name="apellido_paciente"
-              value={formValues.apellido_paciente}
-              onChange={handleInputChange}
-              className="input-modern"
-              placeholder="Buscar apellido..."
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Nombre Paciente</label>
-            <input
-              type="text"
-              name="patient_name"
-              value={formValues.patient_name}
-              onChange={handleInputChange}
-              className="input-modern"
-              placeholder="Buscar nombre..."
-            />
-          </div>
-
-          {/* PROTOCOLO ID */}
-          <div className="filter-group">
-            <label>ID Petición / Protocolo</label>
-            <div className="input-wrapper">
+            {/* DNI */}
+            <div className="filter-group">
+              <label>DNI Paciente</label>
               <input
                 type="text"
-                name="accession_number"
-                value={formValues.accession_number}
+                name="patient_id_number"
+                value={formValues.patient_id_number}
                 onChange={handleInputChange}
-                className="input-modern pl-icon"
-                placeholder="Protocolo / ID"
+                className="input-modern"
+                placeholder="Ej: 25459633"
               />
             </div>
-          </div>
 
-          {/* PAGINADO Y FILAS */}
-          <div className="filter-row">
-            <div className="filter-group half">
-              <label>Pág.</label>
+            {/* APELLIDO */}
+            <div className="filter-group">
+              <label>Apellido del Paciente</label>
               <input
-                type="number"
-                name="page"
-                value={formValues.page}
-                onChange={(e) => handlePageChange(e.target.value)}
-                className="input-modern"
-                min={1}
-              />
-            </div>
-            <div className="filter-group half">
-              <label>Filas</label>
-              <select
-                name="page_size"
-                value={formValues.page_size}
+                type="text"
+                name="apellido_paciente"
+                value={formValues.apellido_paciente}
                 onChange={handleInputChange}
                 className="input-modern"
-              >
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+                placeholder="Buscar apellido..."
+              />
             </div>
-          </div>
 
-          {/* SERVICIO (BRANCH) */}
-          <div className="filter-group">
-            <label>Servicio Médico</label>
-            <select
-              name="branch_id"
-              value={formValues.branch_id}
-              onChange={handleInputChange}
-              className="input-modern"
+            {/* NOMBRE */}
+            <div className="filter-group">
+              <label>Nombre Paciente</label>
+              <input
+                type="text"
+                name="patient_name"
+                value={formValues.patient_name}
+                onChange={handleInputChange}
+                className="input-modern"
+                placeholder="Buscar nombre..."
+              />
+            </div>
+
+            {/* PROTOCOLO ID */}
+            <div className="filter-group">
+              <label>ID Petición / Protocolo</label>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  name="accession_number"
+                  value={formValues.accession_number}
+                  onChange={handleInputChange}
+                  className="input-modern pl-icon"
+                  placeholder="Protocolo / ID"
+                />
+              </div>
+            </div>
+
+            {/* PAGINADO Y FILAS */}
+            <div className="filter-row">
+              <div className="filter-group half">
+                <label>Pág.</label>
+                <input
+                  type="number"
+                  name="page"
+                  value={formValues.page}
+                  onChange={(e) => handlePageChange(e.target.value)}
+                  className="input-modern"
+                  min={1}
+                />
+              </div>
+              <div className="filter-group half">
+                <label>Filas</label>
+                <select
+                  name="page_size"
+                  value={formValues.page_size}
+                  onChange={handleInputChange}
+                  className="input-modern"
+                >
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            {/* SERVICIO */}
+            <div className="filter-group">
+              <label>Servicio Médico</label>
+              <input
+                type="text"
+                name="branch_id"
+                value={formValues.branch_id}
+                onChange={handleInputChange}
+                className="input-modern"
+                placeholder="Ej: RET, 766CL..."
+              />
+            </div>
+
+            {/* BOTONES DE ACCIÓN */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginTop: "20px",
+              }}
             >
-              <option value="">Todos los servicios</option>
-              <option value="RET">RET</option>
-              <option value="PHW">PHW</option>
-              <option value="CAI">CAI-SSL</option>
-            </select>
-          </div>
+              <button
+                type="submit"
+                className="btn-filtrar"
+                disabled={isLoading}
+                style={{ width: "100%" }}
+              >
+                {isLoading ? (
+                  "..."
+                ) : (
+                  <>
+                    <FiSearch /> Buscar
+                  </>
+                )}
+              </button>
 
-          <button type="submit" className="btn-filtrar" disabled={isLoading}>
-            {isLoading ? (
-              "Buscando..."
-            ) : (
-              <>
-                <FiSearch /> Buscar
-              </>
-            )}
-          </button>
-        </form>
+              <button
+                type="button"
+                className="btn-filtrar"
+                onClick={handleReset}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  backgroundColor: "transparent",
+                  color: "#64748B",
+                  border: "1px solid #CBD5E1",
+                  boxShadow: "none",
+                  marginTop: "0px",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#F1F5F9";
+                  e.currentTarget.style.borderColor = "#94A3B8";
+                  e.currentTarget.style.color = "#334155";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.borderColor = "#CBD5E1";
+                  e.currentTarget.style.color = "#64748B";
+                }}
+              >
+                <FiTrash2 /> Limpiar Filtros
+              </button>
+            </div>
+          </form>
+        </div>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -244,7 +307,6 @@ export default function Resultados() {
           </div>
 
           <div className="table-wrapper">
-            {/* INDICADOR DE REFRESH EN BACKGROUND */}
             {isFetching && !isLoading && (
               <div
                 style={{
@@ -258,7 +320,6 @@ export default function Resultados() {
               </div>
             )}
 
-            {/* MANEJO DE ERRORES */}
             {isError && (
               <div style={{ color: "red", padding: "20px" }}>
                 Error al cargar los datos.
@@ -330,55 +391,87 @@ export default function Resultados() {
                 )}
               </tbody>
             </table>
-          
-          {/* BARRA DE PAGINACIÓN */}
-          <div className="pagination-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderTop: '1px solid #eee' }}>
-            
-            <span style={{ color: '#666', fontSize: '0.9rem' }}>
-              Mostrando {data?.protocolos?.length || 0} resultados
-            </span>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button 
-                onClick={handlePreviousPage}
-                disabled={formValues.page === 1 || isLoading}
-                className="btn-pagination"
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  background: formValues.page === 1 ? '#f5f5f5' : 'white',
-                  cursor: formValues.page === 1 ? 'not-allowed' : 'pointer',
-                  color: formValues.page === 1 ? '#aaa' : '#333'
-                }}
-              >
-                &lt; Anterior
-              </button>
-
-              <span style={{ fontWeight: 'bold', minWidth: '30px', textAlign: 'center' }}>
-                {formValues.page}
+            <div
+              className="pagination-bar"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "1rem",
+                borderTop: "1px solid #eee",
+              }}
+            >
+              <span style={{ color: "#666", fontSize: "0.9rem" }}>
+                Mostrando {data?.protocolos?.length || 0} resultados
               </span>
 
-              <button 
-                onClick={handleNextPage}
-                disabled={isLoading || (data?.protocolos?.length || 0) < Number(formValues.page_size)}
-                className="btn-pagination"
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  background: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? '#f5f5f5' : 'white',
-                  cursor: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? 'not-allowed' : 'pointer',
-                  color: (data?.protocolos?.length || 0) < Number(formValues.page_size) ? '#aaa' : '#333'
-                }}
+              <div
+                style={{ display: "flex", gap: "10px", alignItems: "center" }}
               >
-                Siguiente &gt;
-              </button>
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={formValues.page === 1 || isLoading}
+                  className="btn-pagination"
+                  style={{
+                    padding: "8px 16px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    background: formValues.page === 1 ? "#f5f5f5" : "white",
+                    cursor: formValues.page === 1 ? "not-allowed" : "pointer",
+                    color: formValues.page === 1 ? "#aaa" : "#333",
+                  }}
+                >
+                  &lt; Anterior
+                </button>
+
+                <span
+                  style={{
+                    fontWeight: "bold",
+                    minWidth: "30px",
+                    textAlign: "center",
+                  }}
+                >
+                  {formValues.page}
+                </span>
+
+                <button
+                  onClick={handleNextPage}
+                  disabled={
+                    isLoading ||
+                    (data?.protocolos?.length || 0) <
+                      Number(formValues.page_size)
+                  }
+                  className="btn-pagination"
+                  style={{
+                    padding: "8px 16px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    background:
+                      (data?.protocolos?.length || 0) <
+                      Number(formValues.page_size)
+                        ? "#f5f5f5"
+                        : "white",
+                    cursor:
+                      (data?.protocolos?.length || 0) <
+                      Number(formValues.page_size)
+                        ? "not-allowed"
+                        : "pointer",
+                    color:
+                      (data?.protocolos?.length || 0) <
+                      Number(formValues.page_size)
+                        ? "#aaa"
+                        : "#333",
+                  }}
+                >
+                  Siguiente &gt;
+                </button>
+              </div>
             </div>
-          </div>
           </div>
         </section>
 
+        {/* DETALLE PANEL */}
         <section className="detail-panel">
           <div className="detail-header">
             <div className="patient-info">

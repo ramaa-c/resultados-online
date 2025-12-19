@@ -16,6 +16,11 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--secondary);
   margin: 0;
+  outline: none;
+}
+
+body button:focus{
+  outline: none;
 }
 
 .dashboard-container {
@@ -27,7 +32,7 @@ body {
 
 /* --- SIDEBAR --- */
 .sidebar-filters {
-  width: 280px;
+  width: 220px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 15px;
@@ -41,7 +46,6 @@ body {
 .sidebar-logo {
   max-width: 200px;
   margin-bottom: 15px;
-  display: block;
 }
 
 .filter-title {
@@ -146,7 +150,7 @@ body {
 
 /* Panel Izquierdo */
 .list-panel {
-  width: 60%;
+  width: 65%;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -402,4 +406,53 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(41%) sepia(68%) saturate(3016%) hue-rotate(170deg) brightness(97%) contrast(101%);
   width: 18px;
   height: 18px;
+}
+
+/* --- NUEVOS ESTILOS PARA FILTROS DESPLEGABLES --- */
+
+.filter-toggle-btn {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(1, 152, 204, 0.2);
+}
+
+.filter-toggle-btn:hover {
+  background: #d0f0ff;
+  border-color: var(--primary);
+}
+
+.filter-toggle-btn.active {
+  background: var(--primary);
+  color: white;
+  margin-bottom: 15px;
+}
+
+.arrow-icon {
+  margin-left: auto;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.filters-collapsible {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+  opacity: 0;
+}
+
+.filters-collapsible.show {
+  max-height: 2000px;
+  opacity: 1;
+  transition: max-height 0.4s ease-in-out;
+  padding-bottom: 20px;
 }
