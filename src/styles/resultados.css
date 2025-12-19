@@ -276,7 +276,6 @@ body button:focus{
   background-color: var(--success);
 }
 
-/* Badges Estado */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -297,7 +296,6 @@ body button:focus{
   color: #B45309;
 }
 
-/* Panel Derecho */
 .detail-panel {
   flex: 1;
   background: #eef2f6;
@@ -307,7 +305,33 @@ body button:focus{
   overflow-y: auto;
 }
 
-/* Cabecera del reporte */
+.no-selection-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #94a3b8;
+  text-align: center;
+  background-color: #f8fafc; 
+}
+
+.no-selection-message p {
+  margin-top: 16px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #64748b;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.no-selection-message svg {
+  opacity: 0.4;
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
 .detail-header {
   display: flex;
   justify-content: space-between;
@@ -315,7 +339,6 @@ body button:focus{
   margin-bottom: 20px;
 }
 
-/* Botón de Imprimir */
 .btn-print {
   background: var(--secondary);
   color: white;

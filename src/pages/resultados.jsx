@@ -36,29 +36,23 @@ export default function Resultados() {
 
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
-  
-
   const [activeFilters, setActiveFilters] = useState(formValues);
   const [highlightedProtocol, setHighlightedProtocol] = useState(null);
 
-// El que realmente se muestra en el panel derecho (doble clic o botón)
-const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
 
-const { 
-    data: resultsData, 
-    isLoading: isLoadingResults, 
-    isError: isErrorResults 
+  const {
+    data: resultsData,
+    isLoading: isLoadingResults,
+    isError: isErrorResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
- 
-
-// Función para cargar los resultados (se usa en doble clic y en el botón "Ver Resultados")
-const handleViewResults = (protocolo) => {
-  const target = protocolo || highlightedProtocol;
-  if (target) {
-    setSelectedProtocol(target);
-  }
-};
+  const handleViewResults = (protocolo) => {
+    const target = protocolo || highlightedProtocol;
+    if (target) {
+      setSelectedProtocol(target);
+    }
+  };
   const [showFilters, setShowFilters] = useState(false);
 
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
@@ -116,8 +110,6 @@ const handleViewResults = (protocolo) => {
   };
 
   return (
-
-    
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
       <aside className="sidebar-filters">
@@ -322,13 +314,13 @@ const handleViewResults = (protocolo) => {
       <main className="split-view">
         <section className="list-panel">
           <div className="panel-header-actions">
-            <button 
-            className="btn-mini-action"
-            onClick={() => setIsEmailModalOpen(true)}
-            disabled={!highlightedProtocol}
-          >
-            <FiMail size={20} /> Enviar por Email
-          </button>
+            <button
+              className="btn-mini-action"
+              onClick={() => setIsEmailModalOpen(true)}
+              disabled={!highlightedProtocol}
+            >
+              <FiMail size={20} /> Enviar por Email
+            </button>
             <button className="btn-mini-action">
               <FiFileText size={20} /> Visualizar PDF
             </button>
@@ -380,19 +372,17 @@ const handleViewResults = (protocolo) => {
                 }}
               >
                 {data?.protocolos?.map((item) => (
-                    <tr 
-                      key={item.protocoloid}
-                      // El color azul ahora depende de 'highlightedProtocol'
-                      className={highlightedProtocol?.protocoloid === item.protocoloid ? "selected-row" : ""}
-                      
-                      // Un solo clic: solo resalta
-                      onClick={() => setHighlightedProtocol(item)}
-                      
-                      // Doble clic: carga la información a la derecha
-                      onDoubleClick={() => handleViewResults(item)}
-                      
-                      style={{ cursor: 'pointer', userSelect: 'none' }} // userSelect evita que se sombree el texto al hacer doble clic
-                    >
+                  <tr
+                    key={item.protocoloid}
+                    className={
+                      highlightedProtocol?.protocoloid === item.protocoloid
+                        ? "selected-row"
+                        : ""
+                    }
+                    onClick={() => setHighlightedProtocol(item)}
+                    onDoubleClick={() => handleViewResults(item)}
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                  >
                     <td className="font-mono">{item.accessionnumber}</td>
                     <td>{formatDate(item.ordereddate)}</td>
                     <td>
@@ -517,148 +507,197 @@ const handleViewResults = (protocolo) => {
           </div>
         </section>
 
-       <section className="detail-panel">
-  {selectedProtocol ? (
-    <>
-      <div className="detail-header">
-        <div className="patient-info">
-          <h2><FiActivity className="icon-title" /> Visualización de Resultados</h2>
-          <div className="protocol-main-badge">
-            Protocolo: <strong>{selectedProtocol.accessionnumber}</strong>
-          </div>
-        </div>
-        <button className="btn-print" onClick={() => window.print()}>
-          <FiPrinter /> Imprimir Resultados
-        </button>
-      </div>
-
-      <div className="report-canvas">
-        <div className="report-paper">
-          {/* CABECERA CON DATOS DEL PACIENTE */}
-          <div className="patient-data-grid">
-            <div className="data-row">
-              <div className="data-cell">
-                <label>Paciente</label>
-                <span className="val-important">{selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}</span>
-              </div>
-              <div className="data-cell">
-                <label>ID Interno</label>
-                <span>{selectedProtocol.protocoloid}</span>
-              </div>
-              <div className="data-cell">
-                <label>Fecha</label>
-                <span>{formatDate(selectedProtocol.ordereddate)}</span>
-              </div>
-            </div>
-
-            <div className="data-row">
-              <div className="data-cell">
-                <label>Loc / Origen</label>
-                <span>{selectedProtocol.paclocid} - {selectedProtocol.paclocname || 'S/D'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Sexo</label>
-                <span>{selectedProtocol.pacsex === 'M' ? 'Masculino' : 'Femenino'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Edad</label>
-                <span>{selectedProtocol.pacage} años</span>
-              </div>
-            </div>
-
-            <div className="data-row">
-              <div className="data-cell">
-                <label>ID Externo</label>
-                <span className="font-mono">{selectedProtocol.idexterno || '-'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Estado</label>
-                <span className={`status-text ${selectedProtocol.completo ? 'text-complete' : 'text-pending'}`}>
-                  {selectedProtocol.completo ? 'Resultados Completos' : 'Resultados Parciales'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <hr className="divider" />
-
-          {/* CONTENIDO DE RESULTADOS DE LA API */}
-          <div className="results-content">
-            {isLoadingResults ? (
-              <div className="loading-results">Cargando análisis...</div>
-            ) : isErrorResults ? (
-              <div className="error-container">⚠️ Error al conectar con el servidor.</div>
-            ) : resultsData?.resultados?.length > 0 ? (
-              <>
-                <div className="results-table-header">
-                  <span>Determinación</span>
-                  <span>Resultado</span>
-                  <span>Unidades</span>
-                  <span>Valores de Referencia</span>
-                </div>
-
-                {resultsData.resultados.map((res, index) => {
-                  const mostrarTitulo = index === 0 || res.grupotitulo !== resultsData.resultados[index - 1].grupotitulo;
-                  return (
-                    <React.Fragment key={index}>
-                      {res.grupotitulo && mostrarTitulo && (
-                        <div className="result-category">{res.grupotitulo}</div>
-                      )}
-                      
-                      <div className="result-item-row">
-                        <div className="det-col">
-                          <strong>{res.analisis}</strong>
-                          {res.metodo && <small>Método: {res.metodo}</small>}
-                        </div>
-                        <div className="res-col highlighted">
-                          {res.resultado}
-                          {res.notaresultado && <div className="res-note">{res.notaresultado}</div>}
-                        </div>
-                        <div className="uni-col">{res.unidadmedida || '-'}</div>
-                        <div className="ref-col">
-                          {res.valoresreferencia || res.rangovalidacion || '-'}
-                        </div>
-                      </div>
-                      
-                      {res.observaciones && (
-                        <div className="res-obs">Obs: {res.observaciones}</div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-
-                {resultsData?.comentarios?.length > 0 && (
-                  <div className="general-comments">
-                    <h4>Comentarios Generales:</h4>
-                    {resultsData.comentarios.map((c, i) => (
-                      <p key={i}>{c.comentario}</p>
-                    ))}
+        <section className="detail-panel">
+          {selectedProtocol ? (
+            <>
+              <div className="detail-header">
+                <div className="patient-info">
+                  <h2>
+                    <FiActivity className="icon-title" /> Visualización de
+                    Resultados
+                  </h2>
+                  <div className="protocol-main-badge">
+                    Protocolo:{" "}
+                    <strong>{selectedProtocol.accessionnumber}</strong>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="no-data-message">
-                <FiInfo size={30} />
-                <p>Este protocolo no contiene resultados registrados aún.</p>
+                </div>
+                <button className="btn-print" onClick={() => window.print()}>
+                  <FiPrinter /> Imprimir Resultados
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
-  ) : (
-    /* MENSAJE CUANDO NO HAY NINGUNA FILA SELECCIONADA CON DOBLE CLIC */
-    <div className="no-selection-message">
-      <FiEye size={50} style={{ opacity: 0.3 }} />
-      <p>Haga <strong>doble clic</strong> en un paciente para ver sus resultados</p>
-    </div>
-  )}
-</section>
+
+              <div className="report-canvas">
+                <div className="report-paper">
+                  {/* CABECERA CON DATOS DEL PACIENTE */}
+                  <div className="patient-data-grid">
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>Paciente</label>
+                        <span className="val-important">
+                          {selectedProtocol.apellidopaciente},{" "}
+                          {selectedProtocol.nombrepaciente}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>ID Interno</label>
+                        <span>{selectedProtocol.protocoloid}</span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Fecha</label>
+                        <span>{formatDate(selectedProtocol.ordereddate)}</span>
+                      </div>
+                    </div>
+
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>Loc / Origen</label>
+                        <span>
+                          {selectedProtocol.paclocid} -{" "}
+                          {selectedProtocol.paclocname || "S/D"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Sexo</label>
+                        <span>
+                          {selectedProtocol.pacsex === "M"
+                            ? "Masculino"
+                            : "Femenino"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Edad</label>
+                        <span>{selectedProtocol.pacage} años</span>
+                      </div>
+                    </div>
+
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>ID Externo</label>
+                        <span className="font-mono">
+                          {selectedProtocol.idexterno || "-"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Estado</label>
+                        <span
+                          className={`status-text ${
+                            selectedProtocol.completo
+                              ? "text-complete"
+                              : "text-pending"
+                          }`}
+                        >
+                          {selectedProtocol.completo
+                            ? "Resultados Completos"
+                            : "Resultados Parciales"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr className="divider" />
+
+                  {/* CONTENIDO DE RESULTADOS DE LA API */}
+                  <div className="results-content">
+                    {isLoadingResults ? (
+                      <div className="loading-results">
+                        Cargando análisis...
+                      </div>
+                    ) : isErrorResults ? (
+                      <div className="error-container">
+                        ⚠️ Error al conectar con el servidor.
+                      </div>
+                    ) : resultsData?.resultados?.length > 0 ? (
+                      <>
+                        <div className="results-table-header">
+                          <span>Determinación</span>
+                          <span>Resultado</span>
+                          <span>Unidades</span>
+                          <span>Valores de Referencia</span>
+                        </div>
+
+                        {resultsData.resultados.map((res, index) => {
+                          const mostrarTitulo =
+                            index === 0 ||
+                            res.grupotitulo !==
+                              resultsData.resultados[index - 1].grupotitulo;
+                          return (
+                            <React.Fragment key={index}>
+                              {res.grupotitulo && mostrarTitulo && (
+                                <div className="result-category">
+                                  {res.grupotitulo}
+                                </div>
+                              )}
+
+                              <div className="result-item-row">
+                                <div className="det-col">
+                                  <strong>{res.analisis}</strong>
+                                  {res.metodo && (
+                                    <small>Método: {res.metodo}</small>
+                                  )}
+                                </div>
+                                <div className="res-col highlighted">
+                                  {res.resultado}
+                                  {res.notaresultado && (
+                                    <div className="res-note">
+                                      {res.notaresultado}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="uni-col">
+                                  {res.unidadmedida || "-"}
+                                </div>
+                                <div className="ref-col">
+                                  {res.valoresreferencia ||
+                                    res.rangovalidacion ||
+                                    "-"}
+                                </div>
+                              </div>
+
+                              {res.observaciones && (
+                                <div className="res-obs">
+                                  Obs: {res.observaciones}
+                                </div>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+
+                        {resultsData?.comentarios?.length > 0 && (
+                          <div className="general-comments">
+                            <h4>Comentarios Generales:</h4>
+                            {resultsData.comentarios.map((c, i) => (
+                              <p key={i}>{c.comentario}</p>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="no-data-message">
+                        <FiInfo size={30} />
+                        <p>
+                          Este protocolo no contiene resultados registrados aún.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="no-selection-message">
+              <FiEye size={50} style={{ opacity: 0.3 }} />
+              <p>
+                Haga <strong>doble clic</strong> en un paciente para ver sus
+                resultados
+              </p>
+            </div>
+          )}
+        </section>
       </main>
-      <Email 
-        isOpen={isEmailModalOpen} 
-        onClose={() => setIsEmailModalOpen(false)} 
-        protocolo={highlightedProtocol} 
+      <Email
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        protocolo={highlightedProtocol}
       />
     </div>
   );

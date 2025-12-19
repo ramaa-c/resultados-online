@@ -71,3 +71,26 @@ export const getProtocols = async (filters) => {
     throw error;
   }
 };
+
+export const getProtocolResults = async (protocolId) => {
+  try {
+    const url = `/api/protocols/${protocolId}/results`;
+    console.log("🧪 Buscando resultados en:", url);
+
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Error API Resultados:", errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Resultados recibidos:", data);
+    return data;
+
+  } catch (error) {
+    console.error("🔥 Error en fetch resultados:", error);
+    throw error;
+  }
+};
