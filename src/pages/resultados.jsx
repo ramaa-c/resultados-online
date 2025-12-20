@@ -60,6 +60,7 @@ const handleViewResults = (protocolo) => {
   }
 };
   const [showFilters, setShowFilters] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
@@ -115,6 +116,77 @@ const handleViewResults = (protocolo) => {
     return dateString;
   };
 
+
+const handleViewPDF = async (protocolId) => {
+  if (!protocolId || isPdfLoading) return; 
+
+  setIsPdfLoading(true); 
+  try {
+    const response = await fetch(`/api/protocols/${protocolId}:getPdf`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/pdf' },
+    });
+
+    if (!response.ok) throw new Error("No se pudo obtener el PDF del servidor.");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const width = 1000;
+    const height = 800;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    window.open(
+      url, 
+      `PDF_${protocolId}`, 
+      `width=${width},height=${height},top=${top},left=${left},menubar=no,status=no,toolbar=no,location=no`
+    );
+    // -------------------
+
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
+  } catch (error) {
+    alert("Error: " + error.message);
+  } finally {
+    setIsPdfLoading(false); 
+  }
+};
+
+const [isDownloadLoading, setIsDownloadLoading] = useState(false);
+
+const handleDownloadPDF = async (protocolo) => {
+  if (!protocolo || isDownloadLoading) return;
+
+  setIsDownloadLoading(true);
+  try {
+    const response = await fetch(`/api/protocols/${protocolo.protocoloid}:getPdf`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/pdf' },
+    });
+
+    if (!response.ok) throw new Error("No se pudo descargar el archivo.");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Creamos un elemento 'a' invisible para forzar la descarga
+    const link = document.createElement('a');
+    link.href = url;
+    // Seteamos el nombre del archivo (usamos el accessionnumber que es el que conoce el paciente)
+    link.setAttribute('download', `Protocolo_${protocolo.accessionnumber}.pdf`);
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Limpiamos
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    alert("Error al descargar: " + error.message);
+  } finally {
+    setIsDownloadLoading(false);
+  }
+};
   return (
 
     
@@ -329,15 +401,39 @@ const handleViewResults = (protocolo) => {
           >
             <FiMail size={20} /> Enviar por Email
           </button>
-            <button className="btn-mini-action">
-              <FiFileText size={20} /> Visualizar PDF
-            </button>
+              <button 
+            className="btn-mini-action"
+            onClick={() => handleViewPDF(highlightedProtocol?.protocoloid)}
+            disabled={!highlightedProtocol || highlightedProtocol.completo === "" || isPdfLoading}
+          >
+            {isPdfLoading ? (
+              "Generando..." 
+            ) : (
+              <><FiFileText size={20} /> Visualizar PDF</>
+            )}
+          </button>
             <button className="btn-mini-action">
               <FiEye size={20} /> Ver Resultados
             </button>
-            <button className="btn-mini-action">
-              <FiDownload size={20} /> Descargar
-            </button>
+          <button 
+            className="btn-mini-action"
+            onClick={() => handleDownloadPDF(highlightedProtocol)}
+            // Se deshabilita si no hay selección, si está pendiente o si ya está descargando
+            disabled={!highlightedProtocol || highlightedProtocol.completo === "" || isDownloadLoading}
+            title={
+              !highlightedProtocol 
+                ? "Seleccione un paciente" 
+                : highlightedProtocol.completo === "" 
+                  ? "Protocolo pendiente" 
+                  : "Descargar PDF"
+            }
+          >
+            {isDownloadLoading ? (
+              "Descargando..."
+            ) : (
+              <><FiDownload size={20} /> Descargar</>
+            )}
+          </button>
           </div>
 
           <div className="table-wrapper">

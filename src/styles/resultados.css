@@ -577,3 +577,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 5px;
   color: #333;
 }
+.btn-mini-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1); /* Lo pone en blanco y negro para que sea obvio */
+}
