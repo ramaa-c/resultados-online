@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
+import { useProtocolMutations } from "../hooks/useProtocolsMutations";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email.jsx";
@@ -19,6 +20,8 @@ import {
   FiMail,
   FiInfo,
   FiTrash2,
+  FiBookOpen,
+  FiBookmark,
 } from "react-icons/fi";
 
 export default function Resultados() {
@@ -35,11 +38,19 @@ export default function Resultados() {
   });
 
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-
   const [activeFilters, setActiveFilters] = useState(formValues);
-  const [highlightedProtocol, setHighlightedProtocol] = useState(null);
 
+  // Selección
+  const [highlightedProtocol, setHighlightedProtocol] = useState(null);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
+
+  // Menú Contextual
+  const [contextMenu, setContextMenu] = useState(null);
+
+  // --- HOOKS ---
+  const { markRead, markUnread } = useProtocolMutations();
+
+  const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
   const {
     data: resultsData,
@@ -47,17 +58,38 @@ export default function Resultados() {
     isError: isErrorResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Cierra el menú al hacer click fuera
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, []);
+
+  // --- MANEJADOR VER RESULTADOS  ---
   const handleViewResults = (protocolo) => {
     const target = protocolo || highlightedProtocol;
     if (target) {
       setSelectedProtocol(target);
+      if (target.leido === "0") {
+        markRead.mutate(target.protocoloid);
+      }
     }
   };
-  const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+  // --- MANEJADOR CLICK DERECHO ---
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    setHighlightedProtocol(item);
+    setContextMenu({
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      item: item,
+    });
+  };
 
-  // MANEJADORES
+  // --- MANEJADORES DE FILTROS ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
@@ -119,7 +151,6 @@ export default function Resultados() {
           ) : (
             <h2>CentraLab</h2>
           )}
-
           <div
             className={`filter-toggle-btn ${showFilters ? "active" : ""}`}
             onClick={() => setShowFilters(!showFilters)}
@@ -132,7 +163,6 @@ export default function Resultados() {
 
         <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
           <form className="filters-form" onSubmit={handleSearch}>
-            {/* FECHA DESDE */}
             <div className="filter-group">
               <label>Fecha Desde</label>
               <div className="input-wrapper">
@@ -145,8 +175,6 @@ export default function Resultados() {
                 />
               </div>
             </div>
-
-            {/* FECHA HASTA */}
             <div className="filter-group">
               <label>Fecha Hasta</label>
               <div className="input-wrapper">
@@ -159,8 +187,6 @@ export default function Resultados() {
                 />
               </div>
             </div>
-
-            {/* DNI */}
             <div className="filter-group">
               <label>DNI Paciente</label>
               <input
@@ -172,8 +198,6 @@ export default function Resultados() {
                 placeholder="Ej: 25459633"
               />
             </div>
-
-            {/* APELLIDO */}
             <div className="filter-group">
               <label>Apellido del Paciente</label>
               <input
@@ -185,8 +209,6 @@ export default function Resultados() {
                 placeholder="Buscar apellido..."
               />
             </div>
-
-            {/* NOMBRE */}
             <div className="filter-group">
               <label>Nombre Paciente</label>
               <input
@@ -198,8 +220,6 @@ export default function Resultados() {
                 placeholder="Buscar nombre..."
               />
             </div>
-
-            {/* PROTOCOLO ID */}
             <div className="filter-group">
               <label>ID Petición / Protocolo</label>
               <div className="input-wrapper">
@@ -213,8 +233,6 @@ export default function Resultados() {
                 />
               </div>
             </div>
-
-            {/* PAGINADO Y FILAS */}
             <div className="filter-row">
               <div className="filter-group half">
                 <label>Pág.</label>
@@ -242,8 +260,6 @@ export default function Resultados() {
                 </select>
               </div>
             </div>
-
-            {/* SERVICIO */}
             <div className="filter-group">
               <label>Servicio Médico</label>
               <input
@@ -256,7 +272,6 @@ export default function Resultados() {
               />
             </div>
 
-            {/* BOTONES DE ACCIÓN */}
             <div
               style={{
                 display: "flex",
@@ -278,7 +293,6 @@ export default function Resultados() {
                   </>
                 )}
               </button>
-
               <button
                 type="button"
                 className="btn-filtrar"
@@ -291,16 +305,6 @@ export default function Resultados() {
                   border: "1px solid #CBD5E1",
                   boxShadow: "none",
                   marginTop: "0px",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#F1F5F9";
-                  e.currentTarget.style.borderColor = "#94A3B8";
-                  e.currentTarget.style.color = "#334155";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.borderColor = "#CBD5E1";
-                  e.currentTarget.style.color = "#64748B";
                 }}
               >
                 <FiTrash2 /> Limpiar Filtros
@@ -324,9 +328,16 @@ export default function Resultados() {
             <button className="btn-mini-action">
               <FiFileText size={20} /> Visualizar PDF
             </button>
-            <button className="btn-mini-action">
+
+            {/* BOTÓN VER RESULTADOS*/}
+            <button
+              className="btn-mini-action"
+              onClick={() => handleViewResults()}
+              disabled={!highlightedProtocol}
+            >
               <FiEye size={20} /> Ver Resultados
             </button>
+
             <button className="btn-mini-action">
               <FiDownload size={20} /> Descargar
             </button>
@@ -345,7 +356,6 @@ export default function Resultados() {
                 Actualizando datos...
               </div>
             )}
-
             {isError && (
               <div style={{ color: "red", padding: "20px" }}>
                 Error al cargar los datos.
@@ -371,49 +381,58 @@ export default function Resultados() {
                   transition: "opacity 0.2s",
                 }}
               >
-                {data?.protocolos?.map((item) => (
-                  <tr
-                    key={item.protocoloid}
-                    className={
-                      highlightedProtocol?.protocoloid === item.protocoloid
-                        ? "selected-row"
-                        : ""
-                    }
-                    onClick={() => setHighlightedProtocol(item)}
-                    onDoubleClick={() => handleViewResults(item)}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <td className="font-mono">{item.accessionnumber}</td>
-                    <td>{formatDate(item.ordereddate)}</td>
-                    <td>
-                      <span className="badge-service">
-                        {item.paclocid || "GRL"}
-                      </span>
-                    </td>
-                    <td className="font-mono">{item.pacid}</td>
-                    <td className="font-bold">{item.apellidopaciente}</td>
-                    <td>{item.nombrepaciente}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <span
-                        className={`indicator-dot ${
-                          item.debe ? "dot-red" : "dot-green"
-                        }`}
-                        title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                      ></span>
-                    </td>
-                    <td>
-                      {item.completo !== "" ? (
-                        <span className="status-badge status-complete">
-                          <FiCheckCircle /> Completo
+                {data?.protocolos?.map((item) => {
+                  const isUnread = item.leido === "0";
+                  const isSelected =
+                    highlightedProtocol?.protocoloid === item.protocoloid;
+
+                  return (
+                    <tr
+                      key={item.protocoloid}
+                      className={`
+                        ${isSelected ? "selected-row" : ""} 
+                        ${isUnread ? "font-bold-unread" : ""} 
+                      `}
+                      // Un Clic: Solo selecciona
+                      onClick={() => setHighlightedProtocol(item)}
+                      // Doble Clic: Abre y marca leído
+                      onDoubleClick={() => handleViewResults(item)}
+                      // Click Derecho: Menú contextual
+                      onContextMenu={(e) => handleContextMenu(e, item)}
+                      style={{ cursor: "pointer", userSelect: "none" }}
+                    >
+                      <td className="font-mono">{item.accessionnumber}</td>
+                      <td>{formatDate(item.ordereddate)}</td>
+                      <td>
+                        <span className="badge-service">
+                          {item.paclocid || "GRL"}
                         </span>
-                      ) : (
-                        <span className="status-badge status-pending">
-                          <FiClock /> Pendiente
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="font-mono">{item.pacid}</td>
+                      <td className="font-bold">{item.apellidopaciente}</td>
+                      <td>{item.nombrepaciente}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <span
+                          className={`indicator-dot ${
+                            item.debe ? "dot-red" : "dot-green"
+                          }`}
+                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                        ></span>
+                      </td>
+                      <td>
+                        {item.completo !== "" ? (
+                          <span className="status-badge status-complete">
+                            <FiCheckCircle /> Completo
+                          </span>
+                        ) : (
+                          <span className="status-badge status-pending">
+                            <FiClock /> Pendiente
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {data?.protocolos?.length === 0 && (
                   <tr>
@@ -428,6 +447,7 @@ export default function Resultados() {
               </tbody>
             </table>
 
+            {/* Paginación */}
             <div
               className="pagination-bar"
               style={{
@@ -441,7 +461,6 @@ export default function Resultados() {
               <span style={{ color: "#666", fontSize: "0.9rem" }}>
                 Mostrando {data?.protocolos?.length || 0} resultados
               </span>
-
               <div
                 style={{ display: "flex", gap: "10px", alignItems: "center" }}
               >
@@ -460,7 +479,6 @@ export default function Resultados() {
                 >
                   &lt; Anterior
                 </button>
-
                 <span
                   style={{
                     fontWeight: "bold",
@@ -470,7 +488,6 @@ export default function Resultados() {
                 >
                   {formValues.page}
                 </span>
-
                 <button
                   onClick={handleNextPage}
                   disabled={
@@ -507,6 +524,7 @@ export default function Resultados() {
           </div>
         </section>
 
+        {/* DETALLE PANEL */}
         <section className="detail-panel">
           {selectedProtocol ? (
             <>
@@ -528,7 +546,6 @@ export default function Resultados() {
 
               <div className="report-canvas">
                 <div className="report-paper">
-                  {/* CABECERA CON DATOS DEL PACIENTE */}
                   <div className="patient-data-grid">
                     <div className="data-row">
                       <div className="data-cell">
@@ -547,7 +564,6 @@ export default function Resultados() {
                         <span>{formatDate(selectedProtocol.ordereddate)}</span>
                       </div>
                     </div>
-
                     <div className="data-row">
                       <div className="data-cell">
                         <label>Loc / Origen</label>
@@ -569,7 +585,6 @@ export default function Resultados() {
                         <span>{selectedProtocol.pacage} años</span>
                       </div>
                     </div>
-
                     <div className="data-row">
                       <div className="data-cell">
                         <label>ID Externo</label>
@@ -593,10 +608,7 @@ export default function Resultados() {
                       </div>
                     </div>
                   </div>
-
                   <hr className="divider" />
-
-                  {/* CONTENIDO DE RESULTADOS DE LA API */}
                   <div className="results-content">
                     {isLoadingResults ? (
                       <div className="loading-results">
@@ -614,7 +626,6 @@ export default function Resultados() {
                           <span>Unidades</span>
                           <span>Valores de Referencia</span>
                         </div>
-
                         {resultsData.resultados.map((res, index) => {
                           const mostrarTitulo =
                             index === 0 ||
@@ -627,7 +638,6 @@ export default function Resultados() {
                                   {res.grupotitulo}
                                 </div>
                               )}
-
                               <div className="result-item-row">
                                 <div className="det-col">
                                   <strong>{res.analisis}</strong>
@@ -652,7 +662,6 @@ export default function Resultados() {
                                     "-"}
                                 </div>
                               </div>
-
                               {res.observaciones && (
                                 <div className="res-obs">
                                   Obs: {res.observaciones}
@@ -661,7 +670,6 @@ export default function Resultados() {
                             </React.Fragment>
                           );
                         })}
-
                         {resultsData?.comentarios?.length > 0 && (
                           <div className="general-comments">
                             <h4>Comentarios Generales:</h4>
@@ -674,9 +682,7 @@ export default function Resultados() {
                     ) : (
                       <div className="no-data-message">
                         <FiInfo size={30} />
-                        <p>
-                          Este protocolo no contiene resultados registrados aún.
-                        </p>
+                        <p>Sin resultados registrados.</p>
                       </div>
                     )}
                   </div>
@@ -694,6 +700,51 @@ export default function Resultados() {
           )}
         </section>
       </main>
+
+      {/* --- MENÚ CONTEXTUAL --- */}
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
+        >
+          {contextMenu.item.leido === "1" ? (
+            <div
+              className="context-menu-item"
+              onClick={() => {
+                console.log("Clic en Marcar NO leido");
+                markUnread.mutate(contextMenu.item.protocoloid);
+                setContextMenu(null);
+              }}
+            >
+              <FiBookmark /> Marcar como no leído
+            </div>
+          ) : (
+            <div
+              className="context-menu-item"
+              onClick={() => {
+                console.log("Clic en Marcar Leido");
+                markRead.mutate(contextMenu.item.protocoloid);
+                setContextMenu(null);
+              }}
+            >
+              <FiBookOpen /> Marcar como leído
+            </div>
+          )}
+
+          <div className="context-menu-separator"></div>
+
+          <div
+            className="context-menu-item"
+            onClick={() => {
+              setIsEmailModalOpen(true);
+              setContextMenu(null);
+            }}
+          >
+            <FiMail /> Enviar por Email
+          </div>
+        </div>
+      )}
+
       <Email
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
