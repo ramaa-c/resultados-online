@@ -600,6 +600,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 5px;
   color: #333;
 }
+.btn-mini-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
 
 /* --- ESTILOS DE FILA NO LEÍDA --- */
 .font-bold-unread td {
@@ -628,7 +632,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px; /* Espacio entre icono y texto */
+  gap: 10px;
   transition: background-color 0.15s;
 }
 
