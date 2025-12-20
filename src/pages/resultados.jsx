@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
+import { useProtocolMutations } from "../hooks/useProtocolsMutations";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email.jsx";
@@ -19,6 +20,8 @@ import {
   FiMail,
   FiInfo,
   FiTrash2,
+  FiBookOpen,
+  FiBookmark,
 } from "react-icons/fi";
 
 export default function Resultados() {
@@ -35,36 +38,59 @@ export default function Resultados() {
   });
 
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-
-  
-
   const [activeFilters, setActiveFilters] = useState(formValues);
+
+  // Selección
   const [highlightedProtocol, setHighlightedProtocol] = useState(null);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
 
-// El que realmente se muestra en el panel derecho (doble clic o botón)
-const [selectedProtocol, setSelectedProtocol] = useState(null);
+  // Menú Contextual
+  const [contextMenu, setContextMenu] = useState(null);
 
-const { 
-    data: resultsData, 
-    isLoading: isLoadingResults, 
-    isError: isErrorResults 
-  } = useProtocolResults(selectedProtocol?.protocoloid);
-
- 
-
-// Función para cargar los resultados (se usa en doble clic y en el botón "Ver Resultados")
-const handleViewResults = (protocolo) => {
-  const target = protocolo || highlightedProtocol;
-  if (target) {
-    setSelectedProtocol(target);
-  }
-};
-  const [showFilters, setShowFilters] = useState(false);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  // --- HOOKS ---
+  const { markRead, markUnread } = useProtocolMutations();
 
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
-  // MANEJADORES
+  const {
+    data: resultsData,
+    isLoading: isLoadingResults,
+    isError: isErrorResults,
+  } = useProtocolResults(selectedProtocol?.protocoloid);
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  // Cierra el menú al hacer click fuera
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, []);
+
+  // --- MANEJADOR VER RESULTADOS  ---
+  const handleViewResults = (protocolo) => {
+    const target = protocolo || highlightedProtocol;
+    if (target) {
+      setSelectedProtocol(target);
+      if (target.leido === "0") {
+        markRead.mutate(target.protocoloid);
+      }
+    }
+  };
+
+  // --- MANEJADOR CLICK DERECHO ---
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    setHighlightedProtocol(item);
+    setContextMenu({
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      item: item,
+    });
+  };
+
+  // --- MANEJADORES DE FILTROS ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
@@ -188,8 +214,6 @@ const handleDownloadPDF = async (protocolo) => {
   }
 };
   return (
-
-    
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
       <aside className="sidebar-filters">
@@ -199,7 +223,6 @@ const handleDownloadPDF = async (protocolo) => {
           ) : (
             <h2>CentraLab</h2>
           )}
-
           <div
             className={`filter-toggle-btn ${showFilters ? "active" : ""}`}
             onClick={() => setShowFilters(!showFilters)}
@@ -212,7 +235,6 @@ const handleDownloadPDF = async (protocolo) => {
 
         <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
           <form className="filters-form" onSubmit={handleSearch}>
-            {/* FECHA DESDE */}
             <div className="filter-group">
               <label>Fecha Desde</label>
               <div className="input-wrapper">
@@ -225,8 +247,6 @@ const handleDownloadPDF = async (protocolo) => {
                 />
               </div>
             </div>
-
-            {/* FECHA HASTA */}
             <div className="filter-group">
               <label>Fecha Hasta</label>
               <div className="input-wrapper">
@@ -239,8 +259,6 @@ const handleDownloadPDF = async (protocolo) => {
                 />
               </div>
             </div>
-
-            {/* DNI */}
             <div className="filter-group">
               <label>DNI Paciente</label>
               <input
@@ -252,8 +270,6 @@ const handleDownloadPDF = async (protocolo) => {
                 placeholder="Ej: 25459633"
               />
             </div>
-
-            {/* APELLIDO */}
             <div className="filter-group">
               <label>Apellido del Paciente</label>
               <input
@@ -265,8 +281,6 @@ const handleDownloadPDF = async (protocolo) => {
                 placeholder="Buscar apellido..."
               />
             </div>
-
-            {/* NOMBRE */}
             <div className="filter-group">
               <label>Nombre Paciente</label>
               <input
@@ -278,8 +292,6 @@ const handleDownloadPDF = async (protocolo) => {
                 placeholder="Buscar nombre..."
               />
             </div>
-
-            {/* PROTOCOLO ID */}
             <div className="filter-group">
               <label>ID Petición / Protocolo</label>
               <div className="input-wrapper">
@@ -293,8 +305,6 @@ const handleDownloadPDF = async (protocolo) => {
                 />
               </div>
             </div>
-
-            {/* PAGINADO Y FILAS */}
             <div className="filter-row">
               <div className="filter-group half">
                 <label>Pág.</label>
@@ -322,8 +332,6 @@ const handleDownloadPDF = async (protocolo) => {
                 </select>
               </div>
             </div>
-
-            {/* SERVICIO */}
             <div className="filter-group">
               <label>Servicio Médico</label>
               <input
@@ -336,7 +344,6 @@ const handleDownloadPDF = async (protocolo) => {
               />
             </div>
 
-            {/* BOTONES DE ACCIÓN */}
             <div
               style={{
                 display: "flex",
@@ -358,7 +365,6 @@ const handleDownloadPDF = async (protocolo) => {
                   </>
                 )}
               </button>
-
               <button
                 type="button"
                 className="btn-filtrar"
@@ -371,16 +377,6 @@ const handleDownloadPDF = async (protocolo) => {
                   border: "1px solid #CBD5E1",
                   boxShadow: "none",
                   marginTop: "0px",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#F1F5F9";
-                  e.currentTarget.style.borderColor = "#94A3B8";
-                  e.currentTarget.style.color = "#334155";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.borderColor = "#CBD5E1";
-                  e.currentTarget.style.color = "#64748B";
                 }}
               >
                 <FiTrash2 /> Limpiar Filtros
@@ -449,7 +445,6 @@ const handleDownloadPDF = async (protocolo) => {
                 Actualizando datos...
               </div>
             )}
-
             {isError && (
               <div style={{ color: "red", padding: "20px" }}>
                 Error al cargar los datos.
@@ -475,51 +470,58 @@ const handleDownloadPDF = async (protocolo) => {
                   transition: "opacity 0.2s",
                 }}
               >
-                {data?.protocolos?.map((item) => (
-                    <tr 
+                {data?.protocolos?.map((item) => {
+                  const isUnread = item.leido === "0";
+                  const isSelected =
+                    highlightedProtocol?.protocoloid === item.protocoloid;
+
+                  return (
+                    <tr
                       key={item.protocoloid}
-                      // El color azul ahora depende de 'highlightedProtocol'
-                      className={highlightedProtocol?.protocoloid === item.protocoloid ? "selected-row" : ""}
-                      
-                      // Un solo clic: solo resalta
+                      className={`
+                        ${isSelected ? "selected-row" : ""} 
+                        ${isUnread ? "font-bold-unread" : ""} 
+                      `}
+                      // Un Clic: Solo selecciona
                       onClick={() => setHighlightedProtocol(item)}
-                      
-                      // Doble clic: carga la información a la derecha
+                      // Doble Clic: Abre y marca leído
                       onDoubleClick={() => handleViewResults(item)}
-                      
-                      style={{ cursor: 'pointer', userSelect: 'none' }} // userSelect evita que se sombree el texto al hacer doble clic
+                      // Click Derecho: Menú contextual
+                      onContextMenu={(e) => handleContextMenu(e, item)}
+                      style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                    <td className="font-mono">{item.accessionnumber}</td>
-                    <td>{formatDate(item.ordereddate)}</td>
-                    <td>
-                      <span className="badge-service">
-                        {item.paclocid || "GRL"}
-                      </span>
-                    </td>
-                    <td className="font-mono">{item.pacid}</td>
-                    <td className="font-bold">{item.apellidopaciente}</td>
-                    <td>{item.nombrepaciente}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <span
-                        className={`indicator-dot ${
-                          item.debe ? "dot-red" : "dot-green"
-                        }`}
-                        title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                      ></span>
-                    </td>
-                    <td>
-                      {item.completo !== "" ? (
-                        <span className="status-badge status-complete">
-                          <FiCheckCircle /> Completo
+                      <td className="font-mono">{item.accessionnumber}</td>
+                      <td>{formatDate(item.ordereddate)}</td>
+                      <td>
+                        <span className="badge-service">
+                          {item.paclocid || "GRL"}
                         </span>
-                      ) : (
-                        <span className="status-badge status-pending">
-                          <FiClock /> Pendiente
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="font-mono">{item.pacid}</td>
+                      <td className="font-bold">{item.apellidopaciente}</td>
+                      <td>{item.nombrepaciente}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <span
+                          className={`indicator-dot ${
+                            item.debe ? "dot-red" : "dot-green"
+                          }`}
+                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                        ></span>
+                      </td>
+                      <td>
+                        {item.completo !== "" ? (
+                          <span className="status-badge status-complete">
+                            <FiCheckCircle /> Completo
+                          </span>
+                        ) : (
+                          <span className="status-badge status-pending">
+                            <FiClock /> Pendiente
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {data?.protocolos?.length === 0 && (
                   <tr>
@@ -534,6 +536,7 @@ const handleDownloadPDF = async (protocolo) => {
               </tbody>
             </table>
 
+            {/* Paginación */}
             <div
               className="pagination-bar"
               style={{
@@ -547,7 +550,6 @@ const handleDownloadPDF = async (protocolo) => {
               <span style={{ color: "#666", fontSize: "0.9rem" }}>
                 Mostrando {data?.protocolos?.length || 0} resultados
               </span>
-
               <div
                 style={{ display: "flex", gap: "10px", alignItems: "center" }}
               >
@@ -566,7 +568,6 @@ const handleDownloadPDF = async (protocolo) => {
                 >
                   &lt; Anterior
                 </button>
-
                 <span
                   style={{
                     fontWeight: "bold",
@@ -576,7 +577,6 @@ const handleDownloadPDF = async (protocolo) => {
                 >
                   {formValues.page}
                 </span>
-
                 <button
                   onClick={handleNextPage}
                   disabled={
@@ -613,148 +613,231 @@ const handleDownloadPDF = async (protocolo) => {
           </div>
         </section>
 
-       <section className="detail-panel">
-  {selectedProtocol ? (
-    <>
-      <div className="detail-header">
-        <div className="patient-info">
-          <h2><FiActivity className="icon-title" /> Visualización de Resultados</h2>
-          <div className="protocol-main-badge">
-            Protocolo: <strong>{selectedProtocol.accessionnumber}</strong>
-          </div>
-        </div>
-        <button className="btn-print" onClick={() => window.print()}>
-          <FiPrinter /> Imprimir Resultados
-        </button>
-      </div>
-
-      <div className="report-canvas">
-        <div className="report-paper">
-          {/* CABECERA CON DATOS DEL PACIENTE */}
-          <div className="patient-data-grid">
-            <div className="data-row">
-              <div className="data-cell">
-                <label>Paciente</label>
-                <span className="val-important">{selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}</span>
-              </div>
-              <div className="data-cell">
-                <label>ID Interno</label>
-                <span>{selectedProtocol.protocoloid}</span>
-              </div>
-              <div className="data-cell">
-                <label>Fecha</label>
-                <span>{formatDate(selectedProtocol.ordereddate)}</span>
-              </div>
-            </div>
-
-            <div className="data-row">
-              <div className="data-cell">
-                <label>Loc / Origen</label>
-                <span>{selectedProtocol.paclocid} - {selectedProtocol.paclocname || 'S/D'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Sexo</label>
-                <span>{selectedProtocol.pacsex === 'M' ? 'Masculino' : 'Femenino'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Edad</label>
-                <span>{selectedProtocol.pacage} años</span>
-              </div>
-            </div>
-
-            <div className="data-row">
-              <div className="data-cell">
-                <label>ID Externo</label>
-                <span className="font-mono">{selectedProtocol.idexterno || '-'}</span>
-              </div>
-              <div className="data-cell">
-                <label>Estado</label>
-                <span className={`status-text ${selectedProtocol.completo ? 'text-complete' : 'text-pending'}`}>
-                  {selectedProtocol.completo ? 'Resultados Completos' : 'Resultados Parciales'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <hr className="divider" />
-
-          {/* CONTENIDO DE RESULTADOS DE LA API */}
-          <div className="results-content">
-            {isLoadingResults ? (
-              <div className="loading-results">Cargando análisis...</div>
-            ) : isErrorResults ? (
-              <div className="error-container">⚠️ Error al conectar con el servidor.</div>
-            ) : resultsData?.resultados?.length > 0 ? (
-              <>
-                <div className="results-table-header">
-                  <span>Determinación</span>
-                  <span>Resultado</span>
-                  <span>Unidades</span>
-                  <span>Valores de Referencia</span>
-                </div>
-
-                {resultsData.resultados.map((res, index) => {
-                  const mostrarTitulo = index === 0 || res.grupotitulo !== resultsData.resultados[index - 1].grupotitulo;
-                  return (
-                    <React.Fragment key={index}>
-                      {res.grupotitulo && mostrarTitulo && (
-                        <div className="result-category">{res.grupotitulo}</div>
-                      )}
-                      
-                      <div className="result-item-row">
-                        <div className="det-col">
-                          <strong>{res.analisis}</strong>
-                          {res.metodo && <small>Método: {res.metodo}</small>}
-                        </div>
-                        <div className="res-col highlighted">
-                          {res.resultado}
-                          {res.notaresultado && <div className="res-note">{res.notaresultado}</div>}
-                        </div>
-                        <div className="uni-col">{res.unidadmedida || '-'}</div>
-                        <div className="ref-col">
-                          {res.valoresreferencia || res.rangovalidacion || '-'}
-                        </div>
-                      </div>
-                      
-                      {res.observaciones && (
-                        <div className="res-obs">Obs: {res.observaciones}</div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-
-                {resultsData?.comentarios?.length > 0 && (
-                  <div className="general-comments">
-                    <h4>Comentarios Generales:</h4>
-                    {resultsData.comentarios.map((c, i) => (
-                      <p key={i}>{c.comentario}</p>
-                    ))}
+        {/* DETALLE PANEL */}
+        <section className="detail-panel">
+          {selectedProtocol ? (
+            <>
+              <div className="detail-header">
+                <div className="patient-info">
+                  <h2>
+                    <FiActivity className="icon-title" /> Visualización de
+                    Resultados
+                  </h2>
+                  <div className="protocol-main-badge">
+                    Protocolo:{" "}
+                    <strong>{selectedProtocol.accessionnumber}</strong>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="no-data-message">
-                <FiInfo size={30} />
-                <p>Este protocolo no contiene resultados registrados aún.</p>
+                </div>
+                <button className="btn-print" onClick={() => window.print()}>
+                  <FiPrinter /> Imprimir Resultados
+                </button>
               </div>
-            )}
+
+              <div className="report-canvas">
+                <div className="report-paper">
+                  <div className="patient-data-grid">
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>Paciente</label>
+                        <span className="val-important">
+                          {selectedProtocol.apellidopaciente},{" "}
+                          {selectedProtocol.nombrepaciente}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>ID Interno</label>
+                        <span>{selectedProtocol.protocoloid}</span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Fecha</label>
+                        <span>{formatDate(selectedProtocol.ordereddate)}</span>
+                      </div>
+                    </div>
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>Loc / Origen</label>
+                        <span>
+                          {selectedProtocol.paclocid} -{" "}
+                          {selectedProtocol.paclocname || "S/D"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Sexo</label>
+                        <span>
+                          {selectedProtocol.pacsex === "M"
+                            ? "Masculino"
+                            : "Femenino"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Edad</label>
+                        <span>{selectedProtocol.pacage} años</span>
+                      </div>
+                    </div>
+                    <div className="data-row">
+                      <div className="data-cell">
+                        <label>ID Externo</label>
+                        <span className="font-mono">
+                          {selectedProtocol.idexterno || "-"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Estado</label>
+                        <span
+                          className={`status-text ${
+                            selectedProtocol.completo
+                              ? "text-complete"
+                              : "text-pending"
+                          }`}
+                        >
+                          {selectedProtocol.completo
+                            ? "Resultados Completos"
+                            : "Resultados Parciales"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="divider" />
+                  <div className="results-content">
+                    {isLoadingResults ? (
+                      <div className="loading-results">
+                        Cargando análisis...
+                      </div>
+                    ) : isErrorResults ? (
+                      <div className="error-container">
+                        ⚠️ Error al conectar con el servidor.
+                      </div>
+                    ) : resultsData?.resultados?.length > 0 ? (
+                      <>
+                        <div className="results-table-header">
+                          <span>Determinación</span>
+                          <span>Resultado</span>
+                          <span>Unidades</span>
+                          <span>Valores de Referencia</span>
+                        </div>
+                        {resultsData.resultados.map((res, index) => {
+                          const mostrarTitulo =
+                            index === 0 ||
+                            res.grupotitulo !==
+                              resultsData.resultados[index - 1].grupotitulo;
+                          return (
+                            <React.Fragment key={index}>
+                              {res.grupotitulo && mostrarTitulo && (
+                                <div className="result-category">
+                                  {res.grupotitulo}
+                                </div>
+                              )}
+                              <div className="result-item-row">
+                                <div className="det-col">
+                                  <strong>{res.analisis}</strong>
+                                  {res.metodo && (
+                                    <small>Método: {res.metodo}</small>
+                                  )}
+                                </div>
+                                <div className="res-col highlighted">
+                                  {res.resultado}
+                                  {res.notaresultado && (
+                                    <div className="res-note">
+                                      {res.notaresultado}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="uni-col">
+                                  {res.unidadmedida || "-"}
+                                </div>
+                                <div className="ref-col">
+                                  {res.valoresreferencia ||
+                                    res.rangovalidacion ||
+                                    "-"}
+                                </div>
+                              </div>
+                              {res.observaciones && (
+                                <div className="res-obs">
+                                  Obs: {res.observaciones}
+                                </div>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                        {resultsData?.comentarios?.length > 0 && (
+                          <div className="general-comments">
+                            <h4>Comentarios Generales:</h4>
+                            {resultsData.comentarios.map((c, i) => (
+                              <p key={i}>{c.comentario}</p>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="no-data-message">
+                        <FiInfo size={30} />
+                        <p>Sin resultados registrados.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="no-selection-message">
+              <FiEye size={50} style={{ opacity: 0.3 }} />
+              <p>
+                Haga <strong>doble clic</strong> en un paciente para ver sus
+                resultados
+              </p>
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* --- MENÚ CONTEXTUAL --- */}
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
+        >
+          {contextMenu.item.leido === "1" ? (
+            <div
+              className="context-menu-item"
+              onClick={() => {
+                console.log("Clic en Marcar NO leido");
+                markUnread.mutate(contextMenu.item.protocoloid);
+                setContextMenu(null);
+              }}
+            >
+              <FiBookmark /> Marcar como no leído
+            </div>
+          ) : (
+            <div
+              className="context-menu-item"
+              onClick={() => {
+                console.log("Clic en Marcar Leido");
+                markRead.mutate(contextMenu.item.protocoloid);
+                setContextMenu(null);
+              }}
+            >
+              <FiBookOpen /> Marcar como leído
+            </div>
+          )}
+
+          <div className="context-menu-separator"></div>
+
+          <div
+            className="context-menu-item"
+            onClick={() => {
+              setIsEmailModalOpen(true);
+              setContextMenu(null);
+            }}
+          >
+            <FiMail /> Enviar por Email
           </div>
         </div>
-      </div>
-    </>
-  ) : (
-    /* MENSAJE CUANDO NO HAY NINGUNA FILA SELECCIONADA CON DOBLE CLIC */
-    <div className="no-selection-message">
-      <FiEye size={50} style={{ opacity: 0.3 }} />
-      <p>Haga <strong>doble clic</strong> en un paciente para ver sus resultados</p>
-    </div>
-  )}
-</section>
-      </main>
-      <Email 
-        isOpen={isEmailModalOpen} 
-        onClose={() => setIsEmailModalOpen(false)} 
-        protocolo={highlightedProtocol} 
+      )}
+
+      <Email
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        protocolo={highlightedProtocol}
       />
     </div>
   );
