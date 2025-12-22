@@ -1,20 +1,32 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { markProtocolAsRead, markProtocolAsUnread } from "../services/protocols.service";
 
 export const useProtocolMutations = () => {
   const queryClient = useQueryClient();
 
   const markRead = useMutation({
-    mutationFn: (id) => markProtocolAsRead(id),
+    mutationFn: async (protocolId) => {
+      const response = await fetch(`/api/protocols/${protocolId}:markAsRead`, {
+        method: 'PUT',
+      });
+      if (!response.ok) throw new Error("Error al marcar como leído");
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["protocols"] });
+      // Refresca la lista de protocolos para que desaparezca la negrita inmediatamente
+      queryClient.invalidateQueries(["protocols"]);
     },
   });
 
   const markUnread = useMutation({
-    mutationFn: (id) => markProtocolAsUnread(id),
+    mutationFn: async (protocolId) => {
+      const response = await fetch(`/api/protocols/${protocolId}:markAsUnread`, {
+        method: 'PUT',
+      });
+      if (!response.ok) throw new Error("Error al marcar como no leído");
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["protocols"] });
+      queryClient.invalidateQueries(["protocols"]);
     },
   });
 

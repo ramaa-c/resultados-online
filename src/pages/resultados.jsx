@@ -66,31 +66,33 @@ export default function Resultados() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      setContextMenu(null);
+ useEffect(() => {
+  const handleClick = (e) => {
+    // 1. Siempre cerramos el menú contextual si existe
+    setContextMenu(null);
 
-      const isClickInsideTable = e.target.closest(".resultados-table");
-      const isClickInsideToolbar = e.target.closest(".panel-header-actions");
-      const isClickInsidePagination = e.target.closest(".pagination-bar");
-      const isClickInsideSidebar = e.target.closest(".sidebar-filters");
-      const isClickInsideContextMenu = e.target.closest(".context-menu");
+    // 2. Si el modal está abierto, NO permitimos que este clic limpie nada.
+    // El modal debe manejarse con su propia lógica de cierre.
+    if (isEmailModalOpen) return;
 
-      if (
-        !isClickInsideTable &&
-        !isClickInsideToolbar &&
-        !isClickInsidePagination &&
-        !isClickInsideSidebar &&
-        !isClickInsideContextMenu
-      ) {
-        setSelectedItems([]);
-        setSelectedProtocol(null);
-      }
-    };
+    // 3. Verificamos si el clic viene de una zona marcada como segura
+    const isSafeClick = e.target.closest('[data-click-safe="true"]');
+    
+    // 4. Verificamos si es un clic dentro del modal (por seguridad extra)
+    const isModalClick = e.target.closest('.modal-content') || e.target.closest('.modal-overlay');
 
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, []);
+    if (!isSafeClick && !isModalClick) {
+      setSelectedItems([]);
+      setSelectedProtocol(null);
+    }
+  };
+
+  // Usamos el modo "capture" (true) para que el evento se detecte antes de que llegue a otros componentes
+  window.addEventListener("click", handleClick, true); 
+  return () => window.removeEventListener("click", handleClick, true);
+}, [isEmailModalOpen]); // Se actualiza si el modal cambia
+
+
 
   // --- MANEJADORES DE SELECCIÓN ---
   const handleRowClick = (e, item) => {
@@ -112,16 +114,29 @@ export default function Resultados() {
   const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
 
   // --- MANEJADORES DE ACCIONES ---
-  const handleViewResults = (protocoloOverride = null) => {
-    const target = protocoloOverride || (selectedItems.length === 1 ? selectedItems[0] : null);
+ const handleViewResults = (protocoloOverride = null) => {
+  const target = protocoloOverride || (selectedItems.length === 1 ? selectedItems[0] : null);
+  
+  if (target) {
+    setSelectedProtocol(target);
     
-    if (target) {
-      setSelectedProtocol(target);
-      if (target.leido === "0") {
-        markRead.mutate(target.protocoloid);
-      }
+    if (target.leido === "0") {
+      // 1. Llamamos a la mutación
+      markRead.mutate(target.protocoloid);
+      
+      // 2. ACTUALIZACIÓN MANUAL (Para que el cambio sea visual al microsegundo)
+      // Cambiamos el valor de leido en nuestro estado de selección actual
+      target.leido = "1"; 
+      
+      // Actualizamos la lista de seleccionados para que React re-renderice la fila
+      setSelectedItems(prev => 
+        prev.map(item => 
+          item.protocoloid === target.protocoloid ? { ...item, leido: "1" } : item
+        )
+      );
     }
-  };
+  }
+};
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
@@ -239,7 +254,7 @@ export default function Resultados() {
   return (
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
-      <aside className="sidebar-filters">
+      <aside className="sidebar-filters" data-click-safe="true">
         <div className="sidebar-header">
           {centraLabLogo ? <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" /> : <h2>CentraLab</h2>}
           <div className={`filter-toggle-btn ${showFilters ? "active" : ""}`} onClick={() => setShowFilters(!showFilters)}>
@@ -276,7 +291,7 @@ export default function Resultados() {
       {/* PANEL DE RESULTADOS */}
       <main className="split-view">
         <section className="list-panel">
-          <div className="panel-header-actions">
+          <div className="panel-header-actions" data-click-safe="true">
             <button className="btn-mini-action" onClick={() => setIsEmailModalOpen(true)} disabled={selectedItems.length !== 1} style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}>
               <FiMail size={20} /> Enviar por Email
             </button>
@@ -311,7 +326,7 @@ export default function Resultados() {
             {isFetching && !isLoading && (<div className="loading-overlay"><div className="spinner"></div></div>)}
             {isError && <div style={{ color: "red", padding: "20px", textAlign: "center" }}>Error al cargar los datos.</div>}
 
-            <table className="resultados-table">
+            <table className="resultados-table" data-click-safe="true">
               <thead><tr><th>Petición ID</th><th>Fecha</th><th>Origen</th><th>DNI Paciente</th><th>Apellido</th><th>Nombre</th><th style={{ textAlign: "center" }}>Debe</th><th>Estado</th></tr></thead>
               <tbody style={{ opacity: isFetching ? 0.6 : 1, transition: "opacity 0.2s" }}>
                 {data?.protocolos?.map((item) => {
@@ -330,7 +345,9 @@ export default function Resultados() {
                       <td>{formatDate(item.ordereddate)}</td>
                       <td><span className="badge-service">{item.paclocid || "GRL"}</span></td>
                       <td className="font-mono">{item.pacid}</td>
-                      <td className="font-bold">{item.apellidopaciente}</td>
+                      <td className={isUnread ? "font-bold" : ""}>
+                        {item.apellidopaciente}
+                      </td>
                       <td>{item.nombrepaciente}</td>
                       <td style={{ textAlign: "center" }}><span className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} title={item.debe ? "Posee Deuda" : "Sin Deuda"}></span></td>
                       <td>{item.completo !== "" ? (<span className="status-badge status-complete"><FiCheckCircle /> Completo</span>) : (<span className="status-badge status-pending"><FiClock /> En Proceso</span>)}</td>
@@ -353,10 +370,10 @@ export default function Resultados() {
         </section>
 
         {/* DETALLE PANEL*/}
-        <section className="detail-panel">
+        <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
-              <div className="detail-header">
+              <div className="detail-header" >
                 <div className="patient-info">
                   <h2><FiActivity className="icon-title" /> Visualización de Resultados</h2>
                   <div className="protocol-main-badge">Protocolo: <strong>{selectedProtocol.accessionnumber}</strong></div>

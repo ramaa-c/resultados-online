@@ -46,6 +46,10 @@ export default function Email({ isOpen, onClose, protocolo }) {
     setIsSending(false);
   }
 };
+const handleClose = (e) => {
+  e.stopPropagation(); // <--- ESTO EVITA QUE EL CLIC LLEGUE A LA TABLA
+  onClose();
+};
 
   return (
     <div className="modal-overlay">
