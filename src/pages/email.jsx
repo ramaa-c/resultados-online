@@ -23,7 +23,6 @@ export default function Email({ isOpen, onClose, protocolo }) {
     try {
       setIsSending(true);
 
-      // Formato según tu Swagger -> protocoloid:sendEmail
       const url = `/api/protocols/${protocolo.protocoloid}:sendEmail`;
 
       const response = await fetch(url, {
@@ -31,10 +30,9 @@ export default function Email({ isOpen, onClose, protocolo }) {
         headers: {
           "Content-Type": "application/json",
         },
-        // El body exacto que pide tu Swagger
         body: JSON.stringify({
           email: email,
-          user: "WebPortal", // Aquí va el usuario que realiza la acción
+          user: "WebPortal",
         }),
       });
 
@@ -86,7 +84,7 @@ export default function Email({ isOpen, onClose, protocolo }) {
               <span>{protocolo.ordereddate}</span>
             </div>
 
-            {/* Fila 2 (Nombre ocupa todo el ancho para mejor lectura) */}
+            {/* Fila 2 */}
             <div className="info-item full-width">
               <label>
                 <FiUser /> PACIENTE

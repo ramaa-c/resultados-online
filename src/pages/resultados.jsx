@@ -48,7 +48,6 @@ export default function Resultados() {
   // --- SELECCIÓN MÚLTIPLE ---
   const [selectedItems, setSelectedItems] = useState([]);
 
-  // Estado de visualización
   const [selectedProtocol, setSelectedProtocol] = useState(null);
 
   const [contextMenu, setContextMenu] = useState(null);
@@ -76,10 +75,8 @@ export default function Resultados() {
       const isClickInsideSidebar = e.target.closest(".sidebar-filters");
       const isClickInsideContextMenu = e.target.closest(".context-menu");
 
-      // 1. Detectamos si el clic ocurrió dentro del panel de detalles
       const isClickInsideDetailPanel = e.target.closest(".detail-panel");
 
-      // Verificamos si el clic fue fuera de las áreas de control principales
       if (
         !isClickInsideTable &&
         !isClickInsideToolbar &&
@@ -87,15 +84,10 @@ export default function Resultados() {
         !isClickInsideSidebar &&
         !isClickInsideContextMenu
       ) {
-        // 2. LÓGICA SOLICITADA:
-        // Si el clic fue en el panel de detalles Y hay resultados mostrándose (selectedProtocol !== null),
-        // detenemos la ejecución (return) para NO borrar la selección.
         if (isClickInsideDetailPanel && selectedProtocol) {
           return;
         }
 
-        // Si fue fuera de todo, O fue en el panel de detalles pero no hay resultados (está vacío),
-        // procedemos a limpiar la selección.
         setSelectedItems([]);
         setSelectedProtocol(null);
       }
@@ -104,9 +96,6 @@ export default function Resultados() {
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
 
-    // 3. IMPORTANTE: Agregamos 'selectedProtocol' a las dependencias.
-    // Esto es necesario para que el evento 'click' conozca el valor actualizado del estado
-    // y sepa si hay un protocolo abierto o no.
   }, [selectedProtocol]);
 
   // --- MANEJADORES DE SELECCIÓN ---
@@ -323,8 +312,6 @@ export default function Resultados() {
     (item) => item.completo !== ""
   );
 
-  // --- LÓGICA DE VISUALIZACIÓN DE PDF INHABILITADO ---
-  // Calculamos si el botón debe estar deshabilitado para usarlo tanto en la lógica como en el estilo
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
@@ -519,8 +506,8 @@ export default function Resultados() {
             <button
               className="btn-mini-action"
               onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
-              disabled={isPdfDisabled} // Deshabilitado lógico
-              style={{ opacity: isPdfDisabled ? 0.5 : 1 }} // Deshabilitado visual
+              disabled={isPdfDisabled}
+              style={{ opacity: isPdfDisabled ? 0.5 : 1 }}
             >
               {isPdfLoading ? (
                 "..."
@@ -530,7 +517,6 @@ export default function Resultados() {
                 </>
               )}
             </button>
-            {/* --------------------------------------- */}
 
             <button
               className="btn-mini-action"
