@@ -635,6 +635,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #111827;
   background-color: #f8fafc;
 }
+.font-bold-unread td:first-child::before {
+  content: "●";
+  color: #2563eb;
+  margin-right: 8px;
+  font-size: 12px;
+  vertical-align: middle;
+}
 
 /* --- GRUPO DE CHECKBOXES EN SIDEBAR --- */
 .filter-checkbox-group {
