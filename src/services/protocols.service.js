@@ -27,7 +27,8 @@ export const getProtocols = async (filters) => {
     (processedFilters.accession_number &&
       processedFilters.accession_number.trim() !== "") ||
     (processedFilters.patient_name &&
-      processedFilters.patient_name.trim() !== "");
+      processedFilters.patient_name.trim() !== "") ||
+    processedFilters.unread_only === true;
 
   if (!processedFilters.date_from && !processedFilters.date_to) {
     if (hasStrongFilters) {
@@ -47,6 +48,13 @@ export const getProtocols = async (filters) => {
   Object.entries(processedFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "" && value !== null) {
       let valorFinal = value;
+
+      if (key === "unread_only" || key === "complete_only") {
+        if (value === true) {
+          params.append(key, "true");
+        }
+        return;
+      }
 
       if (key === "branch_id") {
         params.append("services", valorFinal);
@@ -81,21 +89,17 @@ export const getProtocols = async (filters) => {
 export const getProtocolResults = async (protocolId) => {
   try {
     const url = `/api/protocols/${protocolId}/results`;
-    console.log("🧪 Buscando resultados en:", url);
 
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ Error API Resultados:", errorText);
       throw new Error(`Error ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log("✅ Resultados recibidos:", data);
     return data;
   } catch (error) {
-    console.error("🔥 Error en fetch resultados:", error);
     throw error;
   }
 };
@@ -104,7 +108,6 @@ export const markProtocolAsRead = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
 
   const url = `/api/protocols/${protocolId}:markAsRead`;
-  console.log("📤 Enviando PUT a:", url);
 
   const response = await fetch(url, { method: "PUT" });
   if (!response.ok) {
@@ -118,7 +121,6 @@ export const markProtocolAsUnread = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
 
   const url = `/api/protocols/${protocolId}:markAsUnread`;
-  console.log("📤 Enviando PUT a:", url);
 
   const response = await fetch(url, { method: "PUT" });
   if (!response.ok) {
