@@ -1,3 +1,12 @@
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #F3F2F3; /* Mismo color que tu login-page */
+    overflow-x: hidden; /* Previene scroll horizontal a nivel global */
+}
 /* Contenedor principal de la página */
 .login-page {
     min-height: 100vh;
@@ -10,15 +19,15 @@
     padding: 0;
 }
 /* Fondo decorativo */
-.decorative-background .shape-top {
-    position: absolute;
-    top: -100px;
-    right: -100px;
-    width: 400px;
-    height: 400px;
-    background: #0198CC;
-    border-radius: 50%;
-    opacity: 0.1;
+.decorative-background {
+    position: fixed;      /* CLAVE: Se fija a la ventana, no estira la página */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;     /* CLAVE: Corta los círculos que se salen */
+    z-index: 0;           /* Se asegura de estar al fondo */
+    pointer-events: none; /* Permite hacer clic a través de las formas */
 }
 
 .decorative-background .shape-bottom {

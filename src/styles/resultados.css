@@ -24,10 +24,11 @@ body button:focus{
 }
 
 .dashboard-container {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+    background-color: #f1f5f9; /* Un gris azulado claro muy profesional */
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* --- SIDEBAR --- */
@@ -39,7 +40,9 @@ body button:focus{
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow-y: auto;
+  height: 100vh;
+
+  overflow: hidden;
   z-index: 10;
 }
 
@@ -150,43 +153,60 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-  width: 50%;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
+    width: 45%;
+    background: #ffffff; /* Blanco puro para que resalte */
+    margin: 10px;        /* Pequeño margen para que se vea el fondo de atrás */
+    border-radius: 8px;  /* Bordes redondeados para suavizar */
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Sombra sutil para dar elevación */
+    display: flex;
   flex-direction: column;
+  height: calc(100vh - 20px); /* Restar el margen superior e inferior */
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 /* --- BARRA DE ACCIONES SUPERIOR --- */
 .panel-header-actions {
-  padding: 15px 20px;
+  padding: 8px 12px; /* Reducimos el aire vertical y horizontal */
   background: #FFF;
   border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 12px;
-  overflow-x: auto;
+  gap: 8px; /* Menos distancia entre botón y botón (antes 12px) */
+  align-items: center;
+  overflow-x: auto; /* Mantenemos el scroll por seguridad, pero con el ajuste no debería usarse */
+  /* Ocultamos la barra de scroll fea si llega a aparecer */
+  scrollbar-width: none; 
+}
+.panel-header-actions::-webkit-scrollbar {
+  display: none;
 }
 
 .btn-mini-action {
   background: white;
-  border: 1px solid var(--border);
-  padding: 10px 16px;
+  border: 1px solid #cbd5e1; /* Un gris un poco más definido */
+  
+  /* AQUÍ ESTÁ LA CLAVE DEL TAMAÑO: */
+  padding: 6px 10px;  /* Antes tenías 10px 16px (es mucho) */
+  font-size: 0.75rem; /* Letra un poco más chica (12px) pero legible */
+  height: 32px;       /* Altura fija compacta */
+  
   border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--secondary);
+  font-weight: 600;
+  color: #475569;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  gap: 6px; /* El icono y el texto más juntitos */
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .btn-mini-action:hover {
   border-color: var(--primary);
   color: var(--primary);
+  background-color: #f0f9ff; /* Un fondo celeste muy tenue */
   transform: translateY(-1px);
 }
 
@@ -205,13 +225,14 @@ body button:focus{
 
 .resultados-table {
     width: 100%;
-    table-layout: fixed; /* Cambiamos a fixed para controlar los anchos exactos */
+    border-collapse: collapse; /* Esto es vital para que no haya grietas */
+    border-spacing: 0; 
 }
 
 /* Columna 1: Nombre y Datos (le damos el mayor espacio) */
 .resultados-table th:nth-child(1),
 .resultados-table td:nth-child(1) {
-    width: 55%; /* Ajusta este porcentaje según necesites */
+    width: 45%; /* Ajusta este porcentaje según necesites */
 }
 
 /* Columna 2: Protocolo (la acercamos al nombre) */
@@ -236,27 +257,27 @@ body button:focus{
 
 .resultados-table th {
   text-align: left;
-  padding: 12px;
-  background: #F8FAFC;
-  color: var(--text-gray);
+  padding: 12px 16px;
+  background: #f8fafc; /* Gris muy pálido, casi blanco */
+  color: #64748b;      /* Texto gris suave */
   font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 700;
+  letter-spacing: 0.05em; /* Un poco de aire entre letras */
+  border-bottom: 2px solid #e2e8f0; /* Línea de separación sólida */
   position: sticky;
   top: 0;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  z-index: 10;
 }
-
 .resultados-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  padding: 12px 16px; /* MÁS AIRE: Antes tenías menos padding */
   vertical-align: middle;
+  font-size: 0.9rem;
+  color: #334155;
 }
 
 .resultados-table tr:hover {
-  background: var(--primary-light);
+  background-color: #f8fafc;
   cursor: pointer;
 }
 
@@ -324,12 +345,33 @@ body button:focus{
 
 /* Panel Derecho */
 .detail-panel {
-  flex: 1;
-  background: #eef2f6;
+    flex: 1;
+    background-color: transparent; /* Dejamos que se vea el fondo #f1f5f9 */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.no-selection-message {
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
+  align-items: center;    /* Centrado horizontal */
+  justify-content: center; /* Centrado vertical */
+  flex: 1;                /* Toma todo el espacio sobrante del panel */
+  text-align: center;
+  color: #64748b;         /* Color gris suave para que no distraiga */
+  gap: 15px;              /* Espacio entre el icono y el texto */
+}
+.no-selection-message p {
+  font-size: 1.1rem;
+  margin: 0;
+  color: #475569;
+}
+
+.no-selection-message small {
+  color: #94a3b8;
+  max-width: 300px;       /* Para que el texto no se extienda demasiado */
 }
 
 /* Cabecera del reporte */
@@ -484,20 +526,31 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 
 .resultados-table tr.selected-row td {
-    background-color: rgba(1, 152, 204, 0.12) !important; /* Azul institucional al 12% de opacidad */
-    border-left: none !important;
-    border-right: none !important;
-    border-top: 1px solid rgba(1, 152, 204, 0.2);
-    border-bottom: 1px solid rgba(1, 152, 204, 0.2);
-    transition: background-color 0.2s ease;
+  /* Fondo: Celestial Blue al 12% de opacidad. 
+     Se ve suave, moderno y combina exacto con la barra. */
+  background-color: rgba(1, 152, 204, 0.12) !important;
+  
+  /* Bordes superior e inferior sutiles para delimitar */
+  border-top: 1px solid rgba(1, 152, 204, 0.2) !important;
+  border-bottom: 1px solid rgba(1, 152, 204, 0.2) !important;
+  
+  /* Quitamos bordes laterales internos */
+  border-left: none !important;
+  border-right: none !important;
 }
 
 
 /* El toque premium: la barrita lateral */
 .resultados-table tr.selected-row td:first-child {
-  border-left: 5px solid #3b82f6 !important; /* Barrita azul fuerte a la izquierda */
+  box-shadow: inset 4px 0 0 #0198CC !important;
 }
 
+.resultados-table tr.selected-row .name-text {
+  color: #0198CC !important;
+}
+.resultados-table tr.selected-row .unread-dot-inline {
+  box-shadow: 0 0 0 2px #fff; /* Pequeño anillo blanco para separarlo */
+}
 /* Un hover sutil para que las otras filas reaccionen al pasar el mouse */
 .resultados-table tr:not(.selected-row):hover td {
   background-color: #f1f5f9 !important;
@@ -614,13 +667,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #1e293b; /* Un gris muy oscuro casi negro */
   font-weight: 700 !important;
 }
-.font-bold-unread td:first-child::before {
-  content: "●";
-  color: #2563eb;
-  margin-right: 8px;
-  font-size: 12px;
-  vertical-align: middle;
-}
+
 
 
 
@@ -630,11 +677,8 @@ tr:not(.font-bold-unread) {
   color: #64748b; /* Un gris más suave */
 }
 
-/* Mejora del resaltado de la fila seleccionada */
-.selected-row {
-  background-color: #e0e7ff !important; /* Azul claro más visible */
-  border-left: 4px solid #2563eb; /* Borde izquierdo para marcar selección */
-}
+
+
 
 /* Contenedor de info del paciente */
 .patient-main-info {
@@ -648,34 +692,33 @@ tr:not(.font-bold-unread) {
 }
 .name-with-dot {
     display: flex;
-    align-items: center; /* Alineación vertical perfecta */
-    gap: 6px; /* Espacio entre el punto y el texto */
+  align-items: center;
+  gap: 10px;
 }
 .unread-dot-inline {
     width: 7px;
     height: 7px;
-    background-color: #2563eb; /* El azul de tu captura */
+    background-color: #0198CC;
     border-radius: 50%;
     flex-shrink: 0;
     display: inline-block;
 }
 
 .name-text {
-    font-size: 0.88rem; /* Tamaño optimizado */
-    font-weight: 700;
-    /* Un azul marino profundo: profesional y con estilo */
-    color: #1a3a4a;
-    text-transform: uppercase;
-    /* Un espaciado sutil para evitar que se vea 'básico' */
-    letter-spacing: 0.015em; 
-    line-height: 1.1;
-    display: inline-block;
+  font-weight: 700;
+  color: #0f172a; /* Casi negro, pero con tono azulado */
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  display: block; /* Asegura que ocupe su línea */
+  margin-bottom: 4px; /* Separa el nombre del DNI */
 }
 .patient-subdata {
-    font-size: 0.75rem;
-    color: #718096; /* Un gris azulado suave */
-    margin-left: 13px;
-    font-weight: 400;
+  font-size: 0.75rem;
+  color: #94a3b8; /* Gris claro para restar importancia visual */
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .patient-name {
@@ -700,8 +743,8 @@ tr:not(.font-bold-unread) {
 
 /* Ajuste de las filas para que parezcan tarjetas */
 .resultados-table tr {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.2s;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9; /* Separador sutil solo horizontal */
 }
 
 .resultados-table th {
@@ -721,3 +764,292 @@ tr:not(.font-bold-unread) {
 
 .dot-red { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
 .dot-green { background-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+
+/* --- SPINNER DE CARGA (Overlay) --- */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7); /* Fondo blanco semitransparente */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50; /* Asegura que quede por encima de las filas */
+  backdrop-filter: blur(1px); /* Un leve desenfoque para que se vea moderno */
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0; /* Color del riel (gris claro) */
+  border-top: 4px solid var(--primary); /* Color que gira (Azul CentraLab) */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Asegúrate de que el contenedor de la tabla tenga posición relativa */
+.table-wrapper {
+  flex: 1;          /* Toma todo el espacio disponible, pero comparte con el paginador */
+  overflow-y: auto; /* El scroll aparece AQUÍ, no en toda la página */
+  min-height: 0;    /* TRUCO FLEXBOX: Vital para que el scroll funcione dentro de un flex */
+  position: relative;
+}
+
+/* --- ESTADOS DE LECTURA (Leído / No Leído) --- */
+
+/* 1. Contenedor para alinear el punto azul con el nombre */
+.name-with-dot {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espacio entre el punto y el texto */
+}
+
+
+
+/* 3. Fila NO LEÍDA: Texto del nombre más oscuro y fuerte */
+.font-bold-unread .name-text {
+  color: #1a3a4a !important; /* Azul petróleo oscuro */
+  font-weight: 800 !important; /* Extra negrita */
+}
+
+/* 4. Fila LEÍDA: Texto más suave (Gris) */
+/* Esto aplica a cualquier fila que NO tenga la clase .font-bold-unread */
+tr:not(.font-bold-unread) .name-text {
+  color: #64748b; /* Gris azulado suave */
+  font-weight: 600; /* Peso normal/semi-bold */
+}
+
+tr:not(.font-bold-unread) .patient-subdata {
+  opacity: 0.8; /* Los datos secundarios se ven un poco más apagados */
+}
+
+/* ESTILOS DE IMPRESIÓN */
+
+@media print {
+  .sidebar-filters,
+  .filter-checkbox-group,
+  .list-panel,
+  .panel-header-actions,
+  .filter-toggle-btn,
+  .btn-print,
+  .detail-header button {
+    display: none !important;
+  }
+
+  html, body, #root, .dashboard-container {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+  }
+
+  .dashboard-container {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  .detail-panel {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    position: static !important;
+    border: none !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-canvas {
+    padding: 0 !important;
+    background: white !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .report-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: white !important;
+  }
+
+@media print {
+  body, .report-paper, p, span, td, th, h1, h2, h3 {
+    color: black !important;
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact;
+  }
+}
+
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+}
+
+/* --- MENÚ CONTEXTUAL (Click Derecho) --- */
+.context-menu {
+  position: fixed;
+  z-index: 10000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 4px 0;
+  min-width: 200px;
+  font-size: 14px;
+  color: #334155;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.15s;
+}
+
+.context-menu-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 4px 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- SCROLLBAR PERSONALIZADO (Celestial Blue) --- */
+
+/* 1. Ancho de la barra (Vertical y Horizontal) */
+::-webkit-scrollbar {
+  width: 8px;  /* Grosor vertical fino pero usable */
+  height: 8px; /* Grosor horizontal */
+}
+
+/* 2. El "riel" o fondo por donde corre la barra */
+::-webkit-scrollbar-track {
+  background: transparent; /* Transparente para que se vea limpio */
+  /* Si prefieres que se note el carril, usa: background: #f1f5f9; */
+}
+
+/* 3. La barra en sí (El "pulgar") */
+::-webkit-scrollbar-thumb {
+  background-color: #90d5ed; /* Un tono celeste suave por defecto para no distraer */
+  border-radius: 10px;       /* Bordes totalmente redondos */
+  border: 2px solid transparent; /* Truco para dar margen interno si fuera necesario */
+  background-clip: content-box;
+}
+
+/* 4. Cuando pasas el mouse por encima de la barra */
+::-webkit-scrollbar-thumb:hover {
+  background-color: #0198CC; /* AHORA SÍ: El Celestial Blue fuerte al interactuar */
+}
+
+/* --- SOPORTE PARA FIREFOX --- */
+/* Firefox usa una sintaxis diferente estándar */
+* {
+  scrollbar-width: thin; /* Barra fina */
+  scrollbar-color: #90d5ed transparent; /* Color barra / Color fondo */
+}
+
+/* --- CHECKBOXES PERSONALIZADOS (Celestial Blue) --- */
+
+.filter-checkbox-container {
+  display: flex;
+  flex-direction: column; /* Uno debajo del otro para mejor lectura, o 'row' para lado a lado */
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  /* gap: 10px;  <-- A veces gap no funciona bien en navegadores viejos, usaremos margin abajo */
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  width: 100%; /* Asegura que ocupe el ancho para el click */
+}
+
+/* Ocultamos el checkbox nativo feo */
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  display: inline-block; 
+  border-radius: 4px;
+  position: relative;
+  top: 5px;
+  transition: all 0.2s ease;
+  background: #fff;
+  
+  /* CLAVE PARA QUE NO SE PEGUE EL TEXTO: */
+  margin-right: 10px; 
+  flex-shrink: 0; /* Evita que el cuadrado se aplaste si el texto es largo */
+}
+.checkbox-label input:checked + .custom-checkbox {
+  background-color: #10B981; /* Tu variable var(--success) */
+  border-color: #10B981;
+}
+
+.checkbox-label input:checked + .custom-checkbox::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Hover para feedback */
+.checkbox-label:hover .custom-checkbox {
+  border-color: #10B981;
+}
+
+/* Spinner de carga simple para boton */
+.spinner-loader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
