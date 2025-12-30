@@ -150,7 +150,7 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-  width: 65%;
+  width: 50%;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -204,9 +204,34 @@ body button:focus{
 }
 
 .resultados-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 900px;
+    width: 100%;
+    table-layout: fixed; /* Cambiamos a fixed para controlar los anchos exactos */
+}
+
+/* Columna 1: Nombre y Datos (le damos el mayor espacio) */
+.resultados-table th:nth-child(1),
+.resultados-table td:nth-child(1) {
+    width: 55%; /* Ajusta este porcentaje según necesites */
+}
+
+/* Columna 2: Protocolo (la acercamos al nombre) */
+.resultados-table th:nth-child(2),
+.resultados-table td:nth-child(2) {
+    width: 15%;
+    text-align: left;
+}
+
+/* Columna 3: Debe */
+.resultados-table th:nth-child(3),
+.resultados-table td:nth-child(3) {
+    width: 10%;
+    text-align: center;
+}
+
+/* Columna 4: Estado */
+.resultados-table th:nth-child(4),
+.resultados-table td:nth-child(4) {
+    width: 20%;
 }
 
 .resultados-table th {
@@ -459,12 +484,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 
 .resultados-table tr.selected-row td {
-  background-color: #dbeafe !important; /* Azul "Sky" medio (más visible) */
-  color: #3b82f6 !important;           /* Texto azul marino para que se lea perfecto */
-  border-top: 1px solid #bfdbfe !important;
-  border-bottom: 1px solid #bfdbfe !important;
-  transition: background-color 0.2s ease;
+    background-color: rgba(1, 152, 204, 0.12) !important; /* Azul institucional al 12% de opacidad */
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(1, 152, 204, 0.2);
+    border-bottom: 1px solid rgba(1, 152, 204, 0.2);
+    transition: background-color 0.2s ease;
 }
+
 
 /* El toque premium: la barrita lateral */
 .resultados-table tr.selected-row td:first-child {
@@ -588,14 +615,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 700 !important;
 }
 
-/* Indicador visual (un puntito azul al inicio de la fila) */
-.font-bold-unread td:first-child::before {
-  content: "●";
-  color: #2563eb;
-  margin-right: 8px;
-  font-size: 12px;
-  vertical-align: middle;
-}
+
+
 
 /* Estilo para la fila LEÍDA (más tenue) */
 tr:not(.font-bold-unread) {
@@ -607,3 +628,89 @@ tr:not(.font-bold-unread) {
   background-color: #e0e7ff !important; /* Azul claro más visible */
   border-left: 4px solid #2563eb; /* Borde izquierdo para marcar selección */
 }
+
+/* Contenedor de info del paciente */
+.patient-main-info {
+   display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0px; /* Pegamos las dos líneas al máximo */
+}
+.patient-info-cell {
+    padding: 2px 10px !important; /* Forzamos la reducción de altura */
+}
+.name-with-dot {
+    display: flex;
+    align-items: center; /* Alineación vertical perfecta */
+    gap: 6px; /* Espacio entre el punto y el texto */
+}
+.unread-dot-inline {
+    width: 7px;
+    height: 7px;
+    background-color: #2563eb; /* El azul de tu captura */
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.name-text {
+    font-size: 0.88rem; /* Tamaño optimizado */
+    font-weight: 700;
+    /* Un azul marino profundo: profesional y con estilo */
+    color: #1a3a4a;
+    text-transform: uppercase;
+    /* Un espaciado sutil para evitar que se vea 'básico' */
+    letter-spacing: 0.015em; 
+    line-height: 1.1;
+    display: inline-block;
+}
+.patient-subdata {
+    font-size: 0.75rem;
+    color: #718096; /* Un gris azulado suave */
+    margin-left: 13px;
+    font-weight: 400;
+}
+
+.patient-name {
+    font-size: 1rem;
+    color: #1e293b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Sub-datos: DNI y Fecha */
+.patient-subdata {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #64748b; /* Gris suave */
+}
+
+.separator {
+    color: #cbd5e1;
+}
+
+/* Ajuste de las filas para que parezcan tarjetas */
+.resultados-table tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+}
+
+.resultados-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 4px 10px;
+}
+
+/* Indicador del DEBE (más visible) */
+.indicator-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-red { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+.dot-green { background-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }

@@ -121,14 +121,12 @@ export default function Resultados() {
     setSelectedProtocol(target);
     
     if (target.leido === "0") {
-      // 1. Llamamos a la mutación
+  
       markRead.mutate(target.protocoloid);
       
-      // 2. ACTUALIZACIÓN MANUAL (Para que el cambio sea visual al microsegundo)
-      // Cambiamos el valor de leido en nuestro estado de selección actual
+  
       target.leido = "1"; 
-      
-      // Actualizamos la lista de seleccionados para que React re-renderice la fila
+
       setSelectedItems(prev => 
         prev.map(item => 
           item.protocoloid === target.protocoloid ? { ...item, leido: "1" } : item
@@ -327,8 +325,15 @@ export default function Resultados() {
             {isError && <div style={{ color: "red", padding: "20px", textAlign: "center" }}>Error al cargar los datos.</div>}
 
             <table className="resultados-table" data-click-safe="true">
-              <thead><tr><th>Petición ID</th><th>Fecha</th><th>Origen</th><th>DNI Paciente</th><th>Apellido</th><th>Nombre</th><th style={{ textAlign: "center" }}>Debe</th><th>Estado</th></tr></thead>
-              <tbody style={{ opacity: isFetching ? 0.6 : 1, transition: "opacity 0.2s" }}>
+              <thead>
+                <tr>
+                  <th>Apellido y Nombre / Datos</th>
+                  <th>Protocolo</th>
+                  <th style={{ textAlign: "center" }}>Debe</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
                 {data?.protocolos?.map((item) => {
                   const isUnread = item.leido === "0";
                   const selected = isSelected(item.protocoloid);
@@ -338,23 +343,49 @@ export default function Resultados() {
                       className={`${selected ? "selected-row" : ""} ${isUnread ? "font-bold-unread" : ""}`}
                       onClick={(e) => handleRowClick(e, item)}
                       onDoubleClick={() => handleViewResults(item)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                      style={{ cursor: "pointer", userSelect: "none" }}
                     >
+                      {/* Columna combinada de Nombre, DNI y Fecha */}
+                    <td className="patient-info-cell">
+                      <div className="patient-main-info">
+                        {/* Contenedor de la primera línea: Punto + Nombre */}
+                        <div className="name-with-dot">
+                          {item.leido === "0" && <span className="unread-dot-inline" title="No leído"></span>}
+                          <span className="name-text">
+                            {item.apellidopaciente}, {item.nombrepaciente}
+                          </span>
+                        </div>
+                        
+                        {/* Segunda línea: DNI y Fecha */}
+                        <div className="patient-subdata">
+                          <span>DNI {item.pacid}</span>
+                          <span className="separator">•</span>
+                          <span>Ingreso: {formatDate(item.ordereddate)}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                      {/* Columna de Protocolo */}
                       <td className="font-mono">{item.accessionnumber}</td>
-                      <td>{formatDate(item.ordereddate)}</td>
-                      <td><span className="badge-service">{item.paclocid || "GRL"}</span></td>
-                      <td className="font-mono">{item.pacid}</td>
-                      <td className={isUnread ? "font-bold" : ""}>
-                        {item.apellidopaciente}
+
+                      {/* Indicador del DEBE */}
+                      <td style={{ textAlign: "center" }}>
+                        <span 
+                          className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} 
+                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                        ></span>
                       </td>
-                      <td>{item.nombrepaciente}</td>
-                      <td style={{ textAlign: "center" }}><span className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} title={item.debe ? "Posee Deuda" : "Sin Deuda"}></span></td>
-                      <td>{item.completo !== "" ? (<span className="status-badge status-complete"><FiCheckCircle /> Completo</span>) : (<span className="status-badge status-pending"><FiClock /> En Proceso</span>)}</td>
+
+                      {/* Estado */}
+                      <td>
+                        {item.completo !== "" ? (
+                          <span className="status-badge status-complete"><FiCheckCircle /> Completo</span>
+                        ) : (
+                          <span className="status-badge status-pending"><FiClock /> En proceso</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
-                {data?.protocolos?.length === 0 && (<tr><td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>No se encontraron resultados</td></tr>)}
               </tbody>
             </table>
             

@@ -8,6 +8,7 @@ const getTodayISO = () => {
 
 export const getProtocols = async (filters) => {
   const params = new URLSearchParams();
+  const token = localStorage.getItem('token'); // Recuperamos el token
   let processedFilters = { ...filters };
 
   const partesNombre = [];
@@ -48,32 +49,29 @@ export const getProtocols = async (filters) => {
   Object.entries(processedFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "" && value !== null) {
       let valorFinal = value;
-
       if (key === "unread_only" || key === "complete_only") {
-        if (value === true) {
-          params.append(key, "true");
-        }
+        if (value === true) params.append(key, "true");
         return;
       }
-
       if (key === "branch_id") {
         params.append("services", valorFinal);
         return;
       }
-
-      if (
-        (key === "date_from" || key === "date_to") &&
-        typeof value === "string"
-      ) {
+      if ((key === "date_from" || key === "date_to") && typeof value === "string") {
         valorFinal = value.replaceAll("-", "");
       }
-
       params.append(key, valorFinal);
     }
   });
 
   try {
-    const response = await fetch(`/api/protocols?${params.toString()}`);
+    // Agregamos el header de Authorization
+    const response = await fetch(`/api/protocols?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -87,18 +85,21 @@ export const getProtocols = async (filters) => {
 };
 
 export const getProtocolResults = async (protocolId) => {
+  const token = localStorage.getItem('token');
   try {
     const url = `/api/protocols/${protocolId}/results`;
-
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`, // Autorización requerida
+        'Content-Type': 'application/json'
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Error ${response.status}: ${errorText}`);
     }
-
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
     throw error;
   }
@@ -106,10 +107,15 @@ export const getProtocolResults = async (protocolId) => {
 
 export const markProtocolAsRead = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
-
+  const token = localStorage.getItem('token');
   const url = `/api/protocols/${protocolId}:markAsRead`;
 
-  const response = await fetch(url, { method: "PUT" });
+  const response = await fetch(url, { 
+    method: "PUT",
+    headers: {
+      'Authorization': `Bearer ${token}` // Autorización requerida
+    }
+  });
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`Error API (${response.status}): ${err}`);
@@ -119,10 +125,15 @@ export const markProtocolAsRead = async (protocolId) => {
 
 export const markProtocolAsUnread = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
-
+  const token = localStorage.getItem('token');
   const url = `/api/protocols/${protocolId}:markAsUnread`;
 
-  const response = await fetch(url, { method: "PUT" });
+  const response = await fetch(url, { 
+    method: "PUT",
+    headers: {
+      'Authorization': `Bearer ${token}` // Autorización requerida
+    }
+  });
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`Error API (${response.status}): ${err}`);
