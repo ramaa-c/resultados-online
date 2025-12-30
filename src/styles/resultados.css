@@ -614,6 +614,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #1e293b; /* Un gris muy oscuro casi negro */
   font-weight: 700 !important;
 }
+.font-bold-unread td:first-child::before {
+  content: "●";
+  color: #2563eb;
+  margin-right: 8px;
+  font-size: 12px;
+  vertical-align: middle;
+}
 
 
 

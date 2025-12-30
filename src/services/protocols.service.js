@@ -1,3 +1,5 @@
+import api from "../api/axios";
+
 const getTodayISO = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -8,7 +10,6 @@ const getTodayISO = () => {
 
 export const getProtocols = async (filters) => {
   const params = new URLSearchParams();
-  const token = localStorage.getItem('token'); // Recuperamos el token
   let processedFilters = { ...filters };
 
   const partesNombre = [];
@@ -49,94 +50,55 @@ export const getProtocols = async (filters) => {
   Object.entries(processedFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "" && value !== null) {
       let valorFinal = value;
+
       if (key === "unread_only" || key === "complete_only") {
         if (value === true) params.append(key, "true");
         return;
       }
+
       if (key === "branch_id") {
         params.append("services", valorFinal);
         return;
       }
-      if ((key === "date_from" || key === "date_to") && typeof value === "string") {
+
+      if (
+        (key === "date_from" || key === "date_to") &&
+        typeof value === "string"
+      ) {
         valorFinal = value.replaceAll("-", "");
       }
+
       params.append(key, valorFinal);
     }
   });
 
-  try {
-    // Agregamos el header de Authorization
-    const response = await fetch(`/api/protocols?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error ${response.status}: ${errorText}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  const response = await api.get("/protocols", { params });
+  return response.data;
 };
 
 export const getProtocolResults = async (protocolId) => {
-  const token = localStorage.getItem('token');
-  try {
-    const url = `/api/protocols/${protocolId}/results`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`, // Autorización requerida
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error ${response.status}: ${errorText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.get(`/protocols/${protocolId}/results`);
+  return response.data;
 };
 
 export const markProtocolAsRead = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
-  const token = localStorage.getItem('token');
-  const url = `/api/protocols/${protocolId}:markAsRead`;
-
-  const response = await fetch(url, { 
-    method: "PUT",
-    headers: {
-      'Authorization': `Bearer ${token}` // Autorización requerida
-    }
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Error API (${response.status}): ${err}`);
-  }
-  return true;
+  const response = await api.put(`/protocols/${protocolId}:markAsRead`);
+  return response.data;
 };
 
 export const markProtocolAsUnread = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
-  const token = localStorage.getItem('token');
-  const url = `/api/protocols/${protocolId}:markAsUnread`;
+  const response = await api.put(`/protocols/${protocolId}:markAsUnread`);
+  return response.data;
+};
 
-  const response = await fetch(url, { 
-    method: "PUT",
+export const getProtocolPdf = async (protocolId) => {
+  const response = await api.get(`/protocols/${protocolId}:getPdf`, {
+    responseType: "blob",
     headers: {
-      'Authorization': `Bearer ${token}` // Autorización requerida
-    }
+      Accept: "application/pdf",
+    },
   });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Error API (${response.status}): ${err}`);
-  }
-  return true;
+  return response.data;
 };

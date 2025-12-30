@@ -12,7 +12,6 @@ export const useProtocolMutations = () => {
       return response.json();
     },
     onSuccess: () => {
-      // Refresca la lista de protocolos para que desaparezca la negrita inmediatamente
       queryClient.invalidateQueries(["protocols"]);
     },
   });
