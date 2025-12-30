@@ -65,6 +65,7 @@ export default function Resultados() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 
+  // --- LÓGICA DE CLICS (CORREGIDA) ---
   useEffect(() => {
     const handleClick = (e) => {
       setContextMenu(null);
@@ -74,7 +75,6 @@ export default function Resultados() {
       const isClickInsidePagination = e.target.closest(".pagination-bar");
       const isClickInsideSidebar = e.target.closest(".sidebar-filters");
       const isClickInsideContextMenu = e.target.closest(".context-menu");
-
       const isClickInsideDetailPanel = e.target.closest(".detail-panel");
 
       if (
@@ -84,10 +84,12 @@ export default function Resultados() {
         !isClickInsideSidebar &&
         !isClickInsideContextMenu
       ) {
+        // SI ES CLIC EN DETALLE Y HAY PROTOCOLO SELECCIONADO, NO CERRAR
         if (isClickInsideDetailPanel && selectedProtocol) {
           return;
         }
 
+        // SI NO, LIMPIAR SELECCIÓN
         setSelectedItems([]);
         setSelectedProtocol(null);
       }
@@ -95,8 +97,7 @@ export default function Resultados() {
 
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-
-  }, [selectedProtocol]);
+  }, [selectedProtocol]); // Dependencia vital para que funcione la condición
 
   // --- MANEJADORES DE SELECCIÓN ---
   const handleRowClick = (e, item) => {
@@ -557,7 +558,11 @@ export default function Resultados() {
             )}
             {isError && (
               <div
-                style={{ color: "red", padding: "20px", textAlign: "center" }}
+                style={{
+                  color: "red",
+                  padding: "20px",
+                  textAlign: "center",
+                }}
               >
                 Error al cargar los datos.
               </div>
@@ -655,7 +660,11 @@ export default function Resultados() {
                 Mostrando {data?.protocolos?.length || 0} resultados
               </span>
               <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
+                }}
               >
                 <button
                   onClick={handlePreviousPage}
@@ -802,6 +811,8 @@ export default function Resultados() {
                     </div>
                   </div>
                   <hr className="divider" />
+
+                  {/* --- AREA DE RESULTADOS CORREGIDA --- */}
                   <div className="results-content">
                     {isLoadingResults ? (
                       <div className="loading-results">
@@ -820,22 +831,62 @@ export default function Resultados() {
                           <span>Valores de Referencia</span>
                         </div>
                         {resultsData.resultados.map((res, index) => {
-                          const mostrarTitulo =
+                          const prevRes =
+                            index > 0
+                              ? resultsData.resultados[index - 1]
+                              : null;
+
+                          const showSectionTitle =
                             index === 0 ||
-                            res.grupotitulo !==
-                              resultsData.resultados[index - 1].grupotitulo;
+                            res.grupotitulo !== prevRes.grupotitulo;
+
+                          const showAnalysisTitle =
+                            index === 0 ||
+                            res.analisis !== prevRes?.analisis ||
+                            showSectionTitle;
+
                           return (
                             <React.Fragment key={index}>
-                              {res.grupotitulo && mostrarTitulo && (
+                              {res.grupotitulo && showSectionTitle && (
                                 <div className="result-category">
                                   {res.grupotitulo}
                                 </div>
                               )}
+
+                              {showAnalysisTitle && (
+                                <div
+                                  className="analysis-header"
+                                  style={{
+                                    backgroundColor: "#f1f5f9",
+                                    padding: "8px 12px",
+                                    fontWeight: "bold",
+                                    color: "#334155",
+                                    fontSize: "0.95rem",
+                                    borderBottom: "1px solid #e2e8f0",
+                                    marginTop: showSectionTitle ? "0" : "5px",
+                                  }}
+                                >
+                                  {res.analisis}
+                                </div>
+                              )}
+
+                              {/* Fila del Resultado */}
                               <div className="result-item-row">
                                 <div className="det-col">
-                                  <strong>{res.analisis}</strong>
+                                  {/* Aquí usamos descripcionpractica en lugar de analisis */}
+                                  <span style={{ fontWeight: 500 }}>
+                                    {res.descripcionpractica}
+                                  </span>
                                   {res.metodo && (
-                                    <small>Método: {res.metodo}</small>
+                                    <div
+                                      style={{
+                                        fontSize: "0.75rem",
+                                        color: "#64748b",
+                                        marginTop: "2px",
+                                      }}
+                                    >
+                                      Mtd: {res.metodo}
+                                    </div>
                                   )}
                                 </div>
                                 <div className="res-col highlighted">
@@ -881,6 +932,7 @@ export default function Resultados() {
                       </div>
                     )}
                   </div>
+                  {/* ---------------------------------- */}
                 </div>
               </div>
             </>

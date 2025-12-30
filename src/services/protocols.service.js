@@ -1,3 +1,5 @@
+import api from "../api/axios";
+
 const getTodayISO = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -50,9 +52,7 @@ export const getProtocols = async (filters) => {
       let valorFinal = value;
 
       if (key === "unread_only" || key === "complete_only") {
-        if (value === true) {
-          params.append(key, "true");
-        }
+        if (value === true) params.append(key, "true");
         return;
       }
 
@@ -72,60 +72,33 @@ export const getProtocols = async (filters) => {
     }
   });
 
-  try {
-    const response = await fetch(`/api/protocols?${params.toString()}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error ${response.status}: ${errorText}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  const response = await api.get("/protocols", { params });
+  return response.data;
 };
 
 export const getProtocolResults = async (protocolId) => {
-  try {
-    const url = `/api/protocols/${protocolId}/results`;
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.get(`/protocols/${protocolId}/results`);
+  return response.data;
 };
 
 export const markProtocolAsRead = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
-
-  const url = `/api/protocols/${protocolId}:markAsRead`;
-
-  const response = await fetch(url, { method: "PUT" });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Error API (${response.status}): ${err}`);
-  }
-  return true;
+  const response = await api.put(`/protocols/${protocolId}:markAsRead`);
+  return response.data;
 };
 
 export const markProtocolAsUnread = async (protocolId) => {
   if (!protocolId) throw new Error("ID de protocolo inválido");
+  const response = await api.put(`/protocols/${protocolId}:markAsUnread`);
+  return response.data;
+};
 
-  const url = `/api/protocols/${protocolId}:markAsUnread`;
-
-  const response = await fetch(url, { method: "PUT" });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Error API (${response.status}): ${err}`);
-  }
-  return true;
+export const getProtocolPdf = async (protocolId) => {
+  const response = await api.get(`/protocols/${protocolId}:getPdf`, {
+    responseType: "blob",
+    headers: {
+      Accept: "application/pdf",
+    },
+  });
+  return response.data;
 };

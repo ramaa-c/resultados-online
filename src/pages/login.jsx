@@ -1,12 +1,50 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; 
 import "../styles/login.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
+import { loginUser } from "../services/auth.service"; 
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const handleSubmit = (e) => {
+  
+  const [formData, setFormData] = useState({ jwtusername: "", jwtpassword: "" });
+  
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate(); 
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const data = await loginUser(formData);
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        navigate("/resultados");
+      } else {
+        setError("Error: El servidor no devolvió un token válido.");
+      }
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.status === 401 
+        ? "Usuario o contraseña incorrectos." 
+        : "Error de conexión con el servidor.";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,20 +73,28 @@ export default function Login() {
             Inicia sesión con tus datos personales
           </p>
 
+          {error && (
+            <div style={{ color: "red", marginBottom: "15px", fontSize: "0.9rem", textAlign: "center" }}>
+              {error}
+            </div>
+          )}
+
           <form className="login-form" onSubmit={handleSubmit}>
-            {/* Campo: Email o DNI */}
             <div className="field-wrapper">
               <div className="identifier-container">
                 <i className="fa-solid fa-user input-icon"></i>
                 <input
                   type="text"
                   placeholder="Email o DNI"
-                  name="identifier"
+                  name="jwtusername"
+                  value={formData.jwtusername} 
+                  onChange={handleChange}     
+                  required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            {/* Campo: Contraseña */}
             <div className="field-wrapper">
               <div className="password-container">
                 <i className="fa-solid fa-lock input-icon"></i>
@@ -56,12 +102,17 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Contraseña"
                   className="password-input"
-                  name="password"
+                  name="jwtpassword"
+                  value={formData.jwtpassword} 
+                  onChange={handleChange}   
+                  required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   className="toggle-password-btn"
                   onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
                 >
                   <i className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
                 </button>
@@ -69,8 +120,13 @@ export default function Login() {
             </div>
 
             <div className="button-group">
-              <button className="ingresar-btn" type="submit">
-                Ingresar
+              <button 
+                className="ingresar-btn" 
+                type="submit" 
+                disabled={isLoading}
+                style={{ opacity: isLoading ? 0.7 : 1 }}
+              >
+                {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
             </div>
           </form>
