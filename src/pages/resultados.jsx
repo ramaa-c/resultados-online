@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
-import { useProtocolMutations } from "../hooks/useProtocolsMutations";
+import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email.jsx";
 import "../styles/email.css";
+
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 import {
   FiFilter,
@@ -35,21 +38,21 @@ export default function Resultados() {
     page: 1,
     page_size: 15,
     branch_id: "",
+    unread_only: false,
+    complete_only: false,
   });
 
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState(formValues);
 
-  // Selección
-  const [highlightedProtocol, setHighlightedProtocol] = useState(null);
+  // --- SELECCIÓN MÚLTIPLE ---
+  const [selectedItems, setSelectedItems] = useState([]);
+
   const [selectedProtocol, setSelectedProtocol] = useState(null);
 
-  // Menú Contextual
   const [contextMenu, setContextMenu] = useState(null);
 
-  // --- HOOKS ---
   const { markRead, markUnread } = useProtocolMutations();
-
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
   const {
@@ -60,29 +63,89 @@ export default function Resultados() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 
-  // Cierra el menú al hacer click fuera
+  // --- LÓGICA DE CLICS (CORREGIDA) ---
   useEffect(() => {
-    const handleClick = () => setContextMenu(null);
+    const handleClick = (e) => {
+      setContextMenu(null);
+
+      const isClickInsideTable = e.target.closest(".resultados-table");
+      const isClickInsideToolbar = e.target.closest(".panel-header-actions");
+      const isClickInsidePagination = e.target.closest(".pagination-bar");
+      const isClickInsideSidebar = e.target.closest(".sidebar-filters");
+      const isClickInsideContextMenu = e.target.closest(".context-menu");
+      const isClickInsideDetailPanel = e.target.closest(".detail-panel");
+
+      if (
+        !isClickInsideTable &&
+        !isClickInsideToolbar &&
+        !isClickInsidePagination &&
+        !isClickInsideSidebar &&
+        !isClickInsideContextMenu
+      ) {
+        // SI ES CLIC EN DETALLE Y HAY PROTOCOLO SELECCIONADO, NO CERRAR
+        if (isClickInsideDetailPanel && selectedProtocol) {
+          return;
+        }
+
+        // SI NO, LIMPIAR SELECCIÓN
+        setSelectedItems([]);
+        setSelectedProtocol(null);
+      }
+    };
+
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-  }, []);
+  }, [selectedProtocol]); // Dependencia vital para que funcione la condición
 
-  // --- MANEJADOR VER RESULTADOS  ---
-  const handleViewResults = (protocolo) => {
-    const target = protocolo || highlightedProtocol;
+  // --- MANEJADORES DE SELECCIÓN ---
+  const handleRowClick = (e, item) => {
+    if (e.ctrlKey || e.metaKey) {
+      setSelectedItems((prev) => {
+        const exists = prev.find((p) => p.protocoloid === item.protocoloid);
+        if (exists) {
+          return prev.filter((p) => p.protocoloid !== item.protocoloid);
+        } else {
+          return [...prev, item];
+        }
+      });
+    } else {
+      // Clic normal: Selecciona solo este
+      setSelectedItems([item]);
+    }
+  };
+
+  const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+
+  // --- MANEJADORES DE ACCIONES ---
+  const handleViewResults = (protocoloOverride = null) => {
+    const target =
+      protocoloOverride ||
+      (selectedItems.length === 1 ? selectedItems[0] : null);
+
     if (target) {
       setSelectedProtocol(target);
+
       if (target.leido === "0") {
         markRead.mutate(target.protocoloid);
+
+        target.leido = "1";
+
+        setSelectedItems((prev) =>
+          prev.map((item) =>
+            item.protocoloid === target.protocoloid
+              ? { ...item, leido: "1" }
+              : item
+          )
+        );
       }
     }
   };
 
-  // --- MANEJADOR CLICK DERECHO ---
   const handleContextMenu = (e, item) => {
     e.preventDefault();
-    setHighlightedProtocol(item);
+    setSelectedItems([item]);
     setContextMenu({
       mouseX: e.clientX,
       mouseY: e.clientY,
@@ -90,19 +153,124 @@ export default function Resultados() {
     });
   };
 
-  // --- MANEJADORES DE FILTROS ---
+  // --- VISUALIZAR PDF (SOLO UNO) ---
+  const handleViewPDF = async (protocolId) => {
+    if (!protocolId || isPdfLoading) return;
+    setIsPdfLoading(true);
+    try {
+      const response = await fetch(`/api/protocols/${protocolId}:getPdf`, {
+        method: "GET",
+        headers: { Accept: "application/pdf" },
+      });
+      if (!response.ok) throw new Error("No se pudo obtener el PDF.");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const width = 1000;
+      const height = 800;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      window.open(
+        url,
+        `PDF_${protocolId}`,
+        `width=${width},height=${height},top=${top},left=${left}`
+      );
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
+
+  const handleDownloadAction = async () => {
+    const itemsToDownload = selectedItems.filter((p) => p.completo !== "");
+
+    if (itemsToDownload.length === 0 || isDownloadLoading) return;
+
+    setIsDownloadLoading(true);
+
+    try {
+      // --- SOLO UN ARCHIVO (Descarga directa PDF) ---
+      if (itemsToDownload.length === 1) {
+        const protocolo = itemsToDownload[0];
+        const response = await fetch(
+          `/api/protocols/${protocolo.protocoloid}:getPdf`,
+          {
+            method: "GET",
+            headers: { Accept: "application/pdf" },
+          }
+        );
+
+        if (!response.ok) throw new Error("No se pudo descargar el archivo.");
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute(
+          "download",
+          `Protocolo_${protocolo.accessionnumber}.pdf`
+        );
+        document.body.appendChild(link);
+        link.click();
+
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
+
+      // --- MÚLTIPLES ARCHIVOS (Generar ZIP) ---
+      else {
+        const zip = new JSZip();
+
+        const promesas = itemsToDownload.map(async (protocolo) => {
+          try {
+            const response = await fetch(
+              `/api/protocols/${protocolo.protocoloid}:getPdf`,
+              {
+                method: "GET",
+                headers: { Accept: "application/pdf" },
+              }
+            );
+
+            if (response.ok) {
+              const blob = await response.blob();
+              zip.file(`Protocolo_${protocolo.accessionnumber}.pdf`, blob);
+            }
+          } catch (err) {
+            console.error(
+              `Error descargando protocolo ${protocolo.accessionnumber}`,
+              err
+            );
+          }
+        });
+
+        await Promise.all(promesas);
+        const content = await zip.generateAsync({ type: "blob" });
+        const fechaHoy = new Date().toISOString().slice(0, 10);
+        saveAs(content, `Resultados_CentraLab_${fechaHoy}.zip`);
+      }
+    } catch (error) {
+      alert("Error en la descarga: " + error.message);
+    } finally {
+      setIsDownloadLoading(false);
+    }
+  };
+
+  // --- FILTROS Y PAGINACIÓN ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleSearch = (e) => {
     e.preventDefault();
     const newFilters = { ...formValues, page: 1 };
     setFormValues(newFilters);
     setActiveFilters(newFilters);
   };
-
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: checked }));
+  };
   const handleReset = () => {
     const resetValues = {
       date_from: "",
@@ -114,105 +282,42 @@ export default function Resultados() {
       page: 1,
       page_size: 15,
       branch_id: "",
+      unread_only: false,
+      complete_only: false,
     };
     setFormValues(resetValues);
     setActiveFilters(resetValues);
+    setSelectedItems([]);
   };
-
   const handlePageChange = (newPage) => {
     const updatedValues = { ...formValues, page: Number(newPage) };
     setFormValues(updatedValues);
     setActiveFilters(updatedValues);
   };
-
   const handlePreviousPage = () => {
     if (formValues.page > 1) {
       handlePageChange(formValues.page - 1);
     }
   };
-
   const handleNextPage = () => {
     if (data?.protocolos?.length === Number(formValues.page_size)) {
       handlePageChange(formValues.page + 1);
     }
   };
-
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     return dateString;
   };
 
+  const hasDownloadableItems = selectedItems.some(
+    (item) => item.completo !== ""
+  );
 
-const handleViewPDF = async (protocolId) => {
-  if (!protocolId || isPdfLoading) return; 
+  const isPdfDisabled =
+    selectedItems.length !== 1 ||
+    selectedItems[0]?.completo === "" ||
+    isPdfLoading;
 
-  setIsPdfLoading(true); 
-  try {
-    const response = await fetch(`/api/protocols/${protocolId}:getPdf`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/pdf' },
-    });
-
-    if (!response.ok) throw new Error("No se pudo obtener el PDF del servidor.");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const width = 1000;
-    const height = 800;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
-    window.open(
-      url, 
-      `PDF_${protocolId}`, 
-      `width=${width},height=${height},top=${top},left=${left},menubar=no,status=no,toolbar=no,location=no`
-    );
-    // -------------------
-
-    setTimeout(() => window.URL.revokeObjectURL(url), 100);
-
-  } catch (error) {
-    alert("Error: " + error.message);
-  } finally {
-    setIsPdfLoading(false); 
-  }
-};
-
-const [isDownloadLoading, setIsDownloadLoading] = useState(false);
-
-const handleDownloadPDF = async (protocolo) => {
-  if (!protocolo || isDownloadLoading) return;
-
-  setIsDownloadLoading(true);
-  try {
-    const response = await fetch(`/api/protocols/${protocolo.protocoloid}:getPdf`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/pdf' },
-    });
-
-    if (!response.ok) throw new Error("No se pudo descargar el archivo.");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    // Creamos un elemento 'a' invisible para forzar la descarga
-    const link = document.createElement('a');
-    link.href = url;
-    // Seteamos el nombre del archivo (usamos el accessionnumber que es el que conoce el paciente)
-    link.setAttribute('download', `Protocolo_${protocolo.accessionnumber}.pdf`);
-    
-    document.body.appendChild(link);
-    link.click();
-    
-    // Limpiamos
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-  } catch (error) {
-    alert("Error al descargar: " + error.message);
-  } finally {
-    setIsDownloadLoading(false);
-  }
-};
   return (
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
@@ -232,7 +337,6 @@ const handleDownloadPDF = async (protocolo) => {
             <span className="arrow-icon">{showFilters ? "▲" : "▼"}</span>
           </div>
         </div>
-
         <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
           <form className="filters-form" onSubmit={handleSearch}>
             <div className="filter-group">
@@ -259,6 +363,7 @@ const handleDownloadPDF = async (protocolo) => {
                 />
               </div>
             </div>
+
             <div className="filter-group">
               <label>DNI Paciente</label>
               <input
@@ -271,7 +376,7 @@ const handleDownloadPDF = async (protocolo) => {
               />
             </div>
             <div className="filter-group">
-              <label>Apellido del Paciente</label>
+              <label>Apellido</label>
               <input
                 type="text"
                 name="apellido_paciente"
@@ -282,7 +387,7 @@ const handleDownloadPDF = async (protocolo) => {
               />
             </div>
             <div className="filter-group">
-              <label>Nombre Paciente</label>
+              <label>Nombre</label>
               <input
                 type="text"
                 name="patient_name"
@@ -293,7 +398,7 @@ const handleDownloadPDF = async (protocolo) => {
               />
             </div>
             <div className="filter-group">
-              <label>ID Petición / Protocolo</label>
+              <label>ID Petición</label>
               <div className="input-wrapper">
                 <input
                   type="text"
@@ -343,12 +448,11 @@ const handleDownloadPDF = async (protocolo) => {
                 placeholder="Ej: RET, 766CL..."
               />
             </div>
-
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                marginTop: "20px",
+                marginTop: "10px",
               }}
             >
               <button
@@ -386,67 +490,80 @@ const handleDownloadPDF = async (protocolo) => {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* PANEL DE RESULTADOS */}
       <main className="split-view">
         <section className="list-panel">
           <div className="panel-header-actions">
-            <button 
-            className="btn-mini-action"
-            onClick={() => setIsEmailModalOpen(true)}
-            disabled={!highlightedProtocol}
-          >
-            <FiMail size={20} /> Enviar por Email
-          </button>
-              <button 
-            className="btn-mini-action"
-            onClick={() => handleViewPDF(highlightedProtocol?.protocoloid)}
-            disabled={!highlightedProtocol || highlightedProtocol.completo === "" || isPdfLoading}
-          >
-            {isPdfLoading ? (
-              "Generando..." 
-            ) : (
-              <><FiFileText size={20} /> Visualizar PDF</>
-            )}
-          </button>
-            <button className="btn-mini-action">
+            <button
+              className="btn-mini-action"
+              onClick={() => setIsEmailModalOpen(true)}
+              disabled={selectedItems.length !== 1}
+              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
+            >
+              <FiMail size={20} /> Enviar por Email
+            </button>
+
+            {/* --- BOTÓN VISUALIZAR PDF MODIFICADO --- */}
+            <button
+              className="btn-mini-action"
+              onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
+              disabled={isPdfDisabled}
+              style={{ opacity: isPdfDisabled ? 0.5 : 1 }}
+            >
+              {isPdfLoading ? (
+                "..."
+              ) : (
+                <>
+                  <FiFileText size={20} /> Visualizar PDF
+                </>
+              )}
+            </button>
+
+            <button
+              className="btn-mini-action"
+              onClick={() => handleViewResults()}
+              disabled={selectedItems.length !== 1}
+              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
+            >
               <FiEye size={20} /> Ver Resultados
             </button>
-          <button 
-            className="btn-mini-action"
-            onClick={() => handleDownloadPDF(highlightedProtocol)}
-            // Se deshabilita si no hay selección, si está pendiente o si ya está descargando
-            disabled={!highlightedProtocol || highlightedProtocol.completo === "" || isDownloadLoading}
-            title={
-              !highlightedProtocol 
-                ? "Seleccione un paciente" 
-                : highlightedProtocol.completo === "" 
-                  ? "Protocolo pendiente" 
-                  : "Descargar PDF"
-            }
-          >
-            {isDownloadLoading ? (
-              "Descargando..."
-            ) : (
-              <><FiDownload size={20} /> Descargar</>
-            )}
-          </button>
+
+            <button
+              className="btn-mini-action"
+              onClick={handleDownloadAction}
+              disabled={!hasDownloadableItems || isDownloadLoading}
+              title={
+                !hasDownloadableItems
+                  ? "Seleccione al menos un protocolo completo"
+                  : ""
+              }
+              style={{ opacity: !hasDownloadableItems ? 0.5 : 1 }}
+            >
+              {isDownloadLoading ? (
+                "Procesando..."
+              ) : (
+                <>
+                  <FiDownload size={20} />
+                  {selectedItems.length > 1 ? " Descargar Todo" : " Descargar"}
+                </>
+              )}
+            </button>
           </div>
 
           <div className="table-wrapper">
             {isFetching && !isLoading && (
-              <div
-                style={{
-                  padding: "5px",
-                  background: "#f0f9ff",
-                  fontSize: "12px",
-                  textAlign: "center",
-                }}
-              >
-                Actualizando datos...
+              <div className="loading-overlay">
+                <div className="spinner"></div>
               </div>
             )}
             {isError && (
-              <div style={{ color: "red", padding: "20px" }}>
+              <div
+                style={{
+                  color: "red",
+                  padding: "20px",
+                  textAlign: "center",
+                }}
+              >
                 Error al cargar los datos.
               </div>
             )}
@@ -472,21 +589,15 @@ const handleDownloadPDF = async (protocolo) => {
               >
                 {data?.protocolos?.map((item) => {
                   const isUnread = item.leido === "0";
-                  const isSelected =
-                    highlightedProtocol?.protocoloid === item.protocoloid;
-
+                  const selected = isSelected(item.protocoloid);
                   return (
                     <tr
                       key={item.protocoloid}
-                      className={`
-                        ${isSelected ? "selected-row" : ""} 
-                        ${isUnread ? "font-bold-unread" : ""} 
-                      `}
-                      // Un Clic: Solo selecciona
-                      onClick={() => setHighlightedProtocol(item)}
-                      // Doble Clic: Abre y marca leído
+                      className={`${selected ? "selected-row" : ""} ${
+                        isUnread ? "font-bold-unread" : ""
+                      }`}
+                      onClick={(e) => handleRowClick(e, item)}
                       onDoubleClick={() => handleViewResults(item)}
-                      // Click Derecho: Menú contextual
                       onContextMenu={(e) => handleContextMenu(e, item)}
                       style={{ cursor: "pointer", userSelect: "none" }}
                     >
@@ -515,14 +626,13 @@ const handleDownloadPDF = async (protocolo) => {
                           </span>
                         ) : (
                           <span className="status-badge status-pending">
-                            <FiClock /> Pendiente
+                            <FiClock /> En Proceso
                           </span>
                         )}
                       </td>
                     </tr>
                   );
                 })}
-
                 {data?.protocolos?.length === 0 && (
                   <tr>
                     <td
@@ -536,7 +646,6 @@ const handleDownloadPDF = async (protocolo) => {
               </tbody>
             </table>
 
-            {/* Paginación */}
             <div
               className="pagination-bar"
               style={{
@@ -551,7 +660,11 @@ const handleDownloadPDF = async (protocolo) => {
                 Mostrando {data?.protocolos?.length || 0} resultados
               </span>
               <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
+                }}
               >
                 <button
                   onClick={handlePreviousPage}
@@ -613,7 +726,7 @@ const handleDownloadPDF = async (protocolo) => {
           </div>
         </section>
 
-        {/* DETALLE PANEL */}
+        {/* DETALLE PANEL*/}
         <section className="detail-panel">
           {selectedProtocol ? (
             <>
@@ -698,6 +811,8 @@ const handleDownloadPDF = async (protocolo) => {
                     </div>
                   </div>
                   <hr className="divider" />
+
+                  {/* --- AREA DE RESULTADOS CORREGIDA --- */}
                   <div className="results-content">
                     {isLoadingResults ? (
                       <div className="loading-results">
@@ -705,7 +820,7 @@ const handleDownloadPDF = async (protocolo) => {
                       </div>
                     ) : isErrorResults ? (
                       <div className="error-container">
-                        ⚠️ Error al conectar con el servidor.
+                        Error al conectar con el servidor.
                       </div>
                     ) : resultsData?.resultados?.length > 0 ? (
                       <>
@@ -716,22 +831,62 @@ const handleDownloadPDF = async (protocolo) => {
                           <span>Valores de Referencia</span>
                         </div>
                         {resultsData.resultados.map((res, index) => {
-                          const mostrarTitulo =
+                          const prevRes =
+                            index > 0
+                              ? resultsData.resultados[index - 1]
+                              : null;
+
+                          const showSectionTitle =
                             index === 0 ||
-                            res.grupotitulo !==
-                              resultsData.resultados[index - 1].grupotitulo;
+                            res.grupotitulo !== prevRes.grupotitulo;
+
+                          const showAnalysisTitle =
+                            index === 0 ||
+                            res.analisis !== prevRes?.analisis ||
+                            showSectionTitle;
+
                           return (
                             <React.Fragment key={index}>
-                              {res.grupotitulo && mostrarTitulo && (
+                              {res.grupotitulo && showSectionTitle && (
                                 <div className="result-category">
                                   {res.grupotitulo}
                                 </div>
                               )}
+
+                              {showAnalysisTitle && (
+                                <div
+                                  className="analysis-header"
+                                  style={{
+                                    backgroundColor: "#f1f5f9",
+                                    padding: "8px 12px",
+                                    fontWeight: "bold",
+                                    color: "#334155",
+                                    fontSize: "0.95rem",
+                                    borderBottom: "1px solid #e2e8f0",
+                                    marginTop: showSectionTitle ? "0" : "5px",
+                                  }}
+                                >
+                                  {res.analisis}
+                                </div>
+                              )}
+
+                              {/* Fila del Resultado */}
                               <div className="result-item-row">
                                 <div className="det-col">
-                                  <strong>{res.analisis}</strong>
+                                  {/* Aquí usamos descripcionpractica en lugar de analisis */}
+                                  <span style={{ fontWeight: 500 }}>
+                                    {res.descripcionpractica}
+                                  </span>
                                   {res.metodo && (
-                                    <small>Método: {res.metodo}</small>
+                                    <div
+                                      style={{
+                                        fontSize: "0.75rem",
+                                        color: "#64748b",
+                                        marginTop: "2px",
+                                      }}
+                                    >
+                                      Mtd: {res.metodo}
+                                    </div>
                                   )}
                                 </div>
                                 <div className="res-col highlighted">
@@ -771,26 +926,44 @@ const handleDownloadPDF = async (protocolo) => {
                     ) : (
                       <div className="no-data-message">
                         <FiInfo size={30} />
-                        <p>Sin resultados registrados.</p>
+                        <p>
+                          Este protocolo no contiene resultados registrados aún.
+                        </p>
                       </div>
                     )}
                   </div>
+                  {/* ---------------------------------- */}
                 </div>
               </div>
             </>
           ) : (
             <div className="no-selection-message">
-              <FiEye size={50} style={{ opacity: 0.3 }} />
-              <p>
-                Haga <strong>doble clic</strong> en un paciente para ver sus
-                resultados
-              </p>
+              {selectedItems.length > 1 ? (
+                <>
+                  <FiCheckCircle
+                    size={50}
+                    style={{ opacity: 0.3, color: "#2563eb" }}
+                  />
+                  <p>{selectedItems.length} protocolos seleccionados</p>
+                  <small>
+                    Presione "Descargar Todo" para bajar los protocolos
+                    completados.
+                  </small>
+                </>
+              ) : (
+                <>
+                  <FiEye size={50} style={{ opacity: 0.3 }} />
+                  <p>
+                    Haga <strong>doble clic</strong> en un paciente para ver sus
+                    resultados
+                  </p>
+                </>
+              )}
             </div>
           )}
         </section>
       </main>
 
-      {/* --- MENÚ CONTEXTUAL --- */}
       {contextMenu && (
         <div
           className="context-menu"
@@ -800,8 +973,8 @@ const handleDownloadPDF = async (protocolo) => {
             <div
               className="context-menu-item"
               onClick={() => {
-                console.log("Clic en Marcar NO leido");
                 markUnread.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "0";
                 setContextMenu(null);
               }}
             >
@@ -811,33 +984,21 @@ const handleDownloadPDF = async (protocolo) => {
             <div
               className="context-menu-item"
               onClick={() => {
-                console.log("Clic en Marcar Leido");
                 markRead.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "1";
                 setContextMenu(null);
               }}
             >
               <FiBookOpen /> Marcar como leído
             </div>
           )}
-
-          <div className="context-menu-separator"></div>
-
-          <div
-            className="context-menu-item"
-            onClick={() => {
-              setIsEmailModalOpen(true);
-              setContextMenu(null);
-            }}
-          >
-            <FiMail /> Enviar por Email
-          </div>
         </div>
       )}
 
       <Email
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
-        protocolo={highlightedProtocol}
+        protocolo={selectedItems[0]}
       />
     </div>
   );
