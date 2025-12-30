@@ -141,7 +141,8 @@ export default function Resultados() {
         );
       }
     }
-  };
+  }
+};
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
@@ -321,7 +322,7 @@ export default function Resultados() {
   return (
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
-      <aside className="sidebar-filters">
+      <aside className="sidebar-filters" data-click-safe="true">
         <div className="sidebar-header">
           {centraLabLogo ? (
             <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" />
@@ -568,25 +569,16 @@ export default function Resultados() {
               </div>
             )}
 
-            <table className="resultados-table">
+            <table className="resultados-table" data-click-safe="true">
               <thead>
                 <tr>
-                  <th>Petición ID</th>
-                  <th>Fecha</th>
-                  <th>Origen</th>
-                  <th>DNI Paciente</th>
-                  <th>Apellido</th>
-                  <th>Nombre</th>
+                  <th>Apellido y Nombre / Datos</th>
+                  <th>Protocolo</th>
                   <th style={{ textAlign: "center" }}>Debe</th>
                   <th>Estado</th>
                 </tr>
               </thead>
-              <tbody
-                style={{
-                  opacity: isFetching ? 0.6 : 1,
-                  transition: "opacity 0.2s",
-                }}
-              >
+              <tbody>
                 {data?.protocolos?.map((item) => {
                   const isUnread = item.leido === "0";
                   const selected = isSelected(item.protocoloid);
@@ -598,51 +590,49 @@ export default function Resultados() {
                       }`}
                       onClick={(e) => handleRowClick(e, item)}
                       onDoubleClick={() => handleViewResults(item)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                      style={{ cursor: "pointer", userSelect: "none" }}
                     >
+                      {/* Columna combinada de Nombre, DNI y Fecha */}
+                    <td className="patient-info-cell">
+                      <div className="patient-main-info">
+                        {/* Contenedor de la primera línea: Punto + Nombre */}
+                        <div className="name-with-dot">
+                          {item.leido === "0" && <span className="unread-dot-inline" title="No leído"></span>}
+                          <span className="name-text">
+                            {item.apellidopaciente}, {item.nombrepaciente}
+                          </span>
+                        </div>
+                        
+                        {/* Segunda línea: DNI y Fecha */}
+                        <div className="patient-subdata">
+                          <span>DNI {item.pacid}</span>
+                          <span className="separator">•</span>
+                          <span>Ingreso: {formatDate(item.ordereddate)}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                      {/* Columna de Protocolo */}
                       <td className="font-mono">{item.accessionnumber}</td>
-                      <td>{formatDate(item.ordereddate)}</td>
-                      <td>
-                        <span className="badge-service">
-                          {item.paclocid || "GRL"}
-                        </span>
-                      </td>
-                      <td className="font-mono">{item.pacid}</td>
-                      <td className="font-bold">{item.apellidopaciente}</td>
-                      <td>{item.nombrepaciente}</td>
+
+                      {/* Indicador del DEBE */}
                       <td style={{ textAlign: "center" }}>
-                        <span
-                          className={`indicator-dot ${
-                            item.debe ? "dot-red" : "dot-green"
-                          }`}
+                        <span 
+                          className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} 
                           title={item.debe ? "Posee Deuda" : "Sin Deuda"}
                         ></span>
                       </td>
+
+                      {/* Estado */}
                       <td>
                         {item.completo !== "" ? (
-                          <span className="status-badge status-complete">
-                            <FiCheckCircle /> Completo
-                          </span>
+                          <span className="status-badge status-complete"><FiCheckCircle /> Completo</span>
                         ) : (
-                          <span className="status-badge status-pending">
-                            <FiClock /> En Proceso
-                          </span>
+                          <span className="status-badge status-pending"><FiClock /> En proceso</span>
                         )}
                       </td>
                     </tr>
                   );
                 })}
-                {data?.protocolos?.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan="8"
-                      style={{ textAlign: "center", padding: "20px" }}
-                    >
-                      No se encontraron resultados
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
 
@@ -727,10 +717,10 @@ export default function Resultados() {
         </section>
 
         {/* DETALLE PANEL*/}
-        <section className="detail-panel">
+        <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
-              <div className="detail-header">
+              <div className="detail-header" >
                 <div className="patient-info">
                   <h2>
                     <FiActivity className="icon-title" /> Visualización de
