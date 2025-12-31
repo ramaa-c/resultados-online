@@ -24,10 +24,11 @@ body button:focus{
 }
 
 .dashboard-container {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+    background-color: #f1f5f9;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* --- SIDEBAR --- */
@@ -150,11 +151,12 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-  width: 50%;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
+    width: 50%;
+    background: #ffffff;
+    margin: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 /* --- BARRA DE ACCIONES SUPERIOR --- */
@@ -205,16 +207,17 @@ body button:focus{
 
 .resultados-table {
     width: 100%;
-    table-layout: fixed; /* Cambiamos a fixed para controlar los anchos exactos */
+    border-collapse: collapse;
+    border-spacing: 0; 
 }
 
-/* Columna 1: Nombre y Datos (le damos el mayor espacio) */
+/* Columna 1: Nombre y Datos */
 .resultados-table th:nth-child(1),
 .resultados-table td:nth-child(1) {
-    width: 55%; /* Ajusta este porcentaje según necesites */
+    width: 45%;
 }
 
-/* Columna 2: Protocolo (la acercamos al nombre) */
+/* Columna 2: Protocolo */
 .resultados-table th:nth-child(2),
 .resultados-table td:nth-child(2) {
     width: 15%;
@@ -324,12 +327,33 @@ body button:focus{
 
 /* Panel Derecho */
 .detail-panel {
-  flex: 1;
-  background: #eef2f6;
+    flex: 1;
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.no-selection-message {
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  color: #64748b;
+  gap: 15px;
+}
+.no-selection-message p {
+  font-size: 1.1rem;
+  margin: 0;
+  color: #475569;
+}
+
+.no-selection-message small {
+  color: #94a3b8;
+  max-width: 300px;
 }
 
 /* Cabecera del reporte */
@@ -433,7 +457,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 18px;
 }
 
-/* --- NUEVOS ESTILOS PARA FILTROS DESPLEGABLES --- */
+/* --- ESTILOS PARA FILTROS DESPLEGABLES --- */
 
 .filter-toggle-btn {
   margin-top: 20px;
@@ -482,9 +506,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding-bottom: 20px;
 }
 
-
 .resultados-table tr.selected-row td {
-    background-color: rgba(1, 152, 204, 0.12) !important; /* Azul institucional al 12% de opacidad */
+    background-color: rgba(1, 152, 204, 0.12) !important;
     border-left: none !important;
     border-right: none !important;
     border-top: 1px solid rgba(1, 152, 204, 0.2);
@@ -493,12 +516,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 
-/* El toque premium: la barrita lateral */
 .resultados-table tr.selected-row td:first-child {
-  border-left: 5px solid #3b82f6 !important; /* Barrita azul fuerte a la izquierda */
+  border-left: 5px solid #3b82f6 !important;
 }
 
-/* Un hover sutil para que las otras filas reaccionen al pasar el mouse */
 .resultados-table tr:not(.selected-row):hover td {
   background-color: #f1f5f9 !important;
   cursor: pointer;
@@ -584,7 +605,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .res-obs {
-  grid-column: 1 / -1; /* Ocupa todo el ancho */
+  grid-column: 1 / -1;
   background: #fffbe6;
   padding: 5px 10px;
   font-size: 0.85rem;
@@ -611,29 +632,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .font-bold-unread {
   background-color: #ffffff;
-  color: #1e293b; /* Un gris muy oscuro casi negro */
+  color: #1e293b;
   font-weight: 700 !important;
 }
-.font-bold-unread td:first-child::before {
-  content: "●";
-  color: #2563eb;
-  margin-right: 8px;
-  font-size: 12px;
-  vertical-align: middle;
-}
 
-
-
-
-/* Estilo para la fila LEÍDA (más tenue) */
+/* Fila LEÍDA*/
 tr:not(.font-bold-unread) {
-  color: #64748b; /* Un gris más suave */
+  color: #64748b;
 }
 
-/* Mejora del resaltado de la fila seleccionada */
+/* Fila seleccionada */
 .selected-row {
-  background-color: #e0e7ff !important; /* Azul claro más visible */
-  border-left: 4px solid #2563eb; /* Borde izquierdo para marcar selección */
+  background-color: #e0e7ff !important;
+  border-left: 4px solid #2563eb;
 }
 
 /* Contenedor de info del paciente */
@@ -641,39 +652,37 @@ tr:not(.font-bold-unread) {
    display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0px; /* Pegamos las dos líneas al máximo */
+    gap: 0px;
 }
 .patient-info-cell {
-    padding: 2px 10px !important; /* Forzamos la reducción de altura */
+    padding: 2px 10px !important;
 }
 .name-with-dot {
     display: flex;
-    align-items: center; /* Alineación vertical perfecta */
-    gap: 6px; /* Espacio entre el punto y el texto */
+    align-items: center;
+    gap: 6px;
 }
 .unread-dot-inline {
     width: 7px;
     height: 7px;
-    background-color: #2563eb; /* El azul de tu captura */
+    background-color: #2563eb;
     border-radius: 50%;
     flex-shrink: 0;
     display: inline-block;
 }
 
 .name-text {
-    font-size: 0.88rem; /* Tamaño optimizado */
+    font-size: 0.88rem;
     font-weight: 700;
-    /* Un azul marino profundo: profesional y con estilo */
     color: #1a3a4a;
     text-transform: uppercase;
-    /* Un espaciado sutil para evitar que se vea 'básico' */
     letter-spacing: 0.015em; 
     line-height: 1.1;
     display: inline-block;
 }
 .patient-subdata {
     font-size: 0.75rem;
-    color: #718096; /* Un gris azulado suave */
+    color: #718096;
     margin-left: 13px;
     font-weight: 400;
 }
@@ -691,14 +700,13 @@ tr:not(.font-bold-unread) {
     align-items: center;
     gap: 10px;
     font-size: 0.85rem;
-    color: #64748b; /* Gris suave */
+    color: #64748b;
 }
 
 .separator {
     color: #cbd5e1;
 }
 
-/* Ajuste de las filas para que parezcan tarjetas */
 .resultados-table tr {
     border-bottom: 1px solid #f1f5f9;
     transition: background 0.2s;
@@ -711,7 +719,7 @@ tr:not(.font-bold-unread) {
     padding: 4px 10px;
 }
 
-/* Indicador del DEBE (más visible) */
+/* Indicador DEBE */
 .indicator-dot {
     height: 8px;
     width: 8px;
@@ -721,3 +729,181 @@ tr:not(.font-bold-unread) {
 
 .dot-red { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
 .dot-green { background-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+
+/* --- SPINNER DE CARGA --- */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  backdrop-filter: blur(1px);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.table-wrapper {
+  position: relative; 
+}
+
+/* --- ESTADOS DE LECTURA (Leído / No Leído) --- */
+.name-with-dot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* punto azul indicador */
+.unread-dot-inline {
+  width: 8px;
+  height: 8px;
+  background-color: #2563eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Fila NO LEÍDA */
+.font-bold-unread .name-text {
+  color: #1a3a4a !important;
+  font-weight: 800 !important;
+}
+
+/* Fila LEÍDA */
+
+tr:not(.font-bold-unread) .name-text {
+  color: #64748b;
+  font-weight: 600;
+}
+
+tr:not(.font-bold-unread) .patient-subdata {
+  opacity: 0.8;
+}
+
+/* ESTILOS DE IMPRESIÓN */
+
+@media print {
+  .sidebar-filters,
+  .filter-checkbox-group,
+  .list-panel,
+  .panel-header-actions,
+  .filter-toggle-btn,
+  .btn-print,
+  .detail-header button {
+    display: none !important;
+  }
+
+  html, body, #root, .dashboard-container {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+  }
+
+  .dashboard-container {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  .detail-panel {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    position: static !important;
+    border: none !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-canvas {
+    padding: 0 !important;
+    background: white !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .report-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: white !important;
+  }
+
+@media print {
+  body, .report-paper, p, span, td, th, h1, h2, h3 {
+    color: black !important;
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact;
+  }
+}
+
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+}
+
+/* --- MENÚ CONTEXTUAL (Click Derecho) --- */
+.context-menu {
+  position: fixed;
+  z-index: 10000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 4px 0;
+  min-width: 200px;
+  font-size: 14px;
+  color: #334155;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.15s;
+}
+
+.context-menu-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 4px 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
