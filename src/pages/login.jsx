@@ -1,18 +1,19 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; 
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
-import { loginUser } from "../services/auth.service"; 
+import { loginUser } from "../services/auth.service";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  
-  const [formData, setFormData] = useState({ jwtusername: "", jwtpassword: "" });
-  
+  const [formData, setFormData] = useState({
+    jwtusername: "",
+    jwtpassword: "",
+  });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,16 +32,17 @@ export default function Login() {
       const data = await loginUser(formData);
 
       if (data.token) {
-        localStorage.setItem('token', data.token);
+        localStorage.setItem("token", data.token);
         navigate("/resultados");
       } else {
         setError("Error: El servidor no devolvió un token válido.");
       }
     } catch (err) {
       console.error(err);
-      const msg = err.response?.status === 401 
-        ? "Usuario o contraseña incorrectos." 
-        : "Error de conexión con el servidor.";
+      const msg =
+        err.response?.status === 401
+          ? "Usuario o contraseña incorrectos."
+          : "Error de conexión con el servidor.";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -73,12 +75,6 @@ export default function Login() {
             Inicia sesión con tus datos personales
           </p>
 
-          {error && (
-            <div style={{ color: "red", marginBottom: "15px", fontSize: "0.9rem", textAlign: "center" }}>
-              {error}
-            </div>
-          )}
-
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="field-wrapper">
               <div className="identifier-container">
@@ -87,8 +83,8 @@ export default function Login() {
                   type="text"
                   placeholder="Email o DNI"
                   name="jwtusername"
-                  value={formData.jwtusername} 
-                  onChange={handleChange}     
+                  value={formData.jwtusername}
+                  onChange={handleChange}
                   required
                   disabled={isLoading}
                 />
@@ -103,8 +99,8 @@ export default function Login() {
                   placeholder="Contraseña"
                   className="password-input"
                   name="jwtpassword"
-                  value={formData.jwtpassword} 
-                  onChange={handleChange}   
+                  value={formData.jwtpassword}
+                  onChange={handleChange}
                   required
                   disabled={isLoading}
                 />
@@ -114,19 +110,64 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
                 >
-                  <i className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                  <i
+                    className={`fa-solid ${
+                      showPassword ? "fa-eye-slash" : "fa-eye"
+                    }`}
+                  ></i>
                 </button>
               </div>
             </div>
 
+            {/* --- MENSAJE DE ERROR --- */}
+            {error && (
+              <div
+                style={{
+                  color: "#dc2626",
+                  marginTop: "8px",
+                  fontSize: "0.85rem",
+                  fontWeight: "500",
+                  marginLeft: "8px",
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* --- ENLACE OLVIDO CONTRASEÑA --- */}
+            <div style={{ textAlign: "right", marginTop: "10px" }}>
+              <Link
+                to="/forgot-password"
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#64748b",
+                  textDecoration: "none",
+                }}
+              >
+                ¿Olvidó su contraseña?
+              </Link>
+            </div>
+
             <div className="button-group">
-              <button 
-                className="ingresar-btn" 
-                type="submit" 
+              <button
+                className="ingresar-btn"
+                type="submit"
                 disabled={isLoading}
                 style={{ opacity: isLoading ? 0.7 : 1 }}
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/registro")}
+                className="ingresar-btn"
+                style={{
+                  backgroundColor: "white",
+                  color: "var(--primary)",
+                  border: "1px solid var(--primary)",
+                }}
+              >
+                Crear Cuenta
               </button>
             </div>
           </form>

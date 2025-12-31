@@ -8,6 +8,8 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import "../styles/email.css";
+// 1. IMPORTAR EL SERVICIO
+import { sendProtocolEmail } from "../services/protocols.service";
 
 export default function Email({ isOpen, onClose, protocolo }) {
   const [email, setEmail] = useState("");
@@ -23,34 +25,26 @@ export default function Email({ isOpen, onClose, protocolo }) {
     try {
       setIsSending(true);
 
-      const url = `/api/protocols/${protocolo.protocoloid}:sendEmail`;
+      // 2. USAR EL SERVICIO (Axios maneja Token y URL)
+      await sendProtocolEmail(protocolo.protocoloid, email);
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          user: "WebPortal",
-        }),
-      });
+      // Si llega aquí, es que fue exitoso (Axios lanza error si falla)
+      alert("¡Protocolo enviado con éxito!");
+      setEmail("");
+      onClose();
 
-      if (response.ok) {
-        alert("¡Protocolo enviado con éxito!");
-        setEmail("");
-        onClose();
-      } else {
-        const errorData = await response.json();
-        alert(`Error: ${errorData.message || "No se pudo procesar el envío"}`);
-      }
     } catch (error) {
-      console.error("Error de red:", error);
-      alert("No se pudo conectar con el servidor de CentraLab.");
+      console.error("Error al enviar email:", error);
+      
+      // Manejo de errores específico de Axios
+      const errorMsg = error.response?.data?.message || "No se pudo conectar con el servidor.";
+      alert(`Error: ${errorMsg}`);
+      
     } finally {
       setIsSending(false);
     }
   };
+
   const handleClose = (e) => {
     e.stopPropagation();
     onClose();
@@ -75,7 +69,7 @@ export default function Email({ isOpen, onClose, protocolo }) {
               <label>
                 <FiHash /> PROTOCOLO
               </label>
-              <span>{protocolo.protocoloid}</span>
+              <span>{protocolo.accessionnumber || protocolo.protocoloid}</span>
             </div>
             <div className="info-item">
               <label>
@@ -123,12 +117,14 @@ export default function Email({ isOpen, onClose, protocolo }) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
+                disabled={isSending}
               />
             </div>
             <button
               type="submit"
               className="btn-send-main"
               disabled={isSending}
+              style={{ opacity: isSending ? 0.7 : 1 }}
             >
               {isSending ? (
                 "Enviando..."

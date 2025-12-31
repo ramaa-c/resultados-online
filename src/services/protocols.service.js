@@ -102,3 +102,14 @@ export const getProtocolPdf = async (protocolId) => {
   });
   return response.data;
 };
+
+export const sendProtocolEmail = async (protocolId, targetEmail) => {
+  if (!protocolId) throw new Error("ID de protocolo inválido");
+
+  const response = await api.post(`/protocols/${protocolId}:sendEmail`, {
+    email: targetEmail,
+    user: "WebPortal",
+  });
+
+  return response.data;
+};

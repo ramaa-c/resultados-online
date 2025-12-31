@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
+import { getProtocolPdf } from "../services/protocols.service";
+import { useNavigate } from "react-router-dom";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email.jsx";
@@ -28,6 +30,7 @@ import {
   FiTrash2,
   FiBookOpen,
   FiBookmark,
+  FiLogOut,
 } from "react-icons/fi";
 
 export default function Resultados() {
@@ -151,7 +154,6 @@ export default function Resultados() {
     }
   };
 
-
   const handleContextMenu = (e, item) => {
     e.preventDefault();
     setSelectedItems([item]);
@@ -167,12 +169,8 @@ export default function Resultados() {
     if (!protocolId || isPdfLoading) return;
     setIsPdfLoading(true);
     try {
-      const response = await fetch(`/api/protocols/${protocolId}:getPdf`, {
-        method: "GET",
-        headers: { Accept: "application/pdf" },
-      });
-      if (!response.ok) throw new Error("No se pudo obtener el PDF.");
-      const blob = await response.blob();
+      const blob = await getProtocolPdf(protocolId);
+
       const url = window.URL.createObjectURL(blob);
       const width = 1000;
       const height = 800;
@@ -185,7 +183,8 @@ export default function Resultados() {
       );
       setTimeout(() => window.URL.revokeObjectURL(url), 100);
     } catch (error) {
-      alert("Error: " + error.message);
+      console.error(error);
+      alert("Error al abrir el PDF. Verifique su sesión.");
     } finally {
       setIsPdfLoading(false);
     }
@@ -199,20 +198,12 @@ export default function Resultados() {
     setIsDownloadLoading(true);
 
     try {
-      // --- SOLO UN ARCHIVO (Descarga directa PDF) ---
+      // --- CASO A: SOLO UN ARCHIVO (Descarga directa PDF) ---
       if (itemsToDownload.length === 1) {
         const protocolo = itemsToDownload[0];
-        const response = await fetch(
-          `/api/protocols/${protocolo.protocoloid}:getPdf`,
-          {
-            method: "GET",
-            headers: { Accept: "application/pdf" },
-          }
-        );
 
-        if (!response.ok) throw new Error("No se pudo descargar el archivo.");
+        const blob = await getProtocolPdf(protocolo.protocoloid);
 
-        const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -227,24 +218,14 @@ export default function Resultados() {
         window.URL.revokeObjectURL(url);
       }
 
-      // --- MÚLTIPLES ARCHIVOS (Generar ZIP) ---
+      // --- CASO B: MÚLTIPLES ARCHIVOS (Generar ZIP) ---
       else {
         const zip = new JSZip();
 
         const promesas = itemsToDownload.map(async (protocolo) => {
           try {
-            const response = await fetch(
-              `/api/protocols/${protocolo.protocoloid}:getPdf`,
-              {
-                method: "GET",
-                headers: { Accept: "application/pdf" },
-              }
-            );
-
-            if (response.ok) {
-              const blob = await response.blob();
-              zip.file(`Protocolo_${protocolo.accessionnumber}.pdf`, blob);
-            }
+            const blob = await getProtocolPdf(protocolo.protocoloid);
+            zip.file(`Protocolo_${protocolo.accessionnumber}.pdf`, blob);
           } catch (err) {
             console.error(
               `Error descargando protocolo ${protocolo.accessionnumber}`,
@@ -259,6 +240,7 @@ export default function Resultados() {
         saveAs(content, `Resultados_CentraLab_${fechaHoy}.zip`);
       }
     } catch (error) {
+      console.error(error);
       alert("Error en la descarga: " + error.message);
     } finally {
       setIsDownloadLoading(false);
@@ -672,8 +654,10 @@ export default function Resultados() {
 
                       {/* Indicador del DEBE */}
                       <td style={{ textAlign: "center" }}>
-                        <span 
-                          className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} 
+                        <span
+                          className={`indicator-dot ${
+                            item.debe ? "dot-red" : "dot-green"
+                          }`}
                           title={item.debe ? "Posee Deuda" : "Sin Deuda"}
                         ></span>
                       </td>
@@ -681,9 +665,13 @@ export default function Resultados() {
                       {/* Estado */}
                       <td>
                         {item.completo !== "" ? (
-                          <span className="status-badge status-complete"><FiCheckCircle /> Completo</span>
+                          <span className="status-badge status-complete">
+                            <FiCheckCircle /> Completo
+                          </span>
                         ) : (
-                          <span className="status-badge status-pending"><FiClock /> En proceso</span>
+                          <span className="status-badge status-pending">
+                            <FiClock /> En proceso
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -776,7 +764,7 @@ export default function Resultados() {
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
-              <div className="detail-header" >
+              <div className="detail-header">
                 <div className="patient-info">
                   <h2>
                     <FiActivity className="icon-title" /> Visualización de
@@ -919,7 +907,6 @@ export default function Resultados() {
                               {/* Fila del Resultado */}
                               <div className="result-item-row">
                                 <div className="det-col">
-                                  {/* Aquí usamos descripcionpractica en lugar de analisis */}
                                   <span style={{ fontWeight: 500 }}>
                                     {res.descripcionpractica}
                                   </span>
@@ -978,7 +965,6 @@ export default function Resultados() {
                       </div>
                     )}
                   </div>
-                  {/* ---------------------------------- */}
                 </div>
               </div>
             </>
