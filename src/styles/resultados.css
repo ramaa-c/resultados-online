@@ -40,7 +40,9 @@ body button:focus{
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow-y: auto;
+  height: 100vh;
+
+  overflow: hidden;
   z-index: 10;
 }
 
@@ -151,44 +153,57 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-    width: 50%;
+    width: 45%;
     background: #ffffff;
     margin: 10px;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 20px);
+    max-height: 100vh;
+    overflow: hidden;
 }
 
 /* --- BARRA DE ACCIONES SUPERIOR --- */
 .panel-header-actions {
-  padding: 15px 20px;
+  padding: 8px 12px;
   background: #FFF;
   border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  align-items: center;
   overflow-x: auto;
+  scrollbar-width: none; 
+}
+.panel-header-actions::-webkit-scrollbar {
+  display: none;
 }
 
 .btn-mini-action {
   background: white;
-  border: 1px solid var(--border);
-  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  height: 32px;
+  
   border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--secondary);
+  font-weight: 600;
+  color: #475569;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .btn-mini-action:hover {
   border-color: var(--primary);
   color: var(--primary);
+  background-color: #f0f9ff;
   transform: translateY(-1px);
 }
 
@@ -239,27 +254,27 @@ body button:focus{
 
 .resultados-table th {
   text-align: left;
-  padding: 12px;
-  background: #F8FAFC;
-  color: var(--text-gray);
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: #64748b;
   font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
   position: sticky;
   top: 0;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  z-index: 10;
 }
-
 .resultados-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  padding: 12px 16px;
   vertical-align: middle;
+  font-size: 0.9rem;
+  color: #334155;
 }
 
 .resultados-table tr:hover {
-  background: var(--primary-light);
+  background-color: #f8fafc;
   cursor: pointer;
 }
 
@@ -515,11 +530,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transition: background-color 0.2s ease;
 }
 
-
 .resultados-table tr.selected-row td:first-child {
-  border-left: 5px solid #3b82f6 !important;
+  box-shadow: inset 4px 0 0 #0198CC !important;
 }
 
+.resultados-table tr.selected-row .name-text {
+  color: #0198CC !important;
+}
+.resultados-table tr.selected-row .unread-dot-inline {
+  box-shadow: 0 0 0 2px #fff;
+}
 .resultados-table tr:not(.selected-row):hover td {
   background-color: #f1f5f9 !important;
   cursor: pointer;
@@ -659,32 +679,33 @@ tr:not(.font-bold-unread) {
 }
 .name-with-dot {
     display: flex;
-    align-items: center;
-    gap: 6px;
+  align-items: center;
+  gap: 10px;
 }
 .unread-dot-inline {
     width: 7px;
     height: 7px;
-    background-color: #2563eb;
+    background-color: #0198CC;
     border-radius: 50%;
     flex-shrink: 0;
     display: inline-block;
 }
 
 .name-text {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #1a3a4a;
-    text-transform: uppercase;
-    letter-spacing: 0.015em; 
-    line-height: 1.1;
-    display: inline-block;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  display: block;
+  margin-bottom: 4px;
 }
 .patient-subdata {
-    font-size: 0.75rem;
-    color: #718096;
-    margin-left: 13px;
-    font-weight: 400;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .patient-name {
@@ -708,8 +729,8 @@ tr:not(.font-bold-unread) {
 }
 
 .resultados-table tr {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.2s;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .resultados-table th {
@@ -760,24 +781,18 @@ tr:not(.font-bold-unread) {
 }
 
 .table-wrapper {
-  position: relative; 
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  position: relative;
 }
 
 /* --- ESTADOS DE LECTURA (Leído / No Leído) --- */
+
 .name-with-dot {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-/* punto azul indicador */
-.unread-dot-inline {
-  width: 8px;
-  height: 8px;
-  background-color: #2563eb;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
 }
 
 /* Fila NO LEÍDA */
@@ -786,8 +801,7 @@ tr:not(.font-bold-unread) {
   font-weight: 800 !important;
 }
 
-/* Fila LEÍDA */
-
+/*  Fila LEÍDA */
 tr:not(.font-bold-unread) .name-text {
   color: #64748b;
   font-weight: 600;
@@ -906,4 +920,105 @@ tr:not(.font-bold-unread) .patient-subdata {
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* --- SCROLLBAR PERSONALIZADO --- */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #90d5ed;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #0198CC;
+}
+
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #90d5ed transparent;
+}
+
+/* --- CHECKBOXES PERSONALIZADOS --- */
+
+.filter-checkbox-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  width: 100%;
+}
+
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  display: inline-block; 
+  border-radius: 4px;
+  position: relative;
+  top: 5px;
+  transition: all 0.2s ease;
+  background: #fff;
+  margin-right: 10px; 
+  flex-shrink: 0;
+}
+.checkbox-label input:checked + .custom-checkbox {
+  background-color: #10B981;
+  border-color: #10B981;
+}
+
+.checkbox-label input:checked + .custom-checkbox::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label:hover .custom-checkbox {
+  border-color: #10B981;
+}
+
+.spinner-loader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
