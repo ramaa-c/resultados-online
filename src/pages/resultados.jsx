@@ -11,7 +11,6 @@ import Email from "./email";
 import "../styles/email.css";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-
 import {
   FiFilter,
   FiSearch,
@@ -712,7 +711,7 @@ export default function Resultados() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "1rem",
+                padding: "0.8rem",
                 borderTop: "1px solid #eee",
               }}
             >
