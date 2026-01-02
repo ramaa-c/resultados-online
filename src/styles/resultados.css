@@ -143,7 +143,6 @@ body button:focus{
   background: #0089c4;
 }
 
-
 /* --- SPLIT VIEW --- */
 .split-view {
   flex: 1;
@@ -659,12 +658,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Fila LEÍDA*/
 tr:not(.font-bold-unread) {
   color: #64748b;
-}
-
-/* Fila seleccionada */
-.selected-row {
-  background-color: #e0e7ff !important;
-  border-left: 4px solid #2563eb;
 }
 
 /* Contenedor de info del paciente */

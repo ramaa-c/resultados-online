@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -6,13 +7,10 @@ import { getProtocolPdf } from "../services/protocols.service";
 import { useNavigate } from "react-router-dom";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
-import Email from "./email.jsx";
+import Email from "./email";
 import "../styles/email.css";
-import { useNavigate } from "react-router-dom";
-
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-
 
 import {
   FiFilter,
@@ -23,7 +21,6 @@ import {
   FiPrinter,
   FiActivity,
   FiCheckCircle,
-  FiLogOut,
   FiClock,
   FiMail,
   FiInfo,
@@ -34,6 +31,8 @@ import {
 } from "react-icons/fi";
 
 export default function Resultados() {
+  const queryClient = useQueryClient();
+
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -46,7 +45,6 @@ export default function Resultados() {
     branch_id: "",
     unread_only: false,
     complete_only: false,
-    
   });
   const navigate = useNavigate();
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -96,12 +94,10 @@ export default function Resultados() {
         !isClickInsideSidebar &&
         !isClickInsideContextMenu
       ) {
-        // SI ES CLIC EN DETALLE Y HAY PROTOCOLO SELECCIONADO, NO CERRAR
         if (isClickInsideDetailPanel && selectedProtocol) {
           return;
         }
 
-        // SI NO, LIMPIAR SELECCIÓN
         setSelectedItems([]);
         setSelectedProtocol(null);
       }
@@ -109,7 +105,7 @@ export default function Resultados() {
 
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-  }, [selectedProtocol]); // Dependencia vital para que funcione la condición
+  }, [selectedProtocol]);
 
   // --- MANEJADORES DE SELECCIÓN ---
   const handleRowClick = (e, item) => {
@@ -123,7 +119,6 @@ export default function Resultados() {
         }
       });
     } else {
-      // Clic normal: Selecciona solo este
       setSelectedItems([item]);
     }
   };
@@ -153,6 +148,21 @@ export default function Resultados() {
       }
     }
   };
+
+  // --- PREFETCH  ---
+  useEffect(() => {
+    if (selectedItems.length === 1) {
+      const protocolo = selectedItems[0];
+
+      if (protocolo.completo !== "") {
+        queryClient.prefetchQuery({
+          queryKey: ["protocolResults", String(protocolo.protocoloid)],
+          queryFn: () => getProtocolResults(protocolo.protocoloid),
+          staleTime: 1000 * 60 * 5,
+        });
+      }
+    }
+  }, [selectedItems, queryClient]);
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
@@ -328,7 +338,7 @@ export default function Resultados() {
             <span className="arrow-icon">{showFilters ? "▲" : "▼"}</span>
           </div>
         </div>
-        
+
         <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
           <form className="filters-form" onSubmit={handleSearch}>
             <div className="filter-group">
@@ -386,8 +396,8 @@ export default function Resultados() {
                   <input
                     type="checkbox"
                     name="complete_only"
-                    checked={formValues.complete_only} // <--- Vinculado al estado
-                    onChange={handleCheckboxChange}    // <--- El evento que faltaba
+                    checked={formValues.complete_only}
+                    onChange={handleCheckboxChange}
                   />
                   <span className="custom-checkbox"></span>
                   Completo
@@ -397,15 +407,15 @@ export default function Resultados() {
                 <label className="checkbox-label">
                   <input
                     type="checkbox"
-                    name="in_process" // Asegúrate de agregar "in_process: false" en tu useState inicial si lo usas
-                    checked={formValues.in_process || false} 
-                    onChange={handleCheckboxChange}    // <--- El evento que faltaba
+                    name="in_process"
+                    checked={formValues.in_process || false}
+                    onChange={handleCheckboxChange}
                   />
                   <span className="custom-checkbox"></span>
                   En Proceso
                 </label>
               </div>
-              </div>
+            </div>
             <div className="filter-group">
               <label>ID Petición</label>
               <div className="input-wrapper">
@@ -464,24 +474,23 @@ export default function Resultados() {
                 marginTop: "-10px",
               }}
             >
-           <button
+              <button
                 type="submit"
                 className="btn-filtrar"
                 disabled={isLoading}
-                style={{ 
-                  width: "100%", 
-                  opacity: isLoading ? 0.7 : 1, // Efecto visual de deshabilitado
+                style={{
+                  width: "100%",
+                  opacity: isLoading ? 0.7 : 1,
                   cursor: isLoading ? "wait" : "pointer",
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  gap: "8px"
+                  gap: "8px",
                 }}
               >
                 {isLoading ? (
                   <>
-                    {/* Pequeño spinner CSS integrado */}
-                    <span className="spinner-loader"></span> 
+                    <span className="spinner-loader"></span>
                     Buscando...
                   </>
                 ) : (
@@ -510,21 +519,27 @@ export default function Resultados() {
           </form>
         </div>
         {!showFilters && (
-    <div style={{ marginTop: "auto", padding: "1rem", borderTop: "1px solid #e2e8f0" }}>
-          <button
-            onClick={handleLogout}
-            className="btn-filtrar"
+          <div
             style={{
-              backgroundColor: "#fff0f0",
-              color: "#dc2626",
-              borderColor: "#fecaca",
-              width: "100%",
-              justifyContent: "center"
+              marginTop: "auto",
+              padding: "1rem",
+              borderTop: "1px solid #e2e8f0",
             }}
           >
-            <FiLogOut /> Cerrar Sesión
-          </button>
-        </div>
+            <button
+              onClick={handleLogout}
+              className="btn-filtrar"
+              style={{
+                backgroundColor: "#fff0f0",
+                color: "#dc2626",
+                borderColor: "#fecaca",
+                width: "100%",
+                justifyContent: "center",
+              }}
+            >
+              <FiLogOut /> Cerrar Sesión
+            </button>
+          </div>
         )}
       </aside>
 
@@ -630,24 +645,35 @@ export default function Resultados() {
                       onContextMenu={(e) => handleContextMenu(e, item)}
                     >
                       {/* Columna combinada de Nombre, DNI y Fecha */}
-                    <td className="patient-info-cell">
-                      <div className="patient-main-info">
-                        {/* Contenedor de la primera línea: Punto + Nombre */}
-                        <div className="name-with-dot">
-                          {item.leido === "0" && <span className="unread-dot-inline" title="No leído"></span>}
-                          <span className="name-text">
-                            {item.apellidopaciente}, {item.nombrepaciente}
-                          </span>
+                      <td className="patient-info-cell">
+                        <div className="patient-main-info">
+                          {/* Contenedor de la primera línea: Punto + Nombre */}
+                          <div className="name-with-dot">
+                            {item.leido === "0" && (
+                              <span
+                                className="unread-dot-inline"
+                                title="No leído"
+                              ></span>
+                            )}
+                            <span className="name-text">
+                              {item.apellidopaciente}, {item.nombrepaciente}
+                            </span>
+                          </div>
+
+                          {/* Segunda línea: DNI y Fecha */}
+                          <div className="patient-subdata">
+                            <span>
+                              DNI{" "}
+                              {item.pacid
+                                .toString()
+                                .replace(/DNI/gi, "")
+                                .trim()}
+                            </span>
+                            <span className="separator">•</span>
+                            <span>Ingreso: {formatDate(item.ordereddate)}</span>
+                          </div>
                         </div>
-                        
-                        {/* Segunda línea: DNI y Fecha */}
-                        <div className="patient-subdata">
-                      <span>DNI {item.pacid.toString().replace(/DNI/gi, '').trim()}</span> 
-                      <span className="separator">•</span>
-                      <span>Ingreso: {formatDate(item.ordereddate)}</span>
-                    </div>
-                      </div>
-                    </td>
+                      </td>
 
                       {/* Columna de Protocolo */}
                       <td className="font-mono">{item.accessionnumber}</td>

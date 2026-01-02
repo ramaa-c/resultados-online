@@ -8,7 +8,6 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import "../styles/email.css";
-// 1. IMPORTAR EL SERVICIO
 import { sendProtocolEmail } from "../services/protocols.service";
 
 export default function Email({ isOpen, onClose, protocolo }) {
@@ -25,10 +24,8 @@ export default function Email({ isOpen, onClose, protocolo }) {
     try {
       setIsSending(true);
 
-      // 2. USAR EL SERVICIO (Axios maneja Token y URL)
       await sendProtocolEmail(protocolo.protocoloid, email);
 
-      // Si llega aquí, es que fue exitoso (Axios lanza error si falla)
       alert("¡Protocolo enviado con éxito!");
       setEmail("");
       onClose();
@@ -36,7 +33,6 @@ export default function Email({ isOpen, onClose, protocolo }) {
     } catch (error) {
       console.error("Error al enviar email:", error);
       
-      // Manejo de errores específico de Axios
       const errorMsg = error.response?.data?.message || "No se pudo conectar con el servidor.";
       alert(`Error: ${errorMsg}`);
       

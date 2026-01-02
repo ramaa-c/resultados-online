@@ -137,7 +137,7 @@ export default function Login() {
             {/* --- ENLACE OLVIDO CONTRASEÑA --- */}
             <div style={{ textAlign: "right", marginTop: "10px" }}>
               <Link
-                to="/forgot-password"
+                to="/recuperarClave"
                 style={{
                   fontSize: "0.85rem",
                   color: "#64748b",
