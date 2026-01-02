@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -30,6 +31,8 @@ import {
 } from "react-icons/fi";
 
 export default function Resultados() {
+  const queryClient = useQueryClient();
+
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -145,6 +148,21 @@ export default function Resultados() {
       }
     }
   };
+
+  // --- PREFETCH  ---
+  useEffect(() => {
+    if (selectedItems.length === 1) {
+      const protocolo = selectedItems[0];
+
+      if (protocolo.completo !== "") {
+        queryClient.prefetchQuery({
+          queryKey: ["protocolResults", String(protocolo.protocoloid)],
+          queryFn: () => getProtocolResults(protocolo.protocoloid),
+          staleTime: 1000 * 60 * 5,
+        });
+      }
+    }
+  }, [selectedItems, queryClient]);
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
