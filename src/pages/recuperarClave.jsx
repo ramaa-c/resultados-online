@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import "../styles/login.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 
-export default function recuperarClave() {
+export default function RecuperarClave() {
   const [identifier, setIdentifier] = useState("");
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);

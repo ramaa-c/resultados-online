@@ -157,18 +157,20 @@ export default function Login() {
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
-              <button
-                type="button"
-                onClick={() => navigate("/registro")}
-                className="ingresar-btn"
-                style={{
-                  backgroundColor: "white",
-                  color: "var(--primary)",
-                  border: "1px solid var(--primary)",
-                }}
-              >
-                Crear Cuenta
-              </button>
+              <Link to="/registro" style={{ flex: 1, display: 'flex', textDecoration: 'none' }}>
+                <button
+                  type="button" 
+                  className="ingresar-btn"
+                  style={{
+                    backgroundColor: "white",
+                    color: "#0198CC", // Cambié var(--primary) por tu color para asegurar consistencia
+                    border: "1px solid #0198CC",
+                    flex: 1
+                  }}
+                >
+                  Crear Cuenta
+                </button>
+              </Link>
             </div>
           </form>
         </div>

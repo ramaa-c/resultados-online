@@ -1,0 +1,39 @@
+/* Para que el texto decorativo de la izquierda se vea bien */
+.decorative-text {
+  text-align: center;
+  color: #1e293b;
+  margin-top: 20px;
+}
+
+.decorative-text h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.decorative-text p {
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Ajuste para que los botones en el registro mantengan el ancho */
+.back-link-btn {
+  flex: 1;
+  text-decoration: none;
+  display: flex;
+}
+
+.back-link-btn button {
+  width: 100%;
+}
+
+/* Reducción ligera de paddings para formularios largos en pantallas medianas */
+.card-right-column {
+  padding: 40px 60px; /* Un poco menos de padding vertical */
+}
+
+/* Asegurar que los iconos tengan espacio */
+.field-wrapper .input-icon {
+  width: 20px;
+  text-align: center;
+}
