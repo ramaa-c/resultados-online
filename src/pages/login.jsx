@@ -33,6 +33,12 @@ export default function Login() {
 
       if (data.token) {
         localStorage.setItem("token", data.token);
+        const userData = {
+          fullname: data.fullname || data.user?.fullname || "Usuario",
+          email: data.email || data.user?.email || "Sin email",
+          userid: data.userid || data.user?.userid,
+        };
+        localStorage.setItem("userData", JSON.stringify(userData));
         if (
           data.mustChangePassword === true ||
           data.user?.mustchangepassword === true
