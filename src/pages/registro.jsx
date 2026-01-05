@@ -1,20 +1,18 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../services/auth.service";
-import "../styles/registro.css";
+import "../styles/registro.css"; // Reutilizamos estilos
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 
 export default function Registro() {
-    
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Eliminamos el campo 'password' del estado
   const [formData, setFormData] = useState({
     username: "",
     fullname: "",
     email: "",
+    branchidlist: [] // Inicializado para la API
   });
-
+  
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -22,50 +20,56 @@ export default function Registro() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => { // <--- Abre función
     e.preventDefault();
     setIsLoading(true);
 
     const fechaActual = new Date().toISOString();
 
-    // --- PAYLOAD SIN CONTRASEÑA ---
-    const userPayload = {
+    const userPayload = { // <--- Abre objeto payload
       userid: 0,
       username: formData.username,
       fullname: formData.fullname,
       email: formData.email,
-      // No enviamos password; el backend se encarga de generarla
-      
+      password: "", 
+      mustchangepassword: true, 
+      status: "Active",
       createdate: fechaActual,
       expirationdate: "2099-12-31T23:59:59.999Z",
-      status: "Active",
-      
-      mustchangepassword: true, // Esto forzará el cambio al ingresar
-      canviewreserved: true,
+      canviewreserved: false,
       canviewallbranches: true,
-      canviewallforwarders: true,
+      canviewallforwarders: false,
       isadministrator: false,
-      
       branchidlist: [],
       forwarderidlist: [],
       branchnamelist: [],
       forwardernamelist: []
-    };
+    }; // <--- Cierra objeto payload (asegúrate que esté este punto y coma)
 
-    try {
-      await registerUser(userPayload);
+    try { // <--- Abre TRY
+      const response = await fetch("http://192.168.2.103:8075/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userPayload),
+      });
 
-      alert("Registro exitoso. Revisa tu correo electrónico para obtener tu contraseña temporal.");
-      navigate("/login");
+      if (response.ok) {
+        alert("Usuario registrado con éxito. Por favor inicia sesión.");
+        navigate("/login"); 
+      } else {
+        const errorData = await response.json();
+        alert("Error en el registro: " + (errorData.message || "Verifique los datos"));
+      }
+    } catch (error) { // <--- Cierra TRY, Abre CATCH
+      console.error("Error de red:", error);
+      alert("Error de red: No se pudo conectar con el servidor");
+    } finally { // <--- Cierra CATCH, Abre FINALLY
+      setIsLoading(false); 
+    } // <--- Cierra FINALLY
 
-    } catch (error) {
-      console.error("Error en registro:", error);
-      const errorMsg = error.response?.data?.message || "Error al procesar el registro.";
-      alert(`Error: ${errorMsg}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }; // <--- ¡ESTA ES LA LLAVE FINAL DE LA FUNCIÓN! (Asegúrate de tenerla)
 
   return (
     <div className="login-page">
@@ -77,11 +81,7 @@ export default function Registro() {
       <div className="login-card">
         <div className="card-left-column">
           <Link to="/login">
-            <img
-              src={centraLabLogo}
-              alt="CentraLab Logo"
-              className="card-logo"
-            />
+             <img src={centraLabLogo} alt="CentraLab Logo" className="card-logo" />
           </Link>
           <div className="decorative-text">
             <h3>Bienvenido</h3>
@@ -94,6 +94,7 @@ export default function Registro() {
           <p className="card-subtitle">Completa tus datos para registrarte</p>
 
           <form className="login-form" onSubmit={handleSubmit}>
+            
             {/* Campo: Nombre Completo */}
             <div className="field-wrapper">
               <div className="identifier-container">
@@ -105,12 +106,11 @@ export default function Registro() {
                   required
                   value={formData.fullname}
                   onChange={handleInputChange}
-                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            {/* Campo: Usuario */}
+            {/* Campo: Usuario / DNI */}
             <div className="field-wrapper">
               <div className="identifier-container">
                 <i className="fa-solid fa-user input-icon"></i>
@@ -121,7 +121,6 @@ export default function Registro() {
                   required
                   value={formData.username}
                   onChange={handleInputChange}
-                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -137,56 +136,42 @@ export default function Registro() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            {/* SE ELIMINÓ EL CAMPO DE CONTRASEÑA */}
+            
 
             <div className="button-group">
-              <button
-                className="ingresar-btn"
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  opacity: isLoading ? 0.7 : 1,
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "10px",
-                }}
-              >
-                {isLoading ? (
-                  <>
-                    <i className="fa-solid fa-circle-notch fa-spin"></i>
-                    Procesando...
-                  </>
-                ) : (
-                  "Registrarme"
-                )}
-              </button>
-
               <button 
-                type="button"
-                className="back-link-btn"
-                onClick={() => navigate("/login")}
-                disabled={isLoading}
-                style={{
-                    background: "none",
-                    border: "1px solid #ddd",
-                    color: "#666",
-                    marginTop: "10px",
-                    width: "100%",
-                    padding: "0.75rem",
-                    borderRadius: "8px",
-                    cursor: "pointer"
-                }}
-              >
-                Volver
-              </button>
-            </div>
+    className="ingresar-btn" 
+    type="submit"
+    disabled={isLoading} // Evita dobles clics
+    style={{ 
+      opacity: isLoading ? 0.7 : 1, 
+      cursor: isLoading ? 'not-allowed' : 'pointer',
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      gap: '10px'
+    }}
+  >
+    {isLoading ? (
+      <>
+        {/* Si tienes FontAwesome cargado, esto mostrará un spinner girando */}
+        <i className="fa-solid fa-circle-notch fa-spin"></i> 
+        Procesando...
+      </>
+    ) : (
+      "Registrarme"
+    )}
+  </button>
+
+  <Link to="/login" className="back-link-btn">
+    <button type="button" disabled={isLoading}>Volver</button>
+  </Link>
+</div>
+            
           </form>
         </div>
       </div>

@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
-import { FiSearch, FiChevronLeft, FiChevronRight, FiX, FiPlus, FiCheck } from "react-icons/fi";
+import { FiSearch, FiChevronLeft, FiChevronRight, FiX, FiPlus, FiCheck, FiSave } from "react-icons/fi";
+import "../styles/modalUsuario.css";
 
 // --- ESQUEMA DE VALIDACIÓN ---
 const schema = z.object({
@@ -33,7 +34,6 @@ const AsyncSelector = ({
 }) => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
-
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -58,8 +58,7 @@ const AsyncSelector = ({
         }));
       } else {
         return Object.entries(rawData).map(([id, label]) => ({ 
-          id, 
-          label: label || id 
+          id, label: label || id 
         }));
       }
     },
@@ -80,77 +79,104 @@ const AsyncSelector = ({
     }
   };
 
-  if (isDisabled) return <div style={styles.disabledBox}>Opción "Ver Todos" habilitada. Se ignorará la selección manual.</div>;
+  if (isDisabled) {
+    return (
+      <div className="selector-disabled">
+        Opción "Ver Todos" habilitada. Se ignorará la selección manual.
+      </div>
+    );
+  }
 
   return (
-    <div style={styles.selectorContainer}>
+    <div className="selector-wrapper">
       {/* BARRA DE BÚSQUEDA */}
-      <div style={styles.searchBar}>
+      <div className="selector-search-bar">
         <input 
           type="text" 
+          className="selector-input-search"
           placeholder={`Buscar ${title}... (Enter)`} 
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          style={styles.searchInput}
         />
-        <button 
-          type="button" 
-          onClick={triggerSearch} 
-          style={styles.searchButton}
-          title="Buscar"
-        >
-          <FiSearch color="white" />
-        </button>
+    <button type="button" class="selector-btn-search">
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="20" 
+      height="20" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      stroke-width="2" 
+      stroke-linecap="round" 
+      stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+</button>
       </div>
 
-      <div style={styles.selectorBody}>
+      <div className="selector-body">
         {/* LISTA DE RESULTADOS (IZQUIERDA) */}
-        <div style={styles.column}>
-          <h5 style={styles.colTitle}>Resultados</h5>
-          {isLoading ? (
-            <p style={{fontSize: '0.8rem', color: '#666', padding: '10px'}}>Cargando...</p>
-          ) : isError ? (
-            <p style={{fontSize: '0.8rem', color: 'red', padding: '10px'}}>Error al cargar</p>
-          ) : (
-            <div style={styles.list}>
-              {(!data || data.length === 0) && <p style={{fontSize: '0.8rem', padding: '10px'}}>No hay resultados</p>}
-              {data?.map((item) => {
+        <div className="selector-col">
+          <h5 className="selector-col-title">Resultados</h5>
+          <div className="selector-list">
+            {isLoading ? (
+              <p style={{fontSize: '0.8rem', color: '#666', padding: '10px'}}>Cargando...</p>
+            ) : isError ? (
+              <p style={{fontSize: '0.8rem', color: 'red', padding: '10px'}}>Error al cargar</p>
+            ) : (!data || data.length === 0) ? (
+              <p style={{fontSize: '0.8rem', padding: '10px'}}>No hay resultados</p>
+            ) : (
+              data.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
                 return (
                   <div 
                     key={item.id} 
                     onClick={() => onToggleItem(item)}
-                    style={{...styles.listItem, opacity: isSelected ? 0.5 : 1}}
+                    className={`selector-item ${isSelected ? 'selected' : ''}`}
                   >
-                    <span style={{flex: 1}}>{item.label}</span>
+                    <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={item.label}>
+                      {item.label}
+                    </span>
                     {isSelected ? <FiCheck color="green"/> : <FiPlus color="#007bff"/>}
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
+          
           {/* Paginación */}
-          <div style={styles.pagination}>
-            <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={styles.pageBtn}><FiChevronLeft/></button>
-            <span style={{fontSize: '0.8rem'}}>Pág {page}</span>
-            <button type="button" onClick={() => setPage(p => p + 1)} disabled={!data || data.length < pageSize} style={styles.pageBtn}><FiChevronRight/></button>
+          <div className="selector-pagination">
+            <button type="button" className="page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+              <FiChevronLeft/>
+            </button>
+            <span>Pág {page}</span>
+            <button type="button" className="page-btn" onClick={() => setPage(p => p + 1)} disabled={!data || data.length < pageSize}>
+              <FiChevronRight/>
+            </button>
           </div>
         </div>
 
         {/* LISTA DE SELECCIONADOS (DERECHA) */}
-        <div style={{...styles.column, borderLeft: '1px solid #eee'}}>
-          <h5 style={styles.colTitle}>Seleccionados ({selectedIds.length})</h5>
-          <div style={styles.list}>
-            {selectedIds.length === 0 && <p style={{fontSize: '0.8rem', color: '#999', fontStyle: 'italic', padding: '10px'}}>Nada seleccionado</p>}
+        <div className="selector-col">
+          <h5 className="selector-col-title">Seleccionados ({selectedIds.length})</h5>
+          <div className="selector-list">
+            {selectedIds.length === 0 && (
+              <p style={{fontSize: '0.8rem', color: '#999', fontStyle: 'italic', padding: '10px'}}>
+                Nada seleccionado
+              </p>
+            )}
             {selectedIds.map(id => {
                const itemInData = data?.find(d => d.id === id);
-               const displayText = itemInData ? itemInData.label : id;
+               const displayText = itemInData ? itemInData.label : id; // Si no está en la página actual, muestra ID (idealmente buscar nombre)
 
                return (
-                  <div key={id} style={styles.selectedTag}>
-                    <span>{displayText}</span> 
-                    <button type="button" onClick={() => onToggleItem({id})} style={styles.removeBtn}><FiX /></button>
+                  <div key={id} className="selector-tag">
+                    <span style={{flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{displayText}</span> 
+                    <button type="button" onClick={() => onToggleItem({id})} style={{border:'none', background:'transparent', cursor:'pointer', color:'#0284c7', padding:0, marginLeft:5}}>
+                      <FiX />
+                    </button>
                   </div>
                );
             })}
@@ -239,6 +265,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
       };
 
       if (userToEdit) {
+        // await api.put(`/users/${userToEdit.userid}`, payload);
         console.log("Editando...", payload);
       } else {
         await api.post('/users', payload);
@@ -255,121 +282,133 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={styles.overlay}>
-      <div className="modal-content" style={styles.modal}>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
-          <h2 style={{margin: 0}}>{userToEdit ? "Editar Usuario" : "Nuevo Usuario"}</h2>
-          <button onClick={onClose} style={{border:'none', background:'transparent', cursor:'pointer'}}><FiX size={24}/></button>
+    <div className="modal-overlay">
+      <div className="modal-container">
+        
+        {/* HEADER */}
+        <div className="modal-header">
+          <h2 className="modal-title">
+            {userToEdit ? <FiCheck /> : <FiPlus />}
+            {userToEdit ? "Editar Usuario" : "Nuevo Usuario"}
+          </h2>
+          <button type="button" className="modal-close-btn" onClick={onClose}><FiX /></button>
         </div>
         
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gap: '15px' }}>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {/* FORMULARIO */}
+        <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
+          <div className="modal-body">
+            
+            {/* --- SECCIÓN 1: DATOS (GRILLA 2x2) --- */}
             <div>
-              <label style={styles.label}>Usuario</label>
-              <input {...register("username")} style={styles.input} placeholder="Ej: jdoe" />
-              {errors.username && <span style={styles.error}>{errors.username.message}</span>}
+               <h4 className="section-title">Datos de Cuenta</h4>
+               
+               <div className="form-grid-top">
+                  {/* Fila 1, Col 1 */}
+                  <div className="form-group">
+                    <label className="form-label">Usuario</label>
+                    <input 
+                      type="text" 
+                      className={`form-input ${errors.username ? 'error' : ''}`}
+                       
+                      {...register("username")} 
+                    />
+                    {errors.username && <span className="error-msg">{errors.username.message}</span>}
+                  </div>
+                  
+                  {/* Fila 1, Col 2 */}
+                  <div className="form-group">
+                    <label className="form-label">Nombre Completo</label>
+                    <input 
+                      type="text" 
+                      className={`form-input ${errors.fullname ? 'error' : ''}`}
+                       
+                      {...register("fullname")} 
+                    />
+                    {errors.fullname && <span className="error-msg">{errors.fullname.message}</span>}
+                  </div>
+
+                  {/* Fila 2, Col 1 */}
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input 
+                      type="email" 
+                      className={`form-input ${errors.email ? 'error' : ''}`}
+                      
+                      {...register("email")} 
+                    />
+                    {errors.email && <span className="error-msg">{errors.email.message}</span>}
+                  </div>
+
+                  {/* Fila 2, Col 2 - Checkbox Admin */}
+                  <div className="admin-box">
+                      <label className="checkbox-label">
+                          <input type="checkbox" {...register("isadministrator")} /> 
+                          Es Administrador
+                      </label>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', borderLeft: '1px solid #cbd5e1', paddingLeft: '15px' }}>
+                        Acceso total al sistema.
+                      </span>
+                  </div>
+               </div>
             </div>
+
+            {/* --- SECCIÓN 2: SELECTORES (GRILLA 1x2) --- */}
             <div>
-              <label style={styles.label}>Nombre Completo</label>
-              <input {...register("fullname")} style={styles.input} placeholder="Juan Perez" />
-              {errors.fullname && <span style={styles.error}>{errors.fullname.message}</span>}
+               <h4 className="section-title">Accesos y Restricciones</h4>
+               
+               <div className="selectors-row">
+                  {/* Caja 1: Branches */}
+                  <div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center'}}>
+                        <label className="form-label" style={{margin:0}}>Sedes (Branches)</label>
+                        <label style={{fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, color: '#64748b'}}>
+                            <input type="checkbox" {...register("canviewallbranches")} /> Ver Todas
+                        </label>
+                    </div>
+                    <AsyncSelector 
+                        title="Sedes"
+                        queryKey="branches"
+                        fetchUrl="/branches"
+                        searchParamName="branch_name"
+                        isDisabled={watchAllBranches}
+                        selectedIds={branchIdList}
+                        onToggleItem={(item) => handleToggle(item, "branchidlist", branchIdList)}
+                    />
+                  </div>
+
+                  {/* Caja 2: Forwarders */}
+                  <div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center'}}>
+                        <label className="form-label" style={{margin:0}}>Obras Sociales</label>
+                        <label style={{fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, color: '#64748b'}}>
+                            <input type="checkbox" {...register("canviewallforwarders")} /> Ver Todas
+                        </label>
+                    </div>
+                    <AsyncSelector 
+                        title="Forwarders"
+                        queryKey="forwarders"
+                        fetchUrl="/forwarders"
+                        searchParamName="forwarder_name"
+                        isDisabled={watchAllForwarders}
+                        selectedIds={forwarderIdList}
+                        onToggleItem={(item) => handleToggle(item, "forwarderidlist", forwarderIdList)}
+                    />
+                  </div>
+               </div>
             </div>
+
           </div>
 
-          <div>
-            <label style={styles.label}>Email</label>
-            <input {...register("email")} style={styles.input} placeholder="juan@empresa.com" />
-            {errors.email && <span style={styles.error}>{errors.email.message}</span>}
-          </div>
-
-          <div style={{ display: 'flex', gap: 20, background: '#f9f9f9', padding: 10, borderRadius: 6 }}>
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" {...register("isadministrator")} /> Es Administrador
-            </label>
-          </div>
-
-          <hr style={{border: '0', borderTop: '1px solid #eee', margin: '5px 0'}} />
-
-          {/* SELECTOR BRANCHES */}
-          <div>
-            <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                <h4 style={{margin: '0 0 5px 0'}}>Sedes (Branches)</h4>
-                <label style={{fontSize: '0.8rem', cursor: 'pointer'}}>
-                    <input type="checkbox" {...register("canviewallbranches")} /> Ver Todas
-                </label>
-            </div>
-            <AsyncSelector 
-                title="Sedes"
-                queryKey="branches"
-                fetchUrl="/branches"
-                searchParamName="branch_name"
-                isDisabled={watchAllBranches}
-                selectedIds={branchIdList}
-                onToggleItem={(item) => handleToggle(item, "branchidlist", branchIdList)}
-            />
-          </div>
-
-          {/* SELECTOR FORWARDERS */}
-          <div>
-            <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                <h4 style={{margin: '0 0 5px 0'}}>Obras Sociales (Forwarders)</h4>
-                <label style={{fontSize: '0.8rem', cursor: 'pointer'}}>
-                    <input type="checkbox" {...register("canviewallforwarders")} /> Ver Todas
-                </label>
-            </div>
-            <AsyncSelector 
-                title="Forwarders"
-                queryKey="forwarders"
-                fetchUrl="/forwarders"
-                searchParamName="forwarder_name"
-                isDisabled={watchAllForwarders}
-                selectedIds={forwarderIdList}
-                onToggleItem={(item) => handleToggle(item, "forwarderidlist", forwarderIdList)}
-            />
-          </div>
-
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" onClick={onClose} style={styles.btnSecondary}>Cancelar</button>
-            <button type="submit" disabled={isSubmitting} style={styles.btnPrimary}>
-              {isSubmitting ? "Guardando..." : "Guardar Usuario"}
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
+            <button type="submit" disabled={isSubmitting} className="btn-save">
+              <FiSave /> {isSubmitting ? "Guardando..." : "Guardar Usuario"}
             </button>
           </div>
-
         </form>
       </div>
     </div>
   );
-};
-
-const styles = {
-  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' },
-  modal: { background: 'white', padding: '25px', borderRadius: '12px', width: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' },
-  input: { width: '100%', padding: '8px 12px', marginTop: 5, border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem' },
-  label: { fontSize: '0.9rem', fontWeight: 600, color: '#333' },
-  error: { color: '#e00', fontSize: '0.8rem', marginTop: 2 },
-  checkboxLabel: { fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' },
-  
-  selectorContainer: { border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', background: '#fff' },
-  disabledBox: { padding: '15px', background: '#f3f4f6', color: '#666', borderRadius: '8px', textAlign: 'center', fontSize: '0.9rem' },
-  
-  searchBar: { padding: '8px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 0 },
-  searchInput: { border: '1px solid #ddd', borderRight: 'none', borderRadius: '4px 0 0 4px', outline: 'none', width: '100%', fontSize: '0.9rem', padding: '6px 10px', height: '32px' },
-  searchButton: { border: '1px solid #0198CC', background: '#0198CC', color: 'white', borderRadius: '0 4px 4px 0', cursor: 'pointer', padding: '0 12px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-
-  selectorBody: { display: 'flex', height: '220px' },
-  column: { flex: 1, display: 'flex', flexDirection: 'column', padding: '0' },
-  colTitle: { margin: 0, padding: '8px', background: '#f9fafb', borderBottom: '1px solid #eee', fontSize: '0.85rem', color: '#555' },
-  list: { flex: 1, overflowY: 'auto', padding: '5px' },
-  listItem: { display: 'flex', alignItems: 'center', padding: '6px 10px', cursor: 'pointer', borderRadius: '4px', fontSize: '0.85rem', marginBottom: 2, transition: 'background 0.2s' },
-  selectedTag: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#e0f2fe', color: '#0284c7', padding: '4px 8px', borderRadius: '4px', marginBottom: '4px', fontSize: '0.85rem' },
-  removeBtn: { border: 'none', background: 'transparent', cursor: 'pointer', color: '#0284c7', padding: 0, marginLeft: 5 },
-  
-  pagination: { padding: '5px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  pageBtn: { border: 'none', background: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '4px' },
-  
-  btnPrimary: { padding: '10px 20px', border: 'none', borderRadius: '6px', background: '#0198CC', color: 'white', fontWeight: 600, cursor: 'pointer' },
-  btnSecondary: { padding: '10px 20px', border: '1px solid #ddd', borderRadius: '6px', background: 'white', color: '#333', cursor: 'pointer' },
 };
 
 export default ModalUsuario;

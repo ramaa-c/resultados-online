@@ -171,18 +171,15 @@ export default function Login() {
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
-              <Link
-                to="/registro"
-                style={{ flex: 1, display: "flex", textDecoration: "none" }}
-              >
+              <Link to="/registro" style={{ flex: 1, display: 'flex', textDecoration: 'none' }}>
                 <button
-                  type="button"
+                  type="button" 
                   className="ingresar-btn"
                   style={{
                     backgroundColor: "white",
                     color: "#0198CC",
                     border: "1px solid #0198CC",
-                    flex: 1,
+                    flex: 1
                   }}
                 >
                   Crear Cuenta
