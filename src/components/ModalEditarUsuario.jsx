@@ -109,10 +109,10 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
 
   // --- EFECTO: CARGAR DATOS DEL USUARIO ---
   useEffect(() => {
+    // Solo reseteamos si hay usuario y está abierto
     if (isOpen && user) {
-      console.log("Cargando usuario para editar:", user);
+      console.log("Cargando usuario para editar (ID):", user.userid);
       
-      // Convertimos IDs a String para que el selector funcione bien
       const safeBranchIds = user.branchidlist ? user.branchidlist.map(String) : [];
       const safeForwarderIds = user.forwarderidlist ? user.forwarderidlist.map(String) : [];
 
@@ -128,7 +128,11 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
         forwarderidlist: safeForwarderIds,
       });
     }
-  }, [user, isOpen, reset]);
+    // CAMBIO CLAVE AQUÍ ABAJO:
+    // En vez de depender de [user], dependemos de [user?.userid].
+    // Así evitamos que un re-render del padre reinicie tu formulario mientras escribes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userid, isOpen, reset]);
 
   const handleToggle = (item, fieldName, list) => {
     const itemIdStr = item.id.toString();
@@ -168,7 +172,7 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
       };
 
       console.log("Enviando PUT:", payload);
-      await api.put(`/users/${user.userid}`, payload);
+      await api.put('/users', payload);
       
       onUserUpdated && onUserUpdated(); // Refrescar tabla
       onClose(); // Cerrar modal

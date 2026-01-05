@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/modalUsuario";
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
 import ModalBuscarUsuario from '../components/ModalBuscarUsuario';
+import ModalAdministracion from '../components/ModalAdministracion';
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email";
@@ -59,6 +60,7 @@ export default function Resultados() {
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [isModifyUserModalOpen, setIsModifyUserModalOpen] = useState(false);
   const [isSearchUserModalOpen, setIsSearchUserModalOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -590,109 +592,88 @@ export default function Resultados() {
               >
                 {/* Botón Nuevo Usuario */}
                 <button
-                  onClick={() => setIsCreateUserModalOpen(true)}
-                  className="btn-filtrar"
-                  style={{
-                    backgroundColor: "#0198CC",
-                    color: "white",
-                    border: "none",
-                    width: "100%",
-                    justifyContent: "flex-start",
-                    padding: "10px 12px",
-                    fontSize: "0.9rem",
-                    fontWeight: "600",
-                    borderRadius: "6px",
-                    boxShadow: "0 2px 4px rgba(1, 152, 204, 0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <FiUserPlus size={18} />
-                  Nuevo Usuario
-                </button>
-
-                {/* Botón Modificar Usuario */}
-                <button
-                  onClick={() => setIsSearchUserModalOpen(true)}
-                  className="btn-filtrar"
-                  style={{
-                    backgroundColor: "white",
-                    color: "#475569",
-                    border: "1px solid #cbd5e1",
-                    width: "100%",
-                    justifyContent: "flex-start",
-                    padding: "10px 12px",
-                    fontSize: "0.9rem",
-                    fontWeight: "600",
-                    borderRadius: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = "#0198CC";
-                    e.currentTarget.style.color = "#0198CC";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = "#cbd5e1";
-                    e.currentTarget.style.color = "#475569";
-                  }}
-                >
-                  <FiEdit size={18} />
-                  Modificar Usuario
-                </button>
+              onClick={() => setIsAdminOpen(true)}
+              className="btn-filtrar"
+              style={{
+                // ... tus estilos (width 100%, flex, etc) ...
+                backgroundColor: '#0198CC', // Un color oscuro tipo "Admin"
+                color: "white",
+              }}
+            >
+              <FiUser size={18} />
+              Panel de Usuarios
+            </button>
               </div>
             </div>
 
             <div style={{ borderTop: "1px dashed #cbd5e1", margin: "5px 0" }} />
             {/* --- SECCIÓN DE USUARIO --- */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "15px",
-                paddingBottom: "15px",
-                borderBottom: "1px dashed #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  width: "35px",
-                  height: "35px",
-                  borderRadius: "50%",
-                  backgroundColor: "#e0f2fe",
-                  color: "#0284c7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <FiUser size={18} />
-              </div>
-              <div style={{ overflow: "hidden" }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontWeight: "600",
-                    fontSize: "0.85rem",
-                    color: "#334155",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    maxWidth: "140px",
-                  }}
-                  title={user.fullname}
-                >
-                  {user.fullname}
-                </p>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                  Usuario
-                </span>
-              </div>
-            </div>
+          <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    marginBottom: "15px",
+    paddingBottom: "15px",
+    borderBottom: "1px dashed #e2e8f0",
+  }}
+>
+  {/* 1. EL ICONO DE PERSONA (RESTITUIDO) */}
+  <div
+    style={{
+      width: "35px",
+      height: "35px",
+      borderRadius: "50%",
+      backgroundColor: "#e0f2fe", // Fondo azulito claro
+      color: "#0284c7",         // Icono azul más oscuro
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0, // Evita que se aplaste si el nombre es muy largo
+    }}
+  >
+    <FiUser size={18} />
+  </div>
+
+  {/* 2. LOS DATOS DEL USUARIO (CORREGIDOS) */}
+  <div style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    {/* Nombre Completo (Arriba) */}
+    <p
+      style={{
+        margin: 0,
+        fontWeight: "600",
+        fontSize: "0.85rem",
+        color: "#334155",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "140px",
+        lineHeight: "1.2",
+      }}
+      // Muestra el nombre completo al pasar el mouse si se corta
+      title={user.fullname || user.username || ""}
+    >
+      {/* Si no hay fullname, muestra username, si no, "Usuario" */}
+      {user.fullname || user.username || "Usuario"}
+    </p>
+
+    {/* Nombre de usuario / Username (Abajo, más pequeño) */}
+    <span
+      style={{
+        fontSize: "0.75rem",
+        color: "#64748b",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: "140px",
+      }}
+      title={user.username ? `@${user.username}` : ""}
+    >
+      {/* Agregamos el @ para que parezca un username */}
+      {user.username ? `@${user.username}` : "Usuario"}
+    </span>
+  </div>
+</div>
 
             {/* --- BOTÓN CERRAR SESIÓN --- */}
             <button
@@ -1244,6 +1225,11 @@ export default function Resultados() {
         isOpen={isSearchUserModalOpen}
         onClose={() => setIsSearchUserModalOpen(false)}
         onUserFound={handleUserFound} // Conecta con la edición
+      />
+
+      <ModalAdministracion 
+    isOpen={isAdminOpen} 
+    onClose={() => setIsAdminOpen(false)} 
       />
 
       {/*  Modal de Edición */}
