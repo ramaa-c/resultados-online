@@ -7,6 +7,7 @@ import {
   FiCalendar,
   FiMapPin,
 } from "react-icons/fi";
+import toast from 'react-hot-toast';
 import "../styles/email.css";
 import { sendProtocolEmail } from "../services/protocols.service";
 
@@ -26,7 +27,8 @@ export default function Email({ isOpen, onClose, protocolo }) {
 
       await sendProtocolEmail(protocolo.protocoloid, email);
 
-      alert("¡Protocolo enviado con éxito!");
+      toast.success("¡Protocolo enviado con éxito!");
+      
       setEmail("");
       onClose();
 
@@ -34,7 +36,8 @@ export default function Email({ isOpen, onClose, protocolo }) {
       console.error("Error al enviar email:", error);
       
       const errorMsg = error.response?.data?.message || "No se pudo conectar con el servidor.";
-      alert(`Error: ${errorMsg}`);
+      
+      toast.error(`Error: ${errorMsg}`);
       
     } finally {
       setIsSending(false);

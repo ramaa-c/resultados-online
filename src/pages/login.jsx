@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import { loginUser } from "../services/auth.service";
+import api from "../api/axios"; 
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +15,18 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // --- LIMPIEZA DE SESIÓN ---
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      console.log("No se detectó token. Limpiando datos de sesión residuales...");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("tempUserId");
+    }
+
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,34 +42,50 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const data = await loginUser(formData);
+      const loginResponse = await loginUser(formData);
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        const userData = {
-          fullname: data.fullname || data.user?.fullname || "Usuario",
-          email: data.email || data.user?.email || "Sin email",
-          userid: data.userid || data.user?.userid,
+      if (loginResponse.token) {
+        localStorage.setItem("token", loginResponse.token);
+
+        const userIdentifier = formData.jwtusername; 
+        
+        const encodedIdentifier = encodeURIComponent(userIdentifier);
+        const { data: userData } = await api.get(`/users/${encodedIdentifier}/:byname`);
+
+        if (userData.status !== "activo") {
+            setError("Su cuenta no está activa. Contacte al administrador.");
+            localStorage.removeItem("token");
+            setIsLoading(false);
+            return;
+        }
+
+        const userStorageInfo = {
+          fullname: userData.fullname,
+          email: userData.email,
+          userid: userData.userid,
+          username: userData.username,
         };
-        localStorage.setItem("userData", JSON.stringify(userData));
-        if (
-          data.mustChangePassword === true ||
-          data.user?.mustchangepassword === true
-        ) {
-          localStorage.setItem("tempUserId", data.userid || data.user.userid);
-          navigate("/crear-password");
+        localStorage.setItem("userData", JSON.stringify(userStorageInfo));
+
+        if (userData.mustchangepassword === true) {
+          localStorage.setItem("tempUserId", userData.userid);
+          navigate("/cambiarClave");
         } else {
           navigate("/resultados");
         }
+
       } else {
-        setError("Error: Token inválido.");
+        setError("Error: Credenciales inválidas.");
       }
     } catch (err) {
       console.error(err);
+      localStorage.removeItem("token"); 
+      localStorage.removeItem("userData");
+      
       const msg =
         err.response?.status === 401
           ? "Usuario o contraseña incorrectos."
-          : "Error de conexión con el servidor.";
+          : "Error de conexión o usuario no encontrado.";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -171,20 +200,6 @@ export default function Login() {
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
-              <Link to="/registro" style={{ flex: 1, display: 'flex', textDecoration: 'none' }}>
-                <button
-                  type="button" 
-                  className="ingresar-btn"
-                  style={{
-                    backgroundColor: "white",
-                    color: "#0198CC",
-                    border: "1px solid #0198CC",
-                    flex: 1
-                  }}
-                >
-                  Crear Cuenta
-                </button>
-              </Link>
             </div>
           </form>
         </div>
