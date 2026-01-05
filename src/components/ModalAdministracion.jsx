@@ -3,16 +3,15 @@ import api from "../api/axios";
 import { 
   FiX, FiSearch, FiUserPlus, FiEdit, 
   FiChevronLeft, FiChevronRight, FiTrash2,
-  FiKey, 
-  FiSlash,       // NUEVO: Icono para Bloquear
-  FiCheckCircle  // NUEVO: Icono para Desbloquear
+  FiKey,
+  FiSlash,
+  FiCheckCircle
 } from "react-icons/fi";
-import ModalUsuario from "./ModalUsuario";       
+import ModalUsuario from "./modalUsuario";       
 import ModalEditarUsuario from "./ModalEditarUsuario"; 
 import ModalConfirmacion from "./ModalConfirmacion";
 import ModalExito from "./ModalExito";
 import ModalError from "./ModalError";
-// Importamos las nuevas funciones
 import { resetUserPassword, blockUser, unblockUser } from "../services/user.service"; 
 import "../styles/modalUsuario.css"; 
 
@@ -41,10 +40,10 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
   // NUEVOS ESTADOS PARA BLOQUEO/DESBLOQUEO
   const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
   const [userToBlock, setUserToBlock] = useState(null);
-  const [actionType, setActionType] = useState(""); // 'block' o 'release'
+  const [actionType, setActionType] = useState("");
 
   // Estados compartidos de carga y feedback
-  const [loadingAction, setLoadingAction] = useState(false); // Spinner general para acciones
+  const [loadingAction, setLoadingAction] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);   
   const [successMsg, setSuccessMsg] = useState("");        
   const [showError, setShowError] = useState(false); 
@@ -84,7 +83,6 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
     if (isOpen) {
       fetchUsers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, filters.page]); 
 
   // --- MANEJADORES DE FILTROS ---
@@ -133,13 +131,10 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
     }
   };
 
-  // --- NUEVA LÓGICA: BLOQUEAR / DESBLOQUEAR ---
+  // --- BLOQUEAR / DESBLOQUEAR ---
 const handleStatusClick = (user) => {
-  // Limpiamos el string por si tiene espacios y lo pasamos a minúsculas
   const currentStatus = user.status ? user.status.toLowerCase().trim() : "";
 
-  // Lógica simple: Si dice "activo", queremos BLOQUEAR. 
-  // Si dice "bloqueado", queremos DESBLOQUEAR (release).
   const action = (currentStatus === 'activo') ? 'block' : 'release';
   
   setUserToBlock(user);
@@ -153,16 +148,16 @@ const handleStatusClick = (user) => {
 
     try {
       if (actionType === 'block') {
-        await blockUser(userToBlock.userid); // Llamamos API bloquear
+        await blockUser(userToBlock.userid);
         setSuccessMsg(`El usuario ${userToBlock.username} ha sido BLOQUEADO.`);
       } else {
-        await unblockUser(userToBlock.userid); // Llamamos API desbloquear
+        await unblockUser(userToBlock.userid);
         setSuccessMsg(`El usuario ${userToBlock.username} ha sido DESBLOQUEADO.`);
       }
 
       setIsBlockConfirmOpen(false);
       setShowSuccess(true);
-      fetchUsers(); // Recargamos la lista para ver el nuevo estado
+      fetchUsers();
     } catch (error) {
       console.error("Error status:", error);
       setIsBlockConfirmOpen(false);
@@ -208,7 +203,7 @@ const handleStatusClick = (user) => {
                 <input 
                   type="text" className="form-input" placeholder="ID de Usuario..." 
                   value={filters.userid} onChange={(e) => setFilters({...filters, userid: e.target.value})}
-                  style={{ height: '38px' }}
+                  style={{ height: '38px', marginInline: "10px" }}
                 />
               </div>
               <button type="submit" className="btn-save" style={squareBtnStyle} title="Buscar"><FiSearch size={18} /></button>
@@ -222,19 +217,19 @@ const handleStatusClick = (user) => {
             <table className="resultados-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc' }}>
             <tr>
-                {/* 1. ID bien pegadito (60px es suficiente para un número) */}
+                {/* 1. ID */}
                 <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
                 
-                {/* 2. Usuario y Nombre ocupan espacio automático */}
+                {/* 2. Usuario y Nombre*/}
                 <th style={{ textAlign: 'left' }}>Usuario</th>
                 <th style={{ textAlign: 'left' }}>Nombre Completo</th>
                 <th style={{ textAlign: 'left' }}>Email</th>
                 
-                {/* 3. Admin y Estado con ancho fijo para que no bailen */}
+                {/* 3. Admin y Estado*/}
                 <th style={{ width: '80px', textAlign: 'center' }}>Admin</th>
                 <th style={{ width: '100px', textAlign: 'center' }}>Estado</th>
                 
-                {/* 4. Acciones con espacio justo para los 3 botones (140px aprox) */}
+                {/* 4. Acciones */}
                 <th style={{ width: '140px', textAlign: 'center' }}>Acciones</th>
             </tr>
             </thead>
@@ -321,7 +316,7 @@ const handleStatusClick = (user) => {
       <ModalUsuario isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onUserSaved={handleUserSaved} />
       <ModalEditarUsuario isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} user={userToEdit} onUserUpdated={handleUserSaved} />
       
-      {/* 1. Modal Confirmación RESET PASSWORD */}
+      {/* Modal Confirmación RESET PASSWORD */}
       <ModalConfirmacion 
         isOpen={isConfirmOpen}
         onClose={() => !loadingAction && setIsConfirmOpen(false)}
@@ -332,7 +327,7 @@ const handleStatusClick = (user) => {
         subMessage={`Se enviará un correo a: ${userToReset?.email}`}
       />
 
-      {/* 2. Modal Confirmación BLOQUEO/DESBLOQUEO (NUEVO) */}
+      {/* Modal Confirmación BLOQUEO/DESBLOQUEO */}
       <ModalConfirmacion 
         isOpen={isBlockConfirmOpen}
         onClose={() => !loadingAction && setIsBlockConfirmOpen(false)}
