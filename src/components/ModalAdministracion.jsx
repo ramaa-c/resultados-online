@@ -134,17 +134,18 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
   };
 
   // --- NUEVA LÓGICA: BLOQUEAR / DESBLOQUEAR ---
-  const handleStatusClick = (user) => {
-    // Determinamos la acción opuesta al estado actual
-    // Si dice "blocked" o "bloqueado", la acción será desbloquear ('release')
-    // Ajusta la condición 'blocked' según cómo venga EXACTAMENTE de tu BD
-    const isBlocked = user.status?.toLowerCase().includes('block') || user.status?.toLowerCase() === 'suspendido';
-    const nextAction = isBlocked ? 'release' : 'block';
-    
-    setUserToBlock(user);
-    setActionType(nextAction);
-    setIsBlockConfirmOpen(true);
-  };
+const handleStatusClick = (user) => {
+  // Limpiamos el string por si tiene espacios y lo pasamos a minúsculas
+  const currentStatus = user.status ? user.status.toLowerCase().trim() : "";
+
+  // Lógica simple: Si dice "activo", queremos BLOQUEAR. 
+  // Si dice "bloqueado", queremos DESBLOQUEAR (release).
+  const action = (currentStatus === 'activo') ? 'block' : 'release';
+  
+  setUserToBlock(user);
+  setActionType(action);
+  setIsBlockConfirmOpen(true);
+};
 
   const handleConfirmStatusChange = async () => {
     if (!userToBlock) return;
@@ -220,23 +221,23 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
           <div className="table-wrapper" style={{ flex: 1, overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
             <table className="resultados-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f8fafc' }}>
-  <tr>
-    {/* 1. ID bien pegadito (60px es suficiente para un número) */}
-    <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
-    
-    {/* 2. Usuario y Nombre ocupan espacio automático */}
-    <th style={{ textAlign: 'left' }}>Usuario</th>
-    <th style={{ textAlign: 'left' }}>Nombre Completo</th>
-    <th style={{ textAlign: 'left' }}>Email</th>
-    
-    {/* 3. Admin y Estado con ancho fijo para que no bailen */}
-    <th style={{ width: '80px', textAlign: 'center' }}>Admin</th>
-    <th style={{ width: '100px', textAlign: 'center' }}>Estado</th>
-    
-    {/* 4. Acciones con espacio justo para los 3 botones (140px aprox) */}
-    <th style={{ width: '140px', textAlign: 'center' }}>Acciones</th>
-  </tr>
-</thead>
+            <tr>
+                {/* 1. ID bien pegadito (60px es suficiente para un número) */}
+                <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
+                
+                {/* 2. Usuario y Nombre ocupan espacio automático */}
+                <th style={{ textAlign: 'left' }}>Usuario</th>
+                <th style={{ textAlign: 'left' }}>Nombre Completo</th>
+                <th style={{ textAlign: 'left' }}>Email</th>
+                
+                {/* 3. Admin y Estado con ancho fijo para que no bailen */}
+                <th style={{ width: '80px', textAlign: 'center' }}>Admin</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Estado</th>
+                
+                {/* 4. Acciones con espacio justo para los 3 botones (140px aprox) */}
+                <th style={{ width: '140px', textAlign: 'center' }}>Acciones</th>
+            </tr>
+            </thead>
               <tbody>
                 {loading ? (
                   <tr><td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>Cargando...</td></tr>
