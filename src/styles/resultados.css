@@ -75,7 +75,6 @@ body button:focus{
   font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 4px;
-  display: block;
   color: var(--secondary);
 }
 
@@ -953,6 +952,7 @@ tr:not(.font-bold-unread) .patient-subdata {
 }
 
 .checkbox-label {
+  margin-left: 8px;
   display: flex;
   align-items: center;
   font-size: 0.85rem;

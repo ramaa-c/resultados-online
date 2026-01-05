@@ -5,7 +5,7 @@ import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/ModalUsuario";
+import ModalUsuario from "../components/modalUsuario";
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
 import ModalBuscarUsuario from '../components/ModalBuscarUsuario';
 import "../styles/resultados.css";
@@ -445,7 +445,6 @@ export default function Resultados() {
                     checked={formValues.complete_only}
                     onChange={handleCheckboxChange}
                   />
-                  <span className="custom-checkbox"></span>
                   Completo
                 </label>
 
@@ -457,7 +456,6 @@ export default function Resultados() {
                     checked={formValues.in_process || false}
                     onChange={handleCheckboxChange}
                   />
-                  <span className="custom-checkbox"></span>
                   En Proceso
                 </label>
               </div>
@@ -501,17 +499,6 @@ export default function Resultados() {
                   <option value={100}>100</option>
                 </select>
               </div>
-            </div>
-            <div className="filter-group">
-              <label>Servicio Médico</label>
-              <input
-                type="text"
-                name="branch_id"
-                value={formValues.branch_id}
-                onChange={handleInputChange}
-                className="input-modern"
-                placeholder="Ej: RET, 766CL..."
-              />
             </div>
             <div
               style={{
@@ -900,7 +887,7 @@ export default function Resultados() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "1rem",
+                padding: "0.8rem",
                 borderTop: "1px solid #eee",
               }}
             >
