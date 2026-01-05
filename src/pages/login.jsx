@@ -33,9 +33,23 @@ export default function Login() {
 
       if (data.token) {
         localStorage.setItem("token", data.token);
-        navigate("/resultados");
+        const userData = {
+          fullname: data.fullname || data.user?.fullname || "Usuario",
+          email: data.email || data.user?.email || "Sin email",
+          userid: data.userid || data.user?.userid,
+        };
+        localStorage.setItem("userData", JSON.stringify(userData));
+        if (
+          data.mustChangePassword === true ||
+          data.user?.mustchangepassword === true
+        ) {
+          localStorage.setItem("tempUserId", data.userid || data.user.userid);
+          navigate("/crear-password");
+        } else {
+          navigate("/resultados");
+        }
       } else {
-        setError("Error: El servidor no devolvió un token válido.");
+        setError("Error: Token inválido.");
       }
     } catch (err) {
       console.error(err);
@@ -157,18 +171,23 @@ export default function Login() {
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
-              <button
-                type="button"
-                onClick={() => navigate("/registro")}
-                className="ingresar-btn"
-                style={{
-                  backgroundColor: "white",
-                  color: "var(--primary)",
-                  border: "1px solid var(--primary)",
-                }}
+              <Link
+                to="/registro"
+                style={{ flex: 1, display: "flex", textDecoration: "none" }}
               >
-                Crear Cuenta
-              </button>
+                <button
+                  type="button"
+                  className="ingresar-btn"
+                  style={{
+                    backgroundColor: "white",
+                    color: "#0198CC",
+                    border: "1px solid #0198CC",
+                    flex: 1,
+                  }}
+                >
+                  Crear Cuenta
+                </button>
+              </Link>
             </div>
           </form>
         </div>

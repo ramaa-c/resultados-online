@@ -5,6 +5,7 @@ import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import { useNavigate } from "react-router-dom";
+import ModalUsuario from "../components/modalUsuario";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email";
@@ -28,6 +29,9 @@ import {
   FiBookOpen,
   FiBookmark,
   FiLogOut,
+  FiUser,
+  FiUserPlus,
+  FiEdit,
 } from "react-icons/fi";
 
 export default function Resultados() {
@@ -49,6 +53,21 @@ export default function Resultados() {
   const navigate = useNavigate();
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState(formValues);
+  const [user, setUser] = useState({ fullname: "Usuario" });
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [isModifyUserModalOpen, setIsModifyUserModalOpen] = useState(false);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("userData");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+      } catch (e) {
+        console.error("Error leyendo usuario", e);
+      }
+    }
+  }, []);
 
   // --- SELECCIÓN MÚLTIPLE ---
   const [selectedItems, setSelectedItems] = useState([]);
@@ -518,24 +537,167 @@ export default function Resultados() {
             </div>
           </form>
         </div>
+
         {!showFilters && (
           <div
             style={{
               marginTop: "auto",
               padding: "1rem",
               borderTop: "1px solid #e2e8f0",
+              backgroundColor: "#f8fafc",
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
             }}
           >
+            {/* --- BOTONES ADMINISTRATIVOS --- */}
+            <div>
+              <p
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: "700",
+                  color: "#94a3b8",
+                  marginBottom: "8px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  textAlign: "center",
+                  width: "100%",
+                }}
+              >
+                Administración
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1px",
+                }}
+              >
+                {/* Botón Nuevo Usuario */}
+                <button
+                  onClick={() => setIsCreateUserModalOpen(true)}
+                  className="btn-filtrar"
+                  style={{
+                    backgroundColor: "#0198CC",
+                    color: "white",
+                    border: "none",
+                    width: "100%",
+                    justifyContent: "flex-start",
+                    padding: "10px 12px",
+                    fontSize: "0.9rem",
+                    fontWeight: "600",
+                    borderRadius: "6px",
+                    boxShadow: "0 2px 4px rgba(1, 152, 204, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <FiUserPlus size={18} />
+                  Nuevo Usuario
+                </button>
+
+                {/* Botón Modificar Usuario */}
+                <button
+                  onClick={() => setIsModifyUserModalOpen(true)}
+                  className="btn-filtrar"
+                  style={{
+                    backgroundColor: "white",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    width: "100%",
+                    justifyContent: "flex-start",
+                    padding: "10px 12px",
+                    fontSize: "0.9rem",
+                    fontWeight: "600",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = "#0198CC";
+                    e.currentTarget.style.color = "#0198CC";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = "#cbd5e1";
+                    e.currentTarget.style.color = "#475569";
+                  }}
+                >
+                  <FiEdit size={18} />
+                  Modificar Usuario
+                </button>
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px dashed #cbd5e1", margin: "5px 0" }} />
+            {/* --- SECCIÓN DE USUARIO --- */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "15px",
+                paddingBottom: "15px",
+                borderBottom: "1px dashed #e2e8f0",
+              }}
+            >
+              <div
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  borderRadius: "50%",
+                  backgroundColor: "#e0f2fe",
+                  color: "#0284c7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FiUser size={18} />
+              </div>
+              <div style={{ overflow: "hidden" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: "600",
+                    fontSize: "0.85rem",
+                    color: "#334155",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "140px",
+                  }}
+                  title={user.fullname}
+                >
+                  {user.fullname}
+                </p>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  Usuario
+                </span>
+              </div>
+            </div>
+
+            {/* --- BOTÓN CERRAR SESIÓN --- */}
             <button
               onClick={handleLogout}
               className="btn-filtrar"
               style={{
-                backgroundColor: "#fff0f0",
+                backgroundColor: "white",
                 color: "#dc2626",
                 borderColor: "#fecaca",
                 width: "100%",
                 justifyContent: "center",
+                transition: "all 0.2s",
               }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.backgroundColor = "#fff0f0")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
             >
               <FiLogOut /> Cerrar Sesión
             </button>
@@ -556,7 +718,7 @@ export default function Resultados() {
               <FiMail size={20} /> Enviar por Email
             </button>
 
-            {/* --- BOTÓN VISUALIZAR PDF MODIFICADO --- */}
+            {/* --- BOTÓN VISUALIZAR PDF --- */}
             <button
               className="btn-mini-action"
               onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
@@ -647,7 +809,6 @@ export default function Resultados() {
                       {/* Columna combinada de Nombre, DNI y Fecha */}
                       <td className="patient-info-cell">
                         <div className="patient-main-info">
-                          {/* Contenedor de la primera línea: Punto + Nombre */}
                           <div className="name-with-dot">
                             {item.leido === "0" && (
                               <span
@@ -1057,6 +1218,13 @@ export default function Resultados() {
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
         protocolo={selectedItems[0]}
+      />
+      <ModalUsuario
+        isOpen={isCreateUserModalOpen}
+        onClose={() => setIsCreateUserModalOpen(false)}
+        onUserSaved={() => {
+          alert("¡Usuario creado exitosamente!");
+        }}
       />
     </div>
   );
