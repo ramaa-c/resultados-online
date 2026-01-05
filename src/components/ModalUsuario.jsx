@@ -45,7 +45,10 @@ const AsyncSelector = ({
         page_size: pageSize,
         [searchParamName]: searchQuery 
       };
+      
       const res = await api.get(fetchUrl, { params });
+      
+      // --- LÓGICA PARA MOSTRAR NOMBRES ---
       const rawData = res.data.items || res.data; 
 
       if (Array.isArray(rawData)) {

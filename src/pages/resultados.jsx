@@ -565,9 +565,6 @@ export default function Resultados() {
           </form>
         </div>
 
-        {/* ======================================================= */}
-        {/* 4. FOOTER UNIFICADO (ADMIN + PERFIL + LOGOUT)           */}
-        {/* ======================================================= */}
         {!showFilters && (
           <div
             style={{
@@ -577,10 +574,10 @@ export default function Resultados() {
               backgroundColor: "#f8fafc",
               display: "flex",
               flexDirection: "column",
-              gap: "15px", // Espacio general entre secciones (Admin / Perfil / Salir)
+              gap: "15px",
             }}
           >
-            {/* --- ZONA 1: BOTONES ADMINISTRATIVOS --- */}
+            {/* --- BOTONES ADMINISTRATIVOS --- */}
             <div>
               <p
                 style={{
@@ -662,7 +659,6 @@ export default function Resultados() {
               </div>
             </div>
 
-            {/* --- SEPARADOR VISUAL --- */}
             <div style={{ borderTop: "1px dashed #cbd5e1", margin: "5px 0" }} />
             {/* --- SECCIÓN DE USUARIO --- */}
             <div
@@ -701,7 +697,7 @@ export default function Resultados() {
                     textOverflow: "ellipsis",
                     maxWidth: "140px",
                   }}
-                  title={user.fullname} // Tooltip por si el nombre es muy largo
+                  title={user.fullname}
                 >
                   {user.fullname}
                 </p>
@@ -749,7 +745,7 @@ export default function Resultados() {
               <FiMail size={20} /> Enviar por Email
             </button>
 
-            {/* --- BOTÓN VISUALIZAR PDF MODIFICADO --- */}
+            {/* --- BOTÓN VISUALIZAR PDF --- */}
             <button
               className="btn-mini-action"
               onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
@@ -840,7 +836,6 @@ export default function Resultados() {
                       {/* Columna combinada de Nombre, DNI y Fecha */}
                       <td className="patient-info-cell">
                         <div className="patient-main-info">
-                          {/* Contenedor de la primera línea: Punto + Nombre */}
                           <div className="name-with-dot">
                             {item.leido === "0" && (
                               <span
@@ -1264,14 +1259,13 @@ export default function Resultados() {
         onUserFound={handleUserFound} // Conecta con la edición
       />
 
-      {/* 3. Modal de Edición (Ya lo tenías, actualizado) */}
+      {/*  Modal de Edición */}
       <ModalEditarUsuario 
         isOpen={isEditOpen} 
         onClose={() => setIsEditOpen(false)}
-        user={userToEdit}  // <--- IMPORTANTE: Pasa el usuario encontrado, no el 'user' de sesión
+        user={userToEdit}
         onUserUpdated={() => {
           alert("Usuario actualizado correctamente");
-          // Aquí podrías recargar algo si fuera necesario
         }}
       />
     </div>
