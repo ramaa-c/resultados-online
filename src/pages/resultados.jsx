@@ -6,6 +6,8 @@ import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/ModalUsuario";
+import ModalEditarUsuario from '../components/ModalEditarUsuario';
+import ModalBuscarUsuario from '../components/ModalBuscarUsuario';
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email";
@@ -56,6 +58,9 @@ export default function Resultados() {
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [isModifyUserModalOpen, setIsModifyUserModalOpen] = useState(false);
+  const [isSearchUserModalOpen, setIsSearchUserModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -68,6 +73,28 @@ export default function Resultados() {
       }
     }
   }, []);
+
+  const handleUserFound = (userData) => {
+  // 1. Guardamos el usuario que vino de la API en el estado
+  setUserToEdit(userData);
+  // 2. Abrimos el modal de EDICIÓN (el que ya tenías)
+  setIsEditOpen(true); 
+};
+  const handleProfileUpdated = () => {
+    // 1. Cerramos el modal
+    setIsModifyUserModalOpen(false);
+    
+    // 2. Opcional: Si tu API devuelve el usuario actualizado, podrías actualizar el estado 'user'.
+    // Como mínimo, mostramos confirmación.
+    alert("Datos de usuario actualizados correctamente.");
+    
+    // 3. Si cambiaste datos críticos (como el nombre que se muestra en el sidebar),
+    // podrías necesitar recargar los datos del usuario desde localStorage o API.
+    const storedUser = localStorage.getItem("userData");
+    if (storedUser) {
+       setUser(JSON.parse(storedUser));
+    }
+  };
 
   // --- SELECCIÓN MÚLTIPLE ---
   const [selectedItems, setSelectedItems] = useState([]);
@@ -603,7 +630,7 @@ export default function Resultados() {
 
                 {/* Botón Modificar Usuario */}
                 <button
-                  onClick={() => setIsModifyUserModalOpen(true)}
+                  onClick={() => setIsSearchUserModalOpen(true)}
                   className="btn-filtrar"
                   style={{
                     backgroundColor: "white",
@@ -1229,6 +1256,22 @@ export default function Resultados() {
         onClose={() => setIsCreateUserModalOpen(false)}
         onUserSaved={() => {
           alert("¡Usuario creado exitosamente!");
+        }}
+      />
+      <ModalBuscarUsuario 
+        isOpen={isSearchUserModalOpen}
+        onClose={() => setIsSearchUserModalOpen(false)}
+        onUserFound={handleUserFound} // Conecta con la edición
+      />
+
+      {/* 3. Modal de Edición (Ya lo tenías, actualizado) */}
+      <ModalEditarUsuario 
+        isOpen={isEditOpen} 
+        onClose={() => setIsEditOpen(false)}
+        user={userToEdit}  // <--- IMPORTANTE: Pasa el usuario encontrado, no el 'user' de sesión
+        onUserUpdated={() => {
+          alert("Usuario actualizado correctamente");
+          // Aquí podrías recargar algo si fuera necesario
         }}
       />
     </div>
