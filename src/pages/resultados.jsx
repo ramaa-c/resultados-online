@@ -5,7 +5,7 @@ import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/modalUsuario";
+import ModalUsuario from "../components/ModalUsuario";
 import ModalEditarUsuario from '../components/ModalEditarUsuario';
 import ModalBuscarUsuario from '../components/ModalBuscarUsuario';
 import ModalAdministracion from '../components/ModalAdministracion';
@@ -366,7 +366,8 @@ export default function Resultados() {
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
-
+    console.log("DATOS DEL USUARIO:", user); 
+console.log("¿Es Admin?:", user.isadministrator);
   return (
     <div className="dashboard-container">
       {/* SIDEBAR FILTROS */}
@@ -567,6 +568,7 @@ export default function Resultados() {
             }}
           >
             {/* --- BOTONES ADMINISTRATIVOS --- */}
+            {user.isadministrator && (
             <div>
               <p
                 style={{
@@ -605,8 +607,9 @@ export default function Resultados() {
             </button>
               </div>
             </div>
-
+             )}
             <div style={{ borderTop: "1px dashed #cbd5e1", margin: "5px 0" }} />
+           
             {/* --- SECCIÓN DE USUARIO --- */}
           <div
   style={{
@@ -667,10 +670,10 @@ export default function Resultados() {
         textOverflow: "ellipsis",
         maxWidth: "140px",
       }}
-      title={user.username ? `@${user.username}` : ""}
+      title={user.email || ""} // Tooltip para ver el email completo si es muy largo
     >
-      {/* Agregamos el @ para que parezca un username */}
-      {user.username ? `@${user.username}` : "Usuario"}
+      {/* Mostramos el email, o un texto por defecto si no tiene */}
+      {user.email || "Sin email"}
     </span>
   </div>
 </div>

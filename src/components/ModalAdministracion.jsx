@@ -67,13 +67,18 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["usersList", filters.page, filters.userid],
+    // La query depende de 'filters.searchTerm', NO de 'inputValue'
+    queryKey: ["usersList", filters.page, filters.searchTerm],
     queryFn: async () => {
-      if (filters.userid && filters.userid.trim() !== "") {
+      // 1. SI HAY BÚSQUEDA CONFIRMADA
+      if (filters.searchTerm && filters.searchTerm.trim() !== "") {
         try {
-          const res = await api.get(`/users/${filters.userid}`);
-          return res.data ? [res.data] : [];
+          const term = encodeURIComponent(filters.searchTerm.trim());
+          const res = await api.get(`/users/${term}/:byname`);
+          const result = res.data ? (Array.isArray(res.data) ? res.data : [res.data]) : [];
+          return normalizeUsersData(result);
         } catch (err) {
+          console.error("Error buscando usuario:", err);
           return [];
         }
       } 
@@ -114,10 +119,15 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setFilters((prev) => ({ ...prev, page: 1 })); 
+    setFilters((prev) => ({ 
+        ...prev, 
+        page: 1, 
+        searchTerm: inputValue
+    })); 
   };
 
   const handleClearFilters = () => {
+    setInputValue("");
     setFilters(initialFilters);
   };
 
@@ -180,8 +190,6 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
 
       setIsBlockConfirmOpen(false);
       setShowSuccess(true);
-      
-      // REFRESCAR LISTA AL CAMBIAR ESTADO
       queryClient.invalidateQueries(["usersList"]);
 
     } catch (error) {
@@ -235,23 +243,31 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
           
           {/* BARRA SUPERIOR (BÚSQUEDA) */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-            <form onSubmit={handleSearch}>
-              <div className="input-group-wrapper" style={{ display: "flex", alignItems: "center", border: "1px solid #ccc", borderRadius: "6px", backgroundColor: "white", padding: "0 8px", width: "300px", height: "38px", gap: "5px" }}>
-                <button type="submit" style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#666" }}>
+            
+            {/* FORMULARIO DE BÚSQUEDA */}
+            <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: '400px' }}>
+              <div className="input-group-wrapper" style={{ display: "flex", alignItems: "center", border: "1px solid #ccc", borderRadius: "6px", backgroundColor: "white", padding: "0 8px", width: "100%", height: "38px", gap: "5px" }}>
+                
+                <button type="submit" style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#666" }} title="Buscar">
                   <FiSearch size={18} />
                 </button>
+                
                 <input
                   type="text"
-                  placeholder="ID de Usuario..."
-                  value={filters.userid}
-                  onChange={(e) => setFilters({ ...filters, userid: e.target.value })}
+                  placeholder="Usuario o Email..." 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                   style={{ border: "none", outline: "none", background: "transparent", flex: 1, height: "100%", fontSize: "14px", color: "#333" }}
                 />
-                <button type="button" onClick={handleClearFilters} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }}>
-                  <FiX size={16} />
-                </button>
+                
+                {(inputValue || filters.searchTerm) && (
+                    <button type="button" onClick={handleClearFilters} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }} title="Limpiar filtro">
+                    <FiX size={16} />
+                    </button>
+                )}
               </div>
             </form>
+
             <button
               className="btn-save"
               onClick={() => setIsCreateOpen(true)}
@@ -266,9 +282,8 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
             <table className="resultados-table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "#f8fafc" }}>
                 <tr>
-                  <th style={{ width: "60px", textAlign: "center" }}>ID</th>
-                  <th style={{ textAlign: "left" }}>Usuario</th>
-                  <th style={{ textAlign: "left" }}>Nombre Completo</th>
+                  <th style={{ textAlign: "left", paddingLeft: "15px", width: "15%" }}>Usuario</th>
+                  <th style={{ textAlign: "left", width: "35%" }}>Nombre Completo</th>
                   <th style={{ textAlign: "left" }}>Email</th>
                   <th style={{ width: "80px", textAlign: "center" }}>Admin</th>
                   <th style={{ width: "100px", textAlign: "center" }}>Estado</th>
@@ -278,24 +293,23 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>Cargando usuarios...</td>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px" }}>Cargando usuarios...</td>
                   </tr>
                 ) : isError ? (
                    <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "40px", color: "red" }}>Error al cargar datos.</td>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px", color: "red" }}>Error al cargar datos.</td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>No se encontraron resultados</td>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px" }}>No se encontraron resultados</td>
                   </tr>
                 ) : (
                   users.map((u) => {
                     const isBlocked = u.status?.toLowerCase().includes("bloqueado") || u.status?.toLowerCase() === "suspendido";
                     return (
                       <tr key={u.userid} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ color: "#64748b", textAlign: "center" }}>{u.userid}</td>
-                        <td style={{ fontWeight: "600" }}>{u.username}</td>
-                        <td>{u.fullname}</td>
+                        <td style={{ fontWeight: "600", paddingLeft: "15px" }}>{u.username}</td>
+                        <td style={{ color: "#334155", whiteSpace: "nowrap" }}>{u.fullname}</td>
                         <td>{u.email}</td>
                         <td style={{ textAlign: "center" }}>
                           {u.isadministrator && (
@@ -332,8 +346,8 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
             </table>
           </div>
 
-          {/* PAGINACIÓN */}
-          {filters.userid === "" && (
+          {/* PAGINACIÓN - Se oculta si hay una búsqueda activa */}
+          {filters.searchTerm === "" && (
             <div className="pagination-bar" style={{ marginTop: "auto", borderTop: "1px solid #e2e8f0", padding: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button
                 disabled={filters.page === 1}

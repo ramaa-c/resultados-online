@@ -320,6 +320,8 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         mustchangepassword: true,
         createdate: createdStr,
         expirationdate: expirationStr,
+
+        // Lógica de listas: Si ve todas, enviamos array vacío. Si no, la lista de IDs.
         branchidlist: data.canviewallbranches ? [] : data.branchidlist,
         forwarderidlist: data.canviewallforwarders ? [] : data.forwarderidlist,
         branchnamelist: [],
