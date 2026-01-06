@@ -46,13 +46,28 @@ export default function Login() {
 
       if (loginResponse.token) {
         localStorage.setItem("token", loginResponse.token);
-
         const userIdentifier = formData.jwtusername; 
-        
+
+        if (userIdentifier.toLowerCase() === "admin") {
+            const adminData = {
+                fullname: "Administrador",
+                email: "admin@sistema",
+                userid: 0,
+                username: "admin"
+            };
+            
+            localStorage.setItem("userData", JSON.stringify(adminData));
+            
+            navigate("/resultados");
+            setIsLoading(false);
+            return;
+        }
+
+        // --- FLUJO PARA USUARIOS NORMALES ---
         const encodedIdentifier = encodeURIComponent(userIdentifier);
         const { data: userData } = await api.get(`/users/${encodedIdentifier}/:byname`);
 
-        if (userData.status !== "activo") {
+        if (userData.status?.trim().toLowerCase() !== "activo") {
             setError("Su cuenta no está activa. Contacte al administrador.");
             localStorage.removeItem("token");
             setIsLoading(false);
