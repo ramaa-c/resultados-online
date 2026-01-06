@@ -12,7 +12,7 @@ import {
   FiSlash,
   FiCheckCircle,
 } from "react-icons/fi";
-import ModalUsuario from "./ModalUsuario";
+import ModalUsuario from "./modalUsuario";
 import ModalEditarUsuario from "./ModalEditarUsuario";
 import ModalConfirmacion from "./ModalConfirmacion";
 import ModalExito from "./ModalExito";
@@ -24,7 +24,6 @@ import {
 } from "../services/user.service";
 import "../styles/modalUsuario.css";
 
-// Función para eliminar duplicados (caso del producto cartesiano)
 const normalizeUsersData = (rawList) => {
   if (!Array.isArray(rawList)) return [];
   const usersMap = new Map();
@@ -55,16 +54,13 @@ const normalizeUsersData = (rawList) => {
 const ModalAdministracion = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
 
-  // --- FILTROS (Lo que se envía a la API) ---
+  // --- FILTROS ---
   const initialFilters = {
     page: 1,
-    pageSize: 50,
-    searchTerm: "", 
+    pageSize: 10,
+    userid: "",
   };
   const [filters, setFilters] = useState(initialFilters);
-
-  // --- ESTADO LOCAL DEL INPUT (Lo que el usuario escribe) ---
-  const [inputValue, setInputValue] = useState("");
 
   const {
     data: users = [],
@@ -87,7 +83,6 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
         }
       } 
       
-      // 2. SI NO HAY BÚSQUEDA (Lista Paginada)
       const params = {
         page: filters.page,
         page_size: filters.pageSize,
@@ -122,20 +117,18 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
 
   // --- MANEJADORES ---
 
-  // Se ejecuta al dar Enter o Click en Lupa
   const handleSearch = (e) => {
     e.preventDefault();
-    // Aquí es donde "transferimos" lo escrito al filtro real
     setFilters((prev) => ({ 
         ...prev, 
         page: 1, 
-        searchTerm: inputValue // Actualizamos con el valor local
+        searchTerm: inputValue
     })); 
   };
 
   const handleClearFilters = () => {
-    setInputValue(""); // Limpiamos el input visual
-    setFilters(initialFilters); // Limpiamos el filtro de la API
+    setInputValue("");
+    setFilters(initialFilters);
   };
 
   const handleUserSaved = () => {
@@ -255,21 +248,18 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
             <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: '400px' }}>
               <div className="input-group-wrapper" style={{ display: "flex", alignItems: "center", border: "1px solid #ccc", borderRadius: "6px", backgroundColor: "white", padding: "0 8px", width: "100%", height: "38px", gap: "5px" }}>
                 
-                {/* Botón de búsqueda (Trigger) */}
                 <button type="submit" style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#666" }} title="Buscar">
                   <FiSearch size={18} />
                 </button>
                 
-                {/* Input controlado por estado local (inputValue) */}
                 <input
                   type="text"
                   placeholder="Usuario o Email..." 
-                  value={inputValue} // CAMBIO: Usamos inputValue
-                  onChange={(e) => setInputValue(e.target.value)} // CAMBIO: Actualizamos solo inputValue
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                   style={{ border: "none", outline: "none", background: "transparent", flex: 1, height: "100%", fontSize: "14px", color: "#333" }}
                 />
                 
-                {/* Botón limpiar (Muestra X si hay algo escrito en el input o en el filtro activo) */}
                 {(inputValue || filters.searchTerm) && (
                     <button type="button" onClick={handleClearFilters} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "#dc2626" }} title="Limpiar filtro">
                     <FiX size={16} />

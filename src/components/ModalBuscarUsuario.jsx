@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import api from "../api/axios"; // Asegúrate de importar tu instancia de axios
+import api from "../api/axios";
 import { FiSearch, FiX, FiAlertCircle } from "react-icons/fi";
-import "../styles/modalUsuario.css"; // Reutilizamos tus estilos existentes
+import "../styles/modalUsuario.css";
 
 const ModalBuscarUsuario = ({ isOpen, onClose, onUserFound }) => {
   const [userId, setUserId] = useState("");
@@ -16,14 +16,12 @@ const ModalBuscarUsuario = ({ isOpen, onClose, onUserFound }) => {
     setError(null);
 
     try {
-      // LLAMADA AL ENDPOINT QUE MOSTRASTE EN LA IMAGEN
       const response = await api.get(`/users/${userId}`);
       
-      // Si la respuesta es exitosa, pasamos los datos al padre y cerramos este modal
       if (response.data) {
         onUserFound(response.data);
-        setUserId(""); // Limpiar input
-        onClose();     // Cerrar este modal
+        setUserId("");
+        onClose();
       } else {
         setError("La API no devolvió datos para este ID.");
       }
@@ -62,7 +60,7 @@ const ModalBuscarUsuario = ({ isOpen, onClose, onUserFound }) => {
               <label className="form-label">Ingrese ID del Usuario</label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
-                  type="text" // Usamos text por si el ID es alfanumérico, si es solo nros usa "number"
+                  type="text"
                   className="form-input"
                   placeholder="Ej: 123"
                   value={userId}

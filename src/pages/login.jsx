@@ -44,7 +44,6 @@ export default function Login() {
         localStorage.setItem("token", loginResponse.token);
         const userIdentifier = formData.jwtusername; 
 
-        // --- CASO 1: ADMIN HARDCODEADO ---
         if (userIdentifier.toLowerCase() === "admin") {
             const adminData = {
                 fullname: "Administrador",
@@ -59,11 +58,11 @@ export default function Login() {
             return;
         }
 
-        // --- CASO 2: USUARIOS API ---
+        // --- FLUJO PARA USUARIOS NORMALES ---
         const encodedIdentifier = encodeURIComponent(userIdentifier);
         const { data: userData } = await api.get(`/users/${encodedIdentifier}/:byname`);
 
-        if (userData.status?.trim().toLowerCase() !== "activo" && userData.status?.trim().toLowerCase() !== "active") {
+        if (userData.status?.trim().toLowerCase() !== "activo") {
             setError("Su cuenta no está activa. Contacte al administrador.");
             localStorage.removeItem("token");
             setIsLoading(false);
@@ -131,19 +130,17 @@ export default function Login() {
             <div className="field-wrapper">
               <div 
                 className="identifier-container" 
-                // ESTILO CORREGIDO: Relative para que el icono absoluto se ubique aquí dentro
                 style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
               >
-                {/* ICONO USUARIO (POSICIÓN ABSOLUTA) */}
                 <FiUser 
                   size={18} 
-                  color="#9ca3af" // Color gris suave
+                  color="#9ca3af"
                   style={{ 
                     position: 'absolute', 
                     left: '12px', 
                     top: '50%', 
-                    transform: 'translateY(-50%)', // Centrado vertical perfecto
-                    pointerEvents: 'none' // Click traspasa al input
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none'
                   }} 
                 />
                 
@@ -155,7 +152,6 @@ export default function Login() {
                   onChange={handleChange}
                   required
                   disabled={isLoading}
-                  // PADDING LEFT: Espacio para que el texto no tape al icono
                   style={{ paddingLeft: '40px', width: '100%' }} 
                 />
               </div>
@@ -167,7 +163,6 @@ export default function Login() {
                 className="password-container"
                 style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
               >
-                {/* ICONO CANDADO (IZQUIERDA) */}
                 <FiLock 
                   size={18} 
                   color="#9ca3af"
@@ -192,7 +187,7 @@ export default function Login() {
                   style={{ paddingLeft: '40px', paddingRight: '40px', width: '100%' }}
                 />
 
-                {/* BOTÓN OJO (DERECHA) */}
+                {/* BOTÓN OJO */}
                 <button
                   type="button"
                   className="toggle-password-btn"
@@ -204,7 +199,7 @@ export default function Login() {
                     cursor: 'pointer', 
                     display: 'flex', 
                     alignItems: 'center',
-                    position: 'absolute', // Absoluto a la derecha
+                    position: 'absolute',
                     right: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
