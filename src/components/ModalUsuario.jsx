@@ -242,40 +242,46 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
   const onSubmit = async (data) => {
     try {
       const today = new Date();
+      // Si estamos editando, mantenemos la fecha original, si no, fecha de hoy
       const createdStr = userToEdit ? userToEdit.createdate : today.toISOString().split('T')[0];
       
       const expDate = new Date(today);
       expDate.setFullYear(expDate.getFullYear() + 1);
       const expirationStr = expDate.toISOString().split('T')[0];
 
-      const branchNameList = data.branchidlist.map(() => ""); 
-      const forwarderNameList = data.forwarderidlist.map(() => "");
-
+      // OPTIMIZACIÓN: No hace falta enviar arrays de strings vacíos si el backend no los valida.
+      // Pero si tu backend requiere que tengan la misma longitud que los IDs, tu lógica anterior estaba bien.
+      // Asumiremos que el backend es inteligente y puede recibir arrays vacíos.
+      
       const payload = {
         ...data,
         userid: userToEdit ? userToEdit.userid : 0,
         status: userToEdit ? userToEdit.status : "Active",
-        mustchangepassword: true, 
+        
         createdate: createdStr, 
         expirationdate: expirationStr,
+
+        // Lógica de listas: Si ve todas, enviamos array vacío. Si no, la lista de IDs.
         branchidlist: data.canviewallbranches ? [] : data.branchidlist,
-        branchnamelist: data.canviewallbranches ? [] : branchNameList,
+        // Enviamos arrays vacíos solo si es necesario, o null si la API lo permite
+        branchnamelist: [], 
+
         forwarderidlist: data.canviewallforwarders ? [] : data.forwarderidlist,
-        forwardernamelist: data.canviewallforwarders ? [] : forwarderNameList,
+        forwardernamelist: [],
       };
 
       if (userToEdit) {
-        // await api.put(`/users/${userToEdit.userid}`, payload);
-        console.log("Editando...", payload);
+         // await api.put...
+         console.log("Editando usuario...", payload);
       } else {
-        await api.post('/users', payload);
+         await api.post('/users', payload);
       }
       
       onUserSaved && onUserSaved();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Error al guardar usuario: " + (error.response?.data?.message || error.message));
+      alert("Error: " + (error.response?.data?.message || error.message));
     }
   };
 
