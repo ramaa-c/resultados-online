@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import { loginUser } from "../services/auth.service";
-import api from "../api/axios"; 
+import api from "../api/axios";
 import { FiUser, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function Login() {
@@ -21,7 +21,6 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      console.log("Limpiando datos de sesión...");
       localStorage.removeItem("userData");
       localStorage.removeItem("tempUserId");
     }
@@ -42,41 +41,66 @@ export default function Login() {
 
       if (loginResponse.token) {
         localStorage.setItem("token", loginResponse.token);
-        const userIdentifier = formData.jwtusername; 
+        const userIdentifier = formData.jwtusername;
 
+        // --- ADMIN ---
         if (userIdentifier.toLowerCase() === "admin") {
-            const adminData = {
-                fullname: "Administrador",
-                email: "admin@sistema",
-                userid: 0,
-                username: "admin",
-                isadministrator: true 
-            };
-            localStorage.setItem("userData", JSON.stringify(adminData));
-            navigate("/resultados");
-            setIsLoading(false);
-            return;
+          const adminData = {
+            fullname: "Administrador",
+            email: "admin@sistema",
+            userid: 0,
+            username: "admin",
+            isadministrator: true,
+            canviewallbranches: true,
+            canviewallforwarders: true,
+            branchidlist: [],
+            forwarderidlist: [],
+            branchnamelist: [],
+            forwardernamelist: [],
+          };
+          localStorage.setItem("userData", JSON.stringify(adminData));
+          navigate("/resultados");
+          setIsLoading(false);
+          return;
         }
 
         // --- FLUJO PARA USUARIOS NORMALES ---
         const encodedIdentifier = encodeURIComponent(userIdentifier);
-        const { data: userData } = await api.get(`/users/${encodedIdentifier}/:byname`);
+        const { data: userData } = await api.get(
+          `/users/${encodedIdentifier}/:byname`
+        );
 
         if (userData.status?.trim().toLowerCase() !== "activo") {
-            setError("Su cuenta no está activa. Contacte al administrador.");
-            localStorage.removeItem("token");
-            setIsLoading(false);
-            return;
+          setError("Su cuenta no está activa. Contacte al administrador.");
+          localStorage.removeItem("token");
+          setIsLoading(false);
+          return;
         }
 
+        const canViewAllBranches = userData.canviewallbranches || false;
+        const canViewAllForwarders = userData.canviewallforwarders || false;
+
         const userStorageInfo = {
-          fullname: userData.fullname || userData.FullName || userData.fullName || "Usuario",
+          fullname: userData.fullname || userData.FullName || "Usuario",
           email: userData.email || userData.Email || "Sin Email",
           userid: userData.userid || userData.UserId || userData.id,
           username: userData.username || userData.UserName || "usuario",
-          isadministrator: userData.isadministrator || userData.IsAdministrator || false,
-          canviewallbranches: userData.canviewallbranches || false,
-          canviewallforwarders: userData.canviewallforwarders || false
+          isadministrator: userData.isadministrator || false,
+          canviewreserved: userData.canviewreserved || false,
+
+          canviewallbranches: canViewAllBranches,
+          branchidlist: canViewAllBranches ? [] : userData.branchidlist || [],
+          branchnamelist: canViewAllBranches
+            ? []
+            : userData.branchnamelist || [],
+
+          canviewallforwarders: canViewAllForwarders,
+          forwarderidlist: canViewAllForwarders
+            ? []
+            : userData.forwarderidlist || [],
+          forwardernamelist: canViewAllForwarders
+            ? []
+            : userData.forwardernamelist || [],
         };
 
         localStorage.setItem("userData", JSON.stringify(userStorageInfo));
@@ -87,15 +111,15 @@ export default function Login() {
         } else {
           navigate("/resultados");
         }
-
       } else {
         setError("Error: Credenciales inválidas.");
       }
     } catch (err) {
       console.error(err);
-      localStorage.removeItem("token"); 
+      localStorage.removeItem("token");
       localStorage.removeItem("userData");
-      const msg = err.response?.status === 401
+      const msg =
+        err.response?.status === 401
           ? "Usuario o contraseña incorrectos."
           : "Error de conexión o usuario no encontrado.";
       setError(msg);
@@ -114,7 +138,11 @@ export default function Login() {
       <div className="login-card">
         <div className="card-left-column">
           <div className="logo-section">
-            <img src={centraLabLogo} alt="CentraLab Logo" className="card-logo" />
+            <img
+              src={centraLabLogo}
+              alt="CentraLab Logo"
+              className="card-logo"
+            />
             <span className="logo-text"></span>
           </div>
           <div className="decorative-image-placeholder"></div>
@@ -122,28 +150,33 @@ export default function Login() {
 
         <div className="card-right-column">
           <h1 className="card-title">Resultados Online</h1>
-          <p className="card-subtitle">Inicia sesión con tus datos personales</p>
+          <p className="card-subtitle">
+            Inicia sesión con tus datos personales
+          </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            
             {/* INPUT USUARIO */}
             <div className="field-wrapper">
-              <div 
-                className="identifier-container" 
-                style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+              <div
+                className="identifier-container"
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                }}
               >
-                <FiUser 
-                  size={18} 
+                <FiUser
+                  size={18}
                   color="#9ca3af"
-                  style={{ 
-                    position: 'absolute', 
-                    left: '12px', 
-                    top: '50%', 
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }} 
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
                 />
-                
+
                 <input
                   type="text"
                   placeholder="Email o DNI"
@@ -152,29 +185,33 @@ export default function Login() {
                   onChange={handleChange}
                   required
                   disabled={isLoading}
-                  style={{ paddingLeft: '40px', width: '100%' }} 
+                  style={{ paddingLeft: "40px", width: "100%" }}
                 />
               </div>
             </div>
 
             {/* INPUT PASSWORD */}
             <div className="field-wrapper">
-              <div 
+              <div
                 className="password-container"
-                style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                }}
               >
-                <FiLock 
-                  size={18} 
+                <FiLock
+                  size={18}
                   color="#9ca3af"
-                  style={{ 
-                    position: 'absolute', 
-                    left: '12px', 
-                    top: '50%', 
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }} 
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    pointerEvents: "none",
+                  }}
                 />
-                
+
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Contraseña"
@@ -184,7 +221,11 @@ export default function Login() {
                   onChange={handleChange}
                   required
                   disabled={isLoading}
-                  style={{ paddingLeft: '40px', paddingRight: '40px', width: '100%' }}
+                  style={{
+                    paddingLeft: "40px",
+                    paddingRight: "40px",
+                    width: "100%",
+                  }}
                 />
 
                 {/* BOTÓN OJO */}
@@ -193,17 +234,17 @@ export default function Login() {
                   className="toggle-password-btn"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
-                  style={{ 
-                    background: 'transparent', 
-                    border: 'none', 
-                    cursor: 'pointer', 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 10
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    position: "absolute",
+                    right: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    zIndex: 10,
                   }}
                 >
                   {showPassword ? (
@@ -216,13 +257,28 @@ export default function Login() {
             </div>
 
             {error && (
-              <div style={{ color: "#dc2626", marginTop: "8px", fontSize: "0.85rem", fontWeight: "500", marginLeft: "8px" }}>
+              <div
+                style={{
+                  color: "#dc2626",
+                  marginTop: "8px",
+                  fontSize: "0.85rem",
+                  fontWeight: "500",
+                  marginLeft: "8px",
+                }}
+              >
                 {error}
               </div>
             )}
 
             <div style={{ textAlign: "right", marginTop: "10px" }}>
-              <Link to="/recuperarClave" style={{ fontSize: "0.85rem", color: "#64748b", textDecoration: "none" }}>
+              <Link
+                to="/recuperarClave"
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#64748b",
+                  textDecoration: "none",
+                }}
+              >
                 ¿Olvidó su contraseña?
               </Link>
             </div>

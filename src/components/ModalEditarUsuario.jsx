@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "../api/axios";
 import {
   FiChevronLeft,
@@ -96,6 +97,7 @@ const AsyncSelector = ({
 
   return (
     <div className="selector-wrapper" style={{ position: "relative" }}>
+      {/* OVERLAY DE BLOQUEO */}
       {isDisabled && (
         <div
           style={{
@@ -130,7 +132,7 @@ const AsyncSelector = ({
         </div>
       )}
 
-      {/* --- CONTENIDO DE LA LISTA --- */}
+      {/* CONTENIDO CON OPACIDAD */}
       <div
         style={{
           opacity: isDisabled ? 0.3 : 1,
@@ -158,13 +160,21 @@ const AsyncSelector = ({
             <div className="selector-list">
               {isLoading ? (
                 <p
-                  style={{ fontSize: "0.8rem", color: "#666", padding: "10px" }}
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#666",
+                    padding: "10px",
+                  }}
                 >
                   Cargando...
                 </p>
               ) : isError ? (
                 <p
-                  style={{ fontSize: "0.8rem", color: "red", padding: "10px" }}
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "red",
+                    padding: "10px",
+                  }}
                 >
                   Error al cargar
                 </p>
@@ -305,8 +315,6 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
   // --- CARGAR DATOS ---
   useEffect(() => {
     if (isOpen && user) {
-      console.log("Cargando usuario para editar (ID):", user.userid);
-
       const safeBranchIds = user.branchidlist
         ? user.branchidlist.map(String)
         : [];
@@ -363,17 +371,20 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
         forwardernamelist: [],
       };
 
-      console.log("Enviando PUT:", payload);
       await api.put("/users", payload);
+
+      // --- TOAST DE ÉXITO ---
+      toast.success("Usuario actualizado correctamente");
 
       onUserUpdated && onUserUpdated();
       onClose();
     } catch (error) {
       console.error(error);
-      alert(
-        "Error al actualizar: " +
-          (error.response?.data?.message || error.message)
-      );
+      const errorMsg =
+        error.response?.data?.message || error.message || "Error desconocido";
+
+      // --- TOAST DE ERROR ---
+      toast.error(`Error al actualizar: ${errorMsg}`);
     }
   };
 
@@ -381,208 +392,207 @@ const ModalEditarUsuario = ({ isOpen, onClose, user, onUserUpdated }) => {
 
   return (
     <div className="edit-modal-overlay">
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <h2 className="modal-title">
-            <FiEdit /> Editar Usuario:{" "}
-            <span style={{ color: "#334155", fontWeight: 400 }}>
-              {user?.username}
-            </span>
-          </h2>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
-            <FiX />
-          </button>
+      <div className="modal-overlay">
+        <div className="modal-container">
+          <div className="modal-header">
+            <h2 className="modal-title">
+              <FiEdit /> Editar Usuario:{" "}
+              <span style={{ color: "#334155", fontWeight: 400 }}>
+                {user?.username}
+              </span>
+            </h2>
+            <button type="button" className="modal-close-btn" onClick={onClose}>
+              <FiX />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
+            <div className="modal-body">
+              {/* SECCIÓN 1: DATOS DE CUENTA */}
+              <div>
+                <h4 className="section-title">Datos de Cuenta</h4>
+                <div className="form-grid-top">
+                  <div className="form-group">
+                    <label className="form-label">Usuario</label>
+                    <input
+                      type="text"
+                      className={`form-input ${errors.username ? "error" : ""}`}
+                      {...register("username")}
+                    />
+                    {errors.username && (
+                      <span className="error-msg">
+                        {errors.username.message}
+                      </span>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Nombre Completo</label>
+                    <input
+                      type="text"
+                      className={`form-input ${errors.fullname ? "error" : ""}`}
+                      {...register("fullname")}
+                    />
+                    {errors.fullname && (
+                      <span className="error-msg">
+                        {errors.fullname.message}
+                      </span>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className={`form-input ${errors.email ? "error" : ""}`}
+                      {...register("email")}
+                    />
+                    {errors.email && (
+                      <span className="error-msg">{errors.email.message}</span>
+                    )}
+                  </div>
+
+                  {/* --- CHECKBOXES --- */}
+                  <div
+                    className="admin-box"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    <label className="checkbox-label">
+                      <input type="checkbox" {...register("isadministrator")} />
+                      Es Administrador
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginLeft: "10px",
+                          fontWeight: "normal",
+                        }}
+                      >
+                        (Acceso total)
+                      </span>
+                    </label>
+
+                    <label className="checkbox-label">
+                      <input type="checkbox" {...register("canviewreserved")} />
+                      Ver Protocolos Reservados
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: SELECTORES */}
+              <div>
+                <h4 className="section-title">Accesos y Restricciones</h4>
+                <div className="selectors-row">
+                  {/* Sedes */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "5px",
+                        alignItems: "center",
+                        marginTop: "10px",
+                      }}
+                    >
+                      <label className="form-label" style={{ margin: 0 }}>
+                        Sedes
+                      </label>
+                      <label
+                        style={{
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          color: "#64748b",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          {...register("canviewallbranches")}
+                        />{" "}
+                        Ver Todas
+                      </label>
+                    </div>
+                    <AsyncSelector
+                      title="Sedes"
+                      queryKey="branches"
+                      fetchUrl="/branches"
+                      searchParamName="branch_name"
+                      isDisabled={watchAllBranches}
+                      selectedIds={branchIdList}
+                      onToggleItem={(item) =>
+                        handleToggle(item, "branchidlist", branchIdList)
+                      }
+                    />
+                  </div>
+
+                  {/* Derivadores */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "5px",
+                        alignItems: "center",
+                        marginTop: "10px",
+                      }}
+                    >
+                      <label className="form-label" style={{ margin: 0 }}>
+                        Clientes
+                      </label>
+                      <label
+                        style={{
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          color: "#64748b",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          {...register("canviewallforwarders")}
+                        />{" "}
+                        Ver Todos
+                      </label>
+                    </div>
+                    <AsyncSelector
+                      title="Clientes"
+                      queryKey="forwarders"
+                      fetchUrl="/forwarders"
+                      searchParamName="forwarder_name"
+                      isDisabled={watchAllForwarders}
+                      selectedIds={forwarderIdList}
+                      onToggleItem={(item) =>
+                        handleToggle(item, "forwarderidlist", forwarderIdList)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={onClose} className="btn-cancel">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-save"
+              >
+                <FiSave />{" "}
+                {isSubmitting ? "Guardando..." : "Actualizar Usuario"}
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
-          <div className="modal-body">
-            {/* SECCIÓN 1: DATOS DE CUENTA */}
-            <div>
-              <h4 className="section-title">Datos de Cuenta</h4>
-              <div className="form-grid-top">
-                <div className="form-group">
-                  <label className="form-label">Usuario</label>
-                  <input
-                    type="text"
-                    className={`form-input ${errors.username ? "error" : ""}`}
-                    {...register("username")}
-                  />
-                  {errors.username && (
-                    <span className="error-msg">{errors.username.message}</span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Nombre Completo</label>
-                  <input
-                    type="text"
-                    className={`form-input ${errors.fullname ? "error" : ""}`}
-                    {...register("fullname")}
-                  />
-                  {errors.fullname && (
-                    <span className="error-msg">{errors.fullname.message}</span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className={`form-input ${errors.email ? "error" : ""}`}
-                    {...register("email")}
-                  />
-                  {errors.email && (
-                    <span className="error-msg">{errors.email.message}</span>
-                  )}
-                </div>
-
-                {/* --- CHECKBOXES --- */}
-                <div
-                  className="admin-box"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  <label className="checkbox-label">
-                    <input type="checkbox" {...register("isadministrator")} />
-                    Es Administrador
-                    <span
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "#64748b",
-                        marginLeft: "10px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      (Acceso total)
-                    </span>
-                  </label>
-
-                  <label className="checkbox-label">
-                    <input type="checkbox" {...register("canviewreserved")} />
-                    Ver Protocolos Reservados
-                    <span
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "#64748b",
-                        marginLeft: "10px",
-                        fontWeight: "normal",
-                      }}
-                    >
-                      (Datos VIP)
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* SECCIÓN 2: SELECTORES */}
-            <div>
-              <h4 className="section-title">Accesos y Restricciones</h4>
-              <div className="selectors-row">
-                {/* Sedes */}
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "5px",
-                      alignItems: "center",
-                      marginTop: "10px",
-                    }}
-                  >
-                    <label className="form-label" style={{ margin: 0 }}>
-                      Sedes
-                    </label>
-                    <label
-                      style={{
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        color: "#64748b",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        {...register("canviewallbranches")}
-                      />{" "}
-                      Ver Todas
-                    </label>
-                  </div>
-                  <AsyncSelector
-                    title="Sedes"
-                    queryKey="branches"
-                    fetchUrl="/branches"
-                    searchParamName="branch_name"
-                    isDisabled={watchAllBranches}
-                    selectedIds={branchIdList}
-                    onToggleItem={(item) =>
-                      handleToggle(item, "branchidlist", branchIdList)
-                    }
-                  />
-                </div>
-
-                {/* Derivadores */}
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "5px",
-                      alignItems: "center",
-                      marginTop: "10px",
-                    }}
-                  >
-                    <label className="form-label" style={{ margin: 0 }}>
-                      Derivadores
-                    </label>
-                    <label
-                      style={{
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        color: "#64748b",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        {...register("canviewallforwarders")}
-                      />{" "}
-                      Ver Todas
-                    </label>
-                  </div>
-                  <AsyncSelector
-                    title="Forwarders"
-                    queryKey="forwarders"
-                    fetchUrl="/forwarders"
-                    searchParamName="forwarder_name"
-                    isDisabled={watchAllForwarders}
-                    selectedIds={forwarderIdList}
-                    onToggleItem={(item) =>
-                      handleToggle(item, "forwarderidlist", forwarderIdList)
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn-cancel">
-              Cancelar
-            </button>
-            <button type="submit" disabled={isSubmitting} className="btn-save">
-              <FiSave /> {isSubmitting ? "Guardando..." : "Actualizar Usuario"}
-            </button>
-          </div>
-        </form>
       </div>
-    </div>
     </div>
   );
 };

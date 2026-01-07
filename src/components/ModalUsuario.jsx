@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import api from "../api/axios";
 import {
   FiSearch,
@@ -77,7 +78,6 @@ const AsyncSelector = ({
       }
     },
     keepPreviousData: true,
-    enabled: !isDisabled,
   });
 
   const triggerSearch = () => {
@@ -93,55 +93,160 @@ const AsyncSelector = ({
     }
   };
 
-  if (isDisabled) {
-    return (
-      <div className="selector-disabled">
-        Opción "Ver Todos" habilitada. Se ignorará la selección manual.
-      </div>
-    );
-  }
-
   return (
-    <div className="selector-wrapper">
-      <div className="selector-search-bar">
-        <input
-          type="text"
-          className="selector-input-search"
-          placeholder={`Buscar ${title}... (Enter)`}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <button type="button" className="selector-btn-search">
-          <FiSearch />
-        </button>
-      </div>
+    <div className="selector-wrapper" style={{ position: "relative" }}>
+      {/* OVERLAY DE BLOQUEO */}
+      {isDisabled && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(240, 242, 245, 0.7)",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(1px)",
+            color: "#555",
+            fontWeight: "600",
+            fontSize: "0.9rem",
+            borderRadius: "6px",
+            border: "1px solid #e5e7eb",
+          }}
+        >
+          <span
+            style={{
+              backgroundColor: "white",
+              padding: "5px 10px",
+              borderRadius: "4px",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+            }}
+          >
+            Visualización total de {title.toLowerCase()}.
+          </span>
+        </div>
+      )}
 
-      <div className="selector-body">
-        <div className="selector-col">
-          <h5 className="selector-col-title">Resultados</h5>
-          <div className="selector-list">
-            {isLoading ? (
-              <p style={{ fontSize: "0.8rem", color: "#666", padding: "10px" }}>
-                Cargando...
-              </p>
-            ) : isError ? (
-              <p style={{ fontSize: "0.8rem", color: "red", padding: "10px" }}>
-                Error al cargar
-              </p>
-            ) : !data || data.length === 0 ? (
-              <p style={{ fontSize: "0.8rem", padding: "10px" }}>
-                No hay resultados
-              </p>
-            ) : (
-              data.map((item) => {
-                const isSelected = selectedIds.includes(item.id);
+      {/* CONTENIDO CON OPACIDAD */}
+      <div
+        style={{
+          opacity: isDisabled ? 0.3 : 1,
+          pointerEvents: isDisabled ? "none" : "auto",
+          filter: isDisabled ? "grayscale(100%)" : "none",
+        }}
+      >
+        <div className="selector-search-bar">
+          <input
+            type="text"
+            className="selector-input-search"
+            placeholder={`Buscar ${title}... (Enter)`}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <button type="button" className="selector-btn-search">
+            <FiSearch />
+          </button>
+        </div>
+
+        <div className="selector-body">
+          <div className="selector-col">
+            <h5 className="selector-col-title">Resultados</h5>
+            <div className="selector-list">
+              {isLoading ? (
+                <p
+                  style={{ fontSize: "0.8rem", color: "#666", padding: "10px" }}
+                >
+                  Cargando...
+                </p>
+              ) : isError ? (
+                <p
+                  style={{ fontSize: "0.8rem", color: "red", padding: "10px" }}
+                >
+                  Error al cargar
+                </p>
+              ) : !data || data.length === 0 ? (
+                <p style={{ fontSize: "0.8rem", padding: "10px" }}>
+                  No hay resultados
+                </p>
+              ) : (
+                data.map((item) => {
+                  const isSelected = selectedIds.includes(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => onToggleItem(item)}
+                      className={`selector-item ${
+                        isSelected ? "selected" : ""
+                      }`}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={item.label}
+                      >
+                        {item.label}
+                      </span>
+                      {isSelected ? (
+                        <FiCheck color="green" />
+                      ) : (
+                        <FiPlus color="#007bff" />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="selector-pagination">
+              <button
+                type="button"
+                className="page-btn"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <FiChevronLeft />
+              </button>
+              <span>Pág {page}</span>
+              <button
+                type="button"
+                className="page-btn"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!data || data.length < pageSize}
+              >
+                <FiChevronRight />
+              </button>
+            </div>
+          </div>
+
+          <div className="selector-col">
+            <h5 className="selector-col-title">
+              Seleccionados ({selectedIds.length})
+            </h5>
+            <div className="selector-list">
+              {selectedIds.length === 0 && (
+                <p
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#999",
+                    fontStyle: "italic",
+                    padding: "10px",
+                  }}
+                >
+                  Nada seleccionado
+                </p>
+              )}
+              {selectedIds.map((id) => {
+                const itemInData = data?.find((d) => d.id === id);
+                const displayText = itemInData ? itemInData.label : id;
                 return (
-                  <div
-                    key={item.id}
-                    onClick={() => onToggleItem(item)}
-                    className={`selector-item ${isSelected ? "selected" : ""}`}
-                  >
+                  <div key={id} className="selector-tag">
                     <span
                       style={{
                         flex: 1,
@@ -149,92 +254,29 @@ const AsyncSelector = ({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}
-                      title={item.label}
                     >
-                      {item.label}
+                      {displayText}
                     </span>
-                    {isSelected ? (
-                      <FiCheck color="green" />
-                    ) : (
-                      <FiPlus color="#007bff" />
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => onToggleItem({ id })}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        color: "#0284c7",
+                        padding: 0,
+                        marginLeft: 5,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <FiX />
+                    </button>
                   </div>
                 );
-              })
-            )}
-          </div>
-          <div className="selector-pagination">
-            <button
-              type="button"
-              className="page-btn"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <FiChevronLeft />
-            </button>
-            <span>Pág {page}</span>
-            <button
-              type="button"
-              className="page-btn"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!data || data.length < pageSize}
-            >
-              <FiChevronRight />
-            </button>
-          </div>
-        </div>
-
-        <div className="selector-col">
-          <h5 className="selector-col-title">
-            Seleccionados ({selectedIds.length})
-          </h5>
-          <div className="selector-list">
-            {selectedIds.length === 0 && (
-              <p
-                style={{
-                  fontSize: "0.8rem",
-                  color: "#999",
-                  fontStyle: "italic",
-                  padding: "10px",
-                }}
-              >
-                Nada seleccionado
-              </p>
-            )}
-            {selectedIds.map((id) => {
-              const itemInData = data?.find((d) => d.id === id);
-              const displayText = itemInData ? itemInData.label : id;
-              return (
-                <div key={id} className="selector-tag">
-                  <span
-                    style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {displayText}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onToggleItem({ id })}
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      color: "#0284c7",
-                      padding: 0,
-                      marginLeft: 5,
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <FiX />
-                  </button>
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -280,9 +322,9 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         username: "",
         fullname: "",
         email: "",
-        status: "Active",
+        status: "activo",
         isadministrator: false,
-        canviewreserved: false, // <--- RESET
+        canviewreserved: false,
         mustchangepassword: true,
         canviewallbranches: false,
         branchidlist: [],
@@ -321,7 +363,6 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         createdate: createdStr,
         expirationdate: expirationStr,
 
-        // Lógica de listas: Si ve todas, enviamos array vacío. Si no, la lista de IDs.
         branchidlist: data.canviewallbranches ? [] : data.branchidlist,
         forwarderidlist: data.canviewallforwarders ? [] : data.forwarderidlist,
         branchnamelist: [],
@@ -334,14 +375,21 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         await api.post("/users", payload);
       }
 
+      // --- NOTIFICACIÓN DE ÉXITO ---
+      toast.success(
+        userToEdit
+          ? "Usuario actualizado correctamente"
+          : "Usuario creado correctamente"
+      );
+
       onUserSaved && onUserSaved();
       onClose();
     } catch (error) {
       console.error(error);
-      alert(
-        "Error al guardar usuario: " +
-          (error.response?.data?.message || error.message)
-      );
+      const msg = error.response?.data?.message || error.message;
+
+      // --- NOTIFICACIÓN DE ERROR ---
+      toast.error(`Error al guardar: ${msg}`);
     }
   };
 
@@ -429,7 +477,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                       </span>
                     </label>
 
-                    {/* VER RESERVADOS (NUEVO) */}
+                    {/* VER RESERVADOS */}
                     <label className="checkbox-label">
                       <input type="checkbox" {...register("canviewreserved")} />
                       Ver Protocolos Reservados
@@ -504,7 +552,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                       }}
                     >
                       <label className="form-label" style={{ margin: 0 }}>
-                        Derivadores
+                        Clientes
                       </label>
                       <label
                         style={{
@@ -520,11 +568,11 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                           type="checkbox"
                           {...register("canviewallforwarders")}
                         />{" "}
-                        Ver Todas
+                        Ver Todos
                       </label>
                     </div>
                     <AsyncSelector
-                      title="Forwarders"
+                      title="Clientes"
                       queryKey="forwarders"
                       fetchUrl="/forwarders"
                       searchParamName="forwarder_name"
