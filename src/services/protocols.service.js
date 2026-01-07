@@ -56,11 +56,6 @@ export const getProtocols = async (filters) => {
         return;
       }
 
-      if (key === "branch_id") {
-        params.append("services", valorFinal);
-        return;
-      }
-
       if (
         (key === "date_from" || key === "date_to") &&
         typeof value === "string"
@@ -71,6 +66,7 @@ export const getProtocols = async (filters) => {
       params.append(key, valorFinal);
     }
   });
+  console.log("📡 Sending params to API:", params.toString());
 
   const response = await api.get("/protocols", { params });
   return response.data;

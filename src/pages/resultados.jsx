@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
+import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/ModalUsuario";
-import ModalEditarUsuario from '../components/ModalEditarUsuario';
-import ModalBuscarUsuario from '../components/ModalBuscarUsuario';
-import ModalAdministracion from '../components/ModalAdministracion';
+import ModalUsuario from "../components/modalUsuario";
+import ModalEditarUsuario from "../components/ModalEditarUsuario";
+import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
+import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import Email from "./email";
@@ -33,12 +34,320 @@ import {
   FiBookmark,
   FiLogOut,
   FiUser,
-  FiUserPlus,
+  FiUsers,
   FiEdit,
+  FiMapPin,
+  FiLayers,
+  FiX,
+  FiPlus,
 } from "react-icons/fi";
+
+// --- SUBCOMPONENTE REUTILIZABLE: SECCIÓN DE FILTRO ASÍNCRONO ---
+const AsyncFilterSection = ({
+  title,
+  icon: Icon,
+  type,
+  user,
+  onSelectionChange,
+  isOpen,
+  onToggle,
+}) => {
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+  const [queryTerm, setQueryTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const containerRef = useRef(null);
+
+  const canViewAll =
+    type === "branch" ? user.canviewallbranches : user.canviewallforwarders;
+
+  const restrictedList =
+    type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
+
+  const useChipsMode =
+    !canViewAll && restrictedList.length > 0 && restrictedList.length <= 10;
+
+  useEffect(() => {
+    const ids = selectedItems.map((i) => i.id).join(",");
+    onSelectionChange(ids);
+  }, [selectedItems, onSelectionChange]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const {
+    data: searchResults = [],
+    isFetching,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["searchLocation", type, queryTerm],
+    queryFn: async () => {
+      const endpoint = type === "branch" ? "/branches" : "/forwarders";
+      const paramName = type === "branch" ? "branch_name" : "forwarder_name";
+
+      const res = await api.get(endpoint, {
+        params: { [paramName]: queryTerm, page_size: 5 },
+      });
+
+      const raw = res.data.items || res.data;
+
+      if (Array.isArray(raw)) {
+        return raw.map((item) => ({
+          id: item.id,
+          label: item.name || item.business_name || item.label || item.id,
+        }));
+      }
+
+      if (typeof raw === "object" && raw !== null) {
+        return Object.entries(raw).map(([id, name]) => ({
+          id,
+          label: name,
+        }));
+      }
+
+      return [];
+    },
+    enabled: !!queryTerm && !useChipsMode && queryTerm.trim().length >= 1,
+    staleTime: 1000 * 60,
+    retry: false,
+  });
+
+  const handleTriggerSearch = () => {
+    if (inputValue.trim().length >= 1) {
+      setQueryTerm(inputValue);
+      setShowDropdown(true);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleTriggerSearch();
+    }
+  };
+
+  const handleSelect = (item) => {
+    if (!selectedItems.some((i) => i.id === item.id)) {
+      setSelectedItems((prev) => [...prev, item]);
+    }
+    setInputValue("");
+  };
+
+  const handleRemove = (id) => {
+    setSelectedItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const idNameMap = React.useMemo(() => {
+    const ids =
+      type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
+    const names =
+      type === "branch"
+        ? user.branchnamelist || []
+        : user.forwardernamelist || [];
+
+    const map = {};
+    ids.forEach((id, index) => {
+      map[id] = names[index] || id;
+    });
+
+    return map;
+  }, [type, user]);
+
+  const renderStaticChips = () => (
+    <div className="chips-grid">
+      {restrictedList.map((id) => {
+        const isSelected = selectedItems.some((i) => i.id === id);
+        const label = idNameMap[id] || id;
+
+        return (
+          <div
+            key={id}
+            className={`filter-chip ${isSelected ? "active" : ""}`}
+            onClick={() =>
+              isSelected ? handleRemove(id) : handleSelect({ id, label })
+            }
+          >
+            {isSelected && <FiCheckCircle size={12} />}
+            <span title={label}>{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className="sidebar-section">
+      <div className="sidebar-header-sub" onClick={onToggle}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Icon />
+          <span>{title}</span>
+        </div>
+        <span className="arrow-icon">{isOpen ? "▲" : "▼"}</span>
+      </div>
+
+      <div className={`filters-collapsible ${isOpen ? "show" : ""}`}>
+        <div className="location-filter-body" style={{ padding: "10px" }}>
+          {useChipsMode ? (
+            renderStaticChips()
+          ) : (
+            <div
+              className="async-search-container"
+              style={{ position: "relative" }}
+              ref={containerRef}
+            >
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  className="input-modern"
+                  placeholder={`Buscar ${title.toLowerCase()}...`}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  style={{ paddingRight: "35px" }}
+                />
+
+                {queryTerm ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputValue("");
+                      setQueryTerm("");
+                      setShowDropdown(false);
+                    }}
+                    className="search-icon-btn"
+                    style={{
+                      position: "absolute",
+                      right: "5px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#dc2626",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    title="Limpiar búsqueda"
+                  >
+                    <FiX size={18} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleTriggerSearch}
+                    className="search-icon-btn"
+                    style={{
+                      position: "absolute",
+                      right: "5px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#0198CC",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    title="Buscar"
+                  >
+                    <FiSearch size={18} />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Resultados */}
+              {showDropdown && (
+                <div className="search-dropdown">
+                  {isFetching && (
+                    <div className="dropdown-item loading">
+                      <span
+                        className="spinner-loader"
+                        style={{
+                          width: 12,
+                          height: 12,
+                          border: "2px solid #ccc",
+                          borderTopColor: "#0198CC",
+                        }}
+                      ></span>{" "}
+                      Buscando...
+                    </div>
+                  )}
+
+                  {!isFetching && searchResults.length === 0 && !isError && (
+                    <div
+                      className="dropdown-item"
+                      style={{ fontStyle: "italic", color: "#999" }}
+                    >
+                      No se encontraron resultados
+                    </div>
+                  )}
+
+                  {!isFetching && isError && (
+                    <div className="dropdown-item" style={{ color: "red" }}>
+                      Error: {error?.message || "Falló la búsqueda"}
+                    </div>
+                  )}
+
+                  {!isFetching &&
+                    searchResults.map((item) => (
+                      <div
+                        key={item.id}
+                        className="dropdown-item"
+                        onClick={() => handleSelect(item)}
+                      >
+                        <span>{item.label}</span>
+                        <FiPlus className="add-icon" />
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {/* Chips Seleccionados */}
+              {selectedItems.length > 0 && (
+                <div className="selected-chips-area">
+                  {selectedItems.map((item) => (
+                    <div key={item.id} className="selected-chip">
+                      <span className={`chip-dot ${type}`}></span>
+                      <span
+                        title={item.label}
+                        style={{
+                          maxWidth: 130,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                      <FiX
+                        className="remove-icon"
+                        onClick={() => handleRemove(item.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Resultados() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [formValues, setFormValues] = useState({
     date_from: "",
@@ -50,84 +359,232 @@ export default function Resultados() {
     page: 1,
     page_size: 15,
     branch_id: "",
+    private_healthcare_id: "",
     unread_only: false,
     complete_only: false,
   });
-  const navigate = useNavigate();
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState(formValues);
+
+  const [branchFilter, setBranchFilter] = useState("");
+  const [forwarderFilter, setForwarderFilter] = useState("");
+
+  const activeFilters = {
+    ...formValues,
+    branch_id: branchFilter,
+    private_healthcare_id: forwarderFilter,
+  };
+
+  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [openLocations, setOpenLocations] = useState({
+    branch: false,
+    forwarder: false,
+  });
+
+  const handleToggleGeneral = () => {
+    setIsGeneralOpen(!isGeneralOpen);
+  };
+
+  const toggleLocation = (key) => {
+    setOpenLocations((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const showFooter =
+    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
+
   const [user, setUser] = useState({ fullname: "Usuario" });
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedProtocol, setSelectedProtocol] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
+
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
-  const [isModifyUserModalOpen, setIsModifyUserModalOpen] = useState(false);
   const [isSearchUserModalOpen, setIsSearchUserModalOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("userData");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-      } catch (e) {
-        console.error("Error leyendo usuario", e);
-      }
-    }
-  }, []);
-
-  const handleUserFound = (userData) => {
-  // 1. Guardamos el usuario que vino de la API en el estado
-  setUserToEdit(userData);
-  // 2. Abrimos el modal de EDICIÓN (el que ya tenías)
-  setIsEditOpen(true); 
-};
-  const handleProfileUpdated = () => {
-    // 1. Cerramos el modal
-    setIsModifyUserModalOpen(false);
-    
-    // 2. Opcional: Si tu API devuelve el usuario actualizado, podrías actualizar el estado 'user'.
-    // Como mínimo, mostramos confirmación.
-    alert("Datos de usuario actualizados correctamente.");
-    
-    // 3. Si cambiaste datos críticos (como el nombre que se muestra en el sidebar),
-    // podrías necesitar recargar los datos del usuario desde localStorage o API.
-    const storedUser = localStorage.getItem("userData");
-    if (storedUser) {
-       setUser(JSON.parse(storedUser));
-    }
-  };
-
-  // --- SELECCIÓN MÚLTIPLE ---
-  const [selectedItems, setSelectedItems] = useState([]);
-
-  const [selectedProtocol, setSelectedProtocol] = useState(null);
-
-  const [contextMenu, setContextMenu] = useState(null);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 
   const { markRead, markUnread } = useProtocolMutations();
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
-
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
-  const [showFilters, setShowFilters] = useState(false);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
-  const [isDownloadLoading, setIsDownloadLoading] = useState(false);
+  useEffect(() => {
+    const storedUser = localStorage.getItem("userData");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
+  const handleUserFound = (userData) => {
+    setUserToEdit(userData);
+    setIsEditOpen(true);
+  };
+
+  // --- CORRECCIÓN BUCLE INFINITO ---
+  // Usamos useCallback para que la referencia de la función no cambie en cada render
+  // y no dispare el useEffect del hijo innecesariamente.
+
+  const handleBranchChange = useCallback((ids) => {
+    setBranchFilter((prev) => {
+      // Solo actualizamos si es diferente para evitar renders extra
+      if (prev === ids) return prev;
+      return ids;
+    });
+    setFormValues((p) => ({ ...p, page: 1 }));
+  }, []);
+
+  const handleForwarderChange = useCallback((ids) => {
+    setForwarderFilter((prev) => {
+      if (prev === ids) return prev;
+      return ids;
+    });
+    setFormValues((p) => ({ ...p, page: 1 }));
+  }, []);
+
+  const handleInputChange = (e) =>
+    setFormValues((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setFormValues((p) => ({ ...p, page: 1 }));
+  };
+  const handleCheckboxChange = (e) =>
+    setFormValues((p) => ({ ...p, [e.target.name]: e.target.checked }));
+  const handleReset = () => {
+    setFormValues({
+      date_from: "",
+      date_to: "",
+      patient_id_number: "",
+      patient_name: "",
+      apellido_paciente: "",
+      accession_number: "",
+      page: 1,
+      page_size: 15,
+      branch_id: "",
+      private_healthcare_id: "",
+      unread_only: false,
+      complete_only: false,
+    });
+    setSelectedItems([]);
+  };
+  const handlePageChange = (n) =>
+    setFormValues((p) => ({ ...p, page: Number(n) }));
+  const handlePreviousPage = () => {
+    if (formValues.page > 1) handlePageChange(formValues.page - 1);
+  };
+  const handleNextPage = () => {
+    if (data?.protocolos?.length === Number(formValues.page_size))
+      handlePageChange(formValues.page + 1);
+  };
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  // --- LÓGICA DE CLICS (CORREGIDA) ---
+  const handleRowClick = (e, item) => {
+    if (e.ctrlKey || e.metaKey) {
+      setSelectedItems((prev) => {
+        const exists = prev.find((p) => p.protocoloid === item.protocoloid);
+        return exists
+          ? prev.filter((p) => p.protocoloid !== item.protocoloid)
+          : [...prev, item];
+      });
+    } else {
+      setSelectedItems([item]);
+    }
+  };
+  const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+  const handleViewResults = (item = null) => {
+    const target =
+      item || (selectedItems.length === 1 ? selectedItems[0] : null);
+    if (target) {
+      setSelectedProtocol(target);
+      if (target.leido === "0") {
+        markRead.mutate(target.protocoloid);
+        target.leido = "1";
+      }
+    }
+  };
+
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    setSelectedItems([item]);
+    setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+  };
+
+  const handleViewPDF = async (protocolId) => {
+    if (!protocolId || isPdfLoading) return;
+    setIsPdfLoading(true);
+    try {
+      const blob = await getProtocolPdf(protocolId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, `PDF_${protocolId}`, `width=1000,height=800`);
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error(error);
+      alert("Error al abrir el PDF.");
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
+
+  const handleDownloadAction = async () => {
+    const itemsToDownload = selectedItems.filter((p) => p.completo !== "");
+    if (itemsToDownload.length === 0 || isDownloadLoading) return;
+    setIsDownloadLoading(true);
+    try {
+      if (itemsToDownload.length === 1) {
+        const protocolo = itemsToDownload[0];
+        const blob = await getProtocolPdf(protocolo.protocoloid);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute(
+          "download",
+          `Protocolo_${protocolo.accessionnumber}.pdf`
+        );
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        const zip = new JSZip();
+        const promesas = itemsToDownload.map(async (p) => {
+          try {
+            const blob = await getProtocolPdf(p.protocoloid);
+            zip.file(`Protocolo_${p.accessionnumber}.pdf`, blob);
+          } catch (e) {
+            console.error(e);
+          }
+        });
+        await Promise.all(promesas);
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(
+          content,
+          `Resultados_${new Date().toISOString().slice(0, 10)}.zip`
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error en la descarga.");
+    } finally {
+      setIsDownloadLoading(false);
+    }
+  };
+
   useEffect(() => {
     const handleClick = (e) => {
       setContextMenu(null);
-
       const isClickInsideTable = e.target.closest(".resultados-table");
       const isClickInsideToolbar = e.target.closest(".panel-header-actions");
       const isClickInsidePagination = e.target.closest(".pagination-bar");
@@ -142,235 +599,24 @@ export default function Resultados() {
         !isClickInsideSidebar &&
         !isClickInsideContextMenu
       ) {
-        if (isClickInsideDetailPanel && selectedProtocol) {
-          return;
-        }
-
+        if (isClickInsideDetailPanel && selectedProtocol) return;
         setSelectedItems([]);
         setSelectedProtocol(null);
       }
     };
-
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
   }, [selectedProtocol]);
 
-  // --- MANEJADORES DE SELECCIÓN ---
-  const handleRowClick = (e, item) => {
-    if (e.ctrlKey || e.metaKey) {
-      setSelectedItems((prev) => {
-        const exists = prev.find((p) => p.protocoloid === item.protocoloid);
-        if (exists) {
-          return prev.filter((p) => p.protocoloid !== item.protocoloid);
-        } else {
-          return [...prev, item];
-        }
-      });
-    } else {
-      setSelectedItems([item]);
-    }
-  };
-
-  const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
-
-  // --- MANEJADORES DE ACCIONES ---
-  const handleViewResults = (protocoloOverride = null) => {
-    const target =
-      protocoloOverride ||
-      (selectedItems.length === 1 ? selectedItems[0] : null);
-
-    if (target) {
-      setSelectedProtocol(target);
-
-      if (target.leido === "0") {
-        markRead.mutate(target.protocoloid);
-        target.leido = "1";
-
-        setSelectedItems((prev) =>
-          prev.map((item) =>
-            item.protocoloid === target.protocoloid
-              ? { ...item, leido: "1" }
-              : item
-          )
-        );
-      }
-    }
-  };
-
-  // --- PREFETCH  ---
-  useEffect(() => {
-    if (selectedItems.length === 1) {
-      const protocolo = selectedItems[0];
-
-      if (protocolo.completo !== "") {
-        queryClient.prefetchQuery({
-          queryKey: ["protocolResults", String(protocolo.protocoloid)],
-          queryFn: () => getProtocolResults(protocolo.protocoloid),
-          staleTime: 1000 * 60 * 5,
-        });
-      }
-    }
-  }, [selectedItems, queryClient]);
-
-  const handleContextMenu = (e, item) => {
-    e.preventDefault();
-    setSelectedItems([item]);
-    setContextMenu({
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      item: item,
-    });
-  };
-
-  // --- VISUALIZAR PDF (SOLO UNO) ---
-  const handleViewPDF = async (protocolId) => {
-    if (!protocolId || isPdfLoading) return;
-    setIsPdfLoading(true);
-    try {
-      const blob = await getProtocolPdf(protocolId);
-
-      const url = window.URL.createObjectURL(blob);
-      const width = 1000;
-      const height = 800;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      window.open(
-        url,
-        `PDF_${protocolId}`,
-        `width=${width},height=${height},top=${top},left=${left}`
-      );
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      console.error(error);
-      alert("Error al abrir el PDF. Verifique su sesión.");
-    } finally {
-      setIsPdfLoading(false);
-    }
-  };
-
-  const handleDownloadAction = async () => {
-    const itemsToDownload = selectedItems.filter((p) => p.completo !== "");
-
-    if (itemsToDownload.length === 0 || isDownloadLoading) return;
-
-    setIsDownloadLoading(true);
-
-    try {
-      // --- CASO A: SOLO UN ARCHIVO (Descarga directa PDF) ---
-      if (itemsToDownload.length === 1) {
-        const protocolo = itemsToDownload[0];
-
-        const blob = await getProtocolPdf(protocolo.protocoloid);
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute(
-          "download",
-          `Protocolo_${protocolo.accessionnumber}.pdf`
-        );
-        document.body.appendChild(link);
-        link.click();
-
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }
-
-      // --- CASO B: MÚLTIPLES ARCHIVOS (Generar ZIP) ---
-      else {
-        const zip = new JSZip();
-
-        const promesas = itemsToDownload.map(async (protocolo) => {
-          try {
-            const blob = await getProtocolPdf(protocolo.protocoloid);
-            zip.file(`Protocolo_${protocolo.accessionnumber}.pdf`, blob);
-          } catch (err) {
-            console.error(
-              `Error descargando protocolo ${protocolo.accessionnumber}`,
-              err
-            );
-          }
-        });
-
-        await Promise.all(promesas);
-        const content = await zip.generateAsync({ type: "blob" });
-        const fechaHoy = new Date().toISOString().slice(0, 10);
-        saveAs(content, `Resultados_CentraLab_${fechaHoy}.zip`);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error en la descarga: " + error.message);
-    } finally {
-      setIsDownloadLoading(false);
-    }
-  };
-
-  // --- FILTROS Y PAGINACIÓN ---
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormValues((prev) => ({ ...prev, [name]: value }));
-  };
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const newFilters = { ...formValues, page: 1 };
-    setFormValues(newFilters);
-    setActiveFilters(newFilters);
-  };
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target;
-    setFormValues((prev) => ({ ...prev, [name]: checked }));
-  };
-  const handleReset = () => {
-    const resetValues = {
-      date_from: "",
-      date_to: "",
-      patient_id_number: "",
-      patient_name: "",
-      apellido_paciente: "",
-      accession_number: "",
-      page: 1,
-      page_size: 15,
-      branch_id: "",
-      unread_only: false,
-      complete_only: false,
-    };
-    setFormValues(resetValues);
-    setActiveFilters(resetValues);
-    setSelectedItems([]);
-  };
-  const handlePageChange = (newPage) => {
-    const updatedValues = { ...formValues, page: Number(newPage) };
-    setFormValues(updatedValues);
-    setActiveFilters(updatedValues);
-  };
-  const handlePreviousPage = () => {
-    if (formValues.page > 1) {
-      handlePageChange(formValues.page - 1);
-    }
-  };
-  const handleNextPage = () => {
-    if (data?.protocolos?.length === Number(formValues.page_size)) {
-      handlePageChange(formValues.page + 1);
-    }
-  };
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return dateString;
-  };
-
-  const hasDownloadableItems = selectedItems.some(
-    (item) => item.completo !== ""
-  );
-
+  const formatDate = (d) => (!d ? "-" : d);
+  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
-    console.log("DATOS DEL USUARIO:", user); 
-console.log("¿Es Admin?:", user.isadministrator);
+
   return (
     <div className="dashboard-container">
-      {/* SIDEBAR FILTROS */}
       <aside className="sidebar-filters" data-click-safe="true">
         <div className="sidebar-header">
           {centraLabLogo ? (
@@ -379,306 +625,284 @@ console.log("¿Es Admin?:", user.isadministrator);
             <h2>CentraLab</h2>
           )}
           <div
-            className={`filter-toggle-btn ${showFilters ? "active" : ""}`}
-            onClick={() => setShowFilters(!showFilters)}
+            className={`filter-toggle-btn ${isGeneralOpen ? "active" : ""}`}
+            onClick={handleToggleGeneral}
           >
             <FiFilter />
-            <span>{showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}</span>
-            <span className="arrow-icon">{showFilters ? "▲" : "▼"}</span>
+            <span>Filtros Grales.</span>
+            <span className="arrow-icon">{isGeneralOpen ? "▲" : "▼"}</span>
           </div>
         </div>
 
-        <div className={`filters-collapsible ${showFilters ? "show" : ""}`}>
-          <form className="filters-form" onSubmit={handleSearch}>
-            <div className="filter-group">
-              <label>Fecha Desde</label>
-              <div className="input-wrapper">
-                <input
-                  type="date"
-                  name="date_from"
-                  value={formValues.date_from}
-                  onChange={handleInputChange}
-                  className="input-modern pl-icon"
-                />
-              </div>
-            </div>
-            <div className="filter-group">
-              <label>Fecha Hasta</label>
-              <div className="input-wrapper">
-                <input
-                  type="date"
-                  name="date_to"
-                  value={formValues.date_to}
-                  onChange={handleInputChange}
-                  className="input-modern pl-icon"
-                />
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label>DNI Paciente</label>
-              <input
-                type="text"
-                name="patient_id_number"
-                value={formValues.patient_id_number}
-                onChange={handleInputChange}
-                className="input-modern"
-                placeholder="Ej: 25459633"
-              />
-            </div>
-            <div className="filter-group">
-              <label>Apellido</label>
-              <input
-                type="text"
-                name="apellido_paciente"
-                value={formValues.apellido_paciente}
-                onChange={handleInputChange}
-                className="input-modern"
-                placeholder="Buscar apellido..."
-              />
-            </div>
-            <div className="filter-group">
-              <label>Estado del Protocolo</label>
-              <div className="filter-checkbox-container">
-                {/* Checkbox Completo */}
-                <label className="checkbox-label">
+        <div className="sidebar-scrollable-content">
+          {/* 1. FILTROS GENERALES */}
+          <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
+            <form className="filters-form" onSubmit={handleSearch}>
+              <div className="filter-group">
+                <label>Fecha Desde</label>
+                <div className="input-wrapper">
                   <input
-                    type="checkbox"
-                    name="complete_only"
-                    checked={formValues.complete_only}
-                    onChange={handleCheckboxChange}
+                    type="date"
+                    name="date_from"
+                    value={formValues.date_from}
+                    onChange={handleInputChange}
+                    className="input-modern pl-icon"
                   />
-                  Completo
-                </label>
-
-                {/* Checkbox En Proceso */}
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="in_process"
-                    checked={formValues.in_process || false}
-                    onChange={handleCheckboxChange}
-                  />
-                  En Proceso
-                </label>
+                </div>
               </div>
-            </div>
-            <div className="filter-group">
-              <label>ID Petición</label>
-              <div className="input-wrapper">
+              <div className="filter-group">
+                <label>Fecha Hasta</label>
+                <div className="input-wrapper">
+                  <input
+                    type="date"
+                    name="date_to"
+                    value={formValues.date_to}
+                    onChange={handleInputChange}
+                    className="input-modern pl-icon"
+                  />
+                </div>
+              </div>
+              <div className="filter-group">
+                <label>DNI Paciente</label>
                 <input
                   type="text"
-                  name="accession_number"
-                  value={formValues.accession_number}
+                  name="patient_id_number"
+                  value={formValues.patient_id_number}
                   onChange={handleInputChange}
-                  className="input-modern pl-icon"
-                  placeholder="Protocolo / ID"
+                  className="input-modern"
+                  placeholder="Ej: 25459633"
                 />
               </div>
-            </div>
-            <div className="filter-row">
-              <div className="filter-group half">
-                <label>Pág.</label>
+              <div className="filter-group">
+                <label>Apellido</label>
                 <input
-                  type="number"
-                  name="page"
-                  value={formValues.page}
-                  onChange={(e) => handlePageChange(e.target.value)}
-                  className="input-modern"
-                  min={1}
-                />
-              </div>
-              <div className="filter-group half">
-                <label>Filas</label>
-                <select
-                  name="page_size"
-                  value={formValues.page_size}
+                  type="text"
+                  name="apellido_paciente"
+                  value={formValues.apellido_paciente}
                   onChange={handleInputChange}
                   className="input-modern"
-                >
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  placeholder="Buscar apellido..."
+                />
               </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                marginTop: "-10px",
-              }}
-            >
-              <button
-                type="submit"
-                className="btn-filtrar"
-                disabled={isLoading}
+              <div className="filter-group">
+                <label>Estado</label>
+                <div className="filter-checkbox-container">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      name="complete_only"
+                      checked={formValues.complete_only}
+                      onChange={handleCheckboxChange}
+                    />{" "}
+                    Completo
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      name="in_process"
+                      checked={formValues.in_process || false}
+                      onChange={handleCheckboxChange}
+                    />{" "}
+                    En Proceso
+                  </label>
+                </div>
+              </div>
+              <div className="filter-group">
+                <label>ID Petición</label>
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    name="accession_number"
+                    value={formValues.accession_number}
+                    onChange={handleInputChange}
+                    className="input-modern pl-icon"
+                    placeholder="Protocolo / ID"
+                  />
+                </div>
+              </div>
+              <div className="filter-row">
+                <div className="filter-group half">
+                  <label>Pág.</label>
+                  <input
+                    type="number"
+                    name="page"
+                    value={formValues.page}
+                    onChange={(e) => handlePageChange(e.target.value)}
+                    className="input-modern"
+                    min={1}
+                  />
+                </div>
+                <div className="filter-group half">
+                  <label>Filas</label>
+                  <select
+                    name="page_size"
+                    value={formValues.page_size}
+                    onChange={handleInputChange}
+                    className="input-modern"
+                  >
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div
                 style={{
-                  width: "100%",
-                  opacity: isLoading ? 0.7 : 1,
-                  cursor: isLoading ? "wait" : "pointer",
                   display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "8px",
+                  flexDirection: "column",
+                  marginTop: "10px",
+                  gap: "10px",
                 }}
               >
-                {isLoading ? (
-                  <>
-                    <span className="spinner-loader"></span>
-                    Buscando...
-                  </>
-                ) : (
-                  <>
-                    <FiSearch /> Buscar
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className="btn-filtrar"
-                onClick={handleReset}
-                disabled={isLoading}
-                style={{
-                  width: "100%",
-                  backgroundColor: "transparent",
-                  color: "#64748B",
-                  border: "1px solid #CBD5E1",
-                  boxShadow: "none",
-                  marginTop: "-10px",
-                }}
-              >
-                <FiTrash2 /> Limpiar Filtros
-              </button>
-            </div>
-          </form>
+                <button
+                  type="submit"
+                  className="btn-filtrar"
+                  disabled={isLoading}
+                  style={{
+                    width: "100%",
+                    opacity: isLoading ? 0.7 : 1,
+                    cursor: isLoading ? "wait" : "pointer",
+                  }}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="spinner-loader"></span> Buscando...
+                    </>
+                  ) : (
+                    <>
+                      <FiSearch /> Buscar
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="btn-filtrar"
+                  onClick={handleReset}
+                  disabled={isLoading}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "transparent",
+                    color: "#64748B",
+                    border: "1px solid #CBD5E1",
+                    boxShadow: "none",
+                  }}
+                >
+                  <FiTrash2 /> Limpiar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {!isGeneralOpen && (
+            <>
+              {/* FILTRO SEDES */}
+              <AsyncFilterSection
+                title="Sedes"
+                icon={FiMapPin}
+                type="branch"
+                user={user}
+                onSelectionChange={handleBranchChange}
+                isOpen={openLocations.branch}
+                onToggle={() => toggleLocation("branch")}
+              />
+
+              {/* FILTRO CLIENTES */}
+              <AsyncFilterSection
+                title="Clientes"
+                icon={FiUsers}
+                type="forwarder"
+                user={user}
+                onSelectionChange={handleForwarderChange}
+                isOpen={openLocations.forwarder}
+                onToggle={() => toggleLocation("forwarder")}
+              />
+            </>
+          )}
         </div>
 
-        {!showFilters && (
+        {/* FOOTER SIDEBAR */}
+        {showFooter && (
           <div
             style={{
               marginTop: "auto",
               padding: "1rem",
               borderTop: "1px solid #e2e8f0",
               backgroundColor: "#f8fafc",
-              display: "flex",
-              flexDirection: "column",
-              gap: "15px",
             }}
           >
-            {/* --- BOTONES ADMINISTRATIVOS --- */}
             {user.isadministrator && (
-            <div>
-              <p
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: "700",
-                  color: "#94a3b8",
-                  marginBottom: "8px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  textAlign: "center",
-                  width: "100%",
-                }}
-              >
-                Administración
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1px",
-                }}
-              >
-                {/* Botón Nuevo Usuario */}
+              <div style={{ marginBottom: 10 }}>
+                <p
+                  style={{
+                    fontSize: "0.7rem",
+                    fontWeight: "700",
+                    color: "#94a3b8",
+                    textTransform: "uppercase",
+                    marginBottom: 5,
+                  }}
+                >
+                  Administración
+                </p>
                 <button
-              onClick={() => setIsAdminOpen(true)}
-              className="btn-filtrar"
+                  onClick={() => setIsAdminOpen(true)}
+                  className="btn-filtrar"
+                  style={{
+                    backgroundColor: "#0198CC",
+                    color: "white",
+                    width: "100%",
+                    padding: "8px",
+                    justifyContent: "center",
+                  }}
+                >
+                  <FiUser size={16} /> Panel de Usuarios
+                </button>
+              </div>
+            )}
+            <div
               style={{
-                // ... tus estilos (width 100%, flex, etc) ...
-                backgroundColor: '#0198CC', // Un color oscuro tipo "Admin"
-                color: "white",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+                paddingBottom: 10,
+                borderBottom: "1px dashed #e2e8f0",
               }}
             >
-              <FiUser size={18} />
-              Panel de Usuarios
-            </button>
+              <div
+                style={{
+                  width: 35,
+                  height: 35,
+                  borderRadius: "50%",
+                  background: "#e0f2fe",
+                  color: "#0284c7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <FiUser />
+              </div>
+              <div style={{ overflow: "hidden" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    color: "#334155",
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    maxWidth: 140,
+                  }}
+                >
+                  {user.fullname || user.username}
+                </p>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  {user.email || "Sin email"}
+                </span>
               </div>
             </div>
-             )}
-            <div style={{ borderTop: "1px dashed #cbd5e1", margin: "5px 0" }} />
-           
-            {/* --- SECCIÓN DE USUARIO --- */}
-          <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "15px",
-    paddingBottom: "15px",
-    borderBottom: "1px dashed #e2e8f0",
-  }}
->
-  {/* 1. EL ICONO DE PERSONA (RESTITUIDO) */}
-  <div
-    style={{
-      width: "35px",
-      height: "35px",
-      borderRadius: "50%",
-      backgroundColor: "#e0f2fe", // Fondo azulito claro
-      color: "#0284c7",         // Icono azul más oscuro
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0, // Evita que se aplaste si el nombre es muy largo
-    }}
-  >
-    <FiUser size={18} />
-  </div>
-
-  {/* 2. LOS DATOS DEL USUARIO (CORREGIDOS) */}
-  <div style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
-    {/* Nombre Completo (Arriba) */}
-    <p
-      style={{
-        margin: 0,
-        fontWeight: "600",
-        fontSize: "0.85rem",
-        color: "#334155",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "140px",
-        lineHeight: "1.2",
-      }}
-      // Muestra el nombre completo al pasar el mouse si se corta
-      title={user.fullname || user.username || ""}
-    >
-      {/* Si no hay fullname, muestra username, si no, "Usuario" */}
-      {user.fullname || user.username || "Usuario"}
-    </p>
-
-    {/* Nombre de usuario / Username (Abajo, más pequeño) */}
-    <span
-      style={{
-        fontSize: "0.75rem",
-        color: "#64748b",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "140px",
-      }}
-      title={user.email || ""} // Tooltip para ver el email completo si es muy largo
-    >
-      {/* Mostramos el email, o un texto por defecto si no tiene */}
-      {user.email || "Sin email"}
-    </span>
-  </div>
-</div>
-
-            {/* --- BOTÓN CERRAR SESIÓN --- */}
             <button
               onClick={handleLogout}
               className="btn-filtrar"
@@ -688,14 +912,7 @@ console.log("¿Es Admin?:", user.isadministrator);
                 borderColor: "#fecaca",
                 width: "100%",
                 justifyContent: "center",
-                transition: "all 0.2s",
               }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor = "#fff0f0")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = "white")
-              }
             >
               <FiLogOut /> Cerrar Sesión
             </button>
@@ -703,7 +920,6 @@ console.log("¿Es Admin?:", user.isadministrator);
         )}
       </aside>
 
-      {/* PANEL DE RESULTADOS */}
       <main className="split-view">
         <section className="list-panel">
           <div className="panel-header-actions">
@@ -715,8 +931,6 @@ console.log("¿Es Admin?:", user.isadministrator);
             >
               <FiMail size={20} /> Enviar por Email
             </button>
-
-            {/* --- BOTÓN VISUALIZAR PDF --- */}
             <button
               className="btn-mini-action"
               onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
@@ -731,7 +945,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                 </>
               )}
             </button>
-
             <button
               className="btn-mini-action"
               onClick={() => handleViewResults()}
@@ -740,23 +953,17 @@ console.log("¿Es Admin?:", user.isadministrator);
             >
               <FiEye size={20} /> Ver Resultados
             </button>
-
             <button
               className="btn-mini-action"
               onClick={handleDownloadAction}
               disabled={!hasDownloadableItems || isDownloadLoading}
-              title={
-                !hasDownloadableItems
-                  ? "Seleccione al menos un protocolo completo"
-                  : ""
-              }
               style={{ opacity: !hasDownloadableItems ? 0.5 : 1 }}
             >
               {isDownloadLoading ? (
                 "Procesando..."
               ) : (
                 <>
-                  <FiDownload size={20} />
+                  <FiDownload size={20} />{" "}
                   {selectedItems.length > 1 ? " Descargar Todo" : " Descargar"}
                 </>
               )}
@@ -771,11 +978,7 @@ console.log("¿Es Admin?:", user.isadministrator);
             )}
             {isError && (
               <div
-                style={{
-                  color: "red",
-                  padding: "20px",
-                  textAlign: "center",
-                }}
+                style={{ color: "red", padding: "20px", textAlign: "center" }}
               >
                 Error al cargar los datos.
               </div>
@@ -804,7 +1007,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                       onDoubleClick={() => handleViewResults(item)}
                       onContextMenu={(e) => handleContextMenu(e, item)}
                     >
-                      {/* Columna combinada de Nombre, DNI y Fecha */}
                       <td className="patient-info-cell">
                         <div className="patient-main-info">
                           <div className="name-with-dot">
@@ -818,8 +1020,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                               {item.apellidopaciente}, {item.nombrepaciente}
                             </span>
                           </div>
-
-                          {/* Segunda línea: DNI y Fecha */}
                           <div className="patient-subdata">
                             <span>
                               DNI{" "}
@@ -833,11 +1033,7 @@ console.log("¿Es Admin?:", user.isadministrator);
                           </div>
                         </div>
                       </td>
-
-                      {/* Columna de Protocolo */}
                       <td className="font-mono">{item.accessionnumber}</td>
-
-                      {/* Indicador del DEBE */}
                       <td style={{ textAlign: "center" }}>
                         <span
                           className={`indicator-dot ${
@@ -846,8 +1042,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                           title={item.debe ? "Posee Deuda" : "Sin Deuda"}
                         ></span>
                       </td>
-
-                      {/* Estado */}
                       <td>
                         {item.completo !== "" ? (
                           <span className="status-badge status-complete">
@@ -879,11 +1073,7 @@ console.log("¿Es Admin?:", user.isadministrator);
                 Mostrando {data?.protocolos?.length || 0} resultados
               </span>
               <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  alignItems: "center",
-                }}
+                style={{ display: "flex", gap: "10px", alignItems: "center" }}
               >
                 <button
                   onClick={handlePreviousPage}
@@ -945,7 +1135,6 @@ console.log("¿Es Admin?:", user.isadministrator);
           </div>
         </section>
 
-        {/* DETALLE PANEL*/}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
@@ -964,7 +1153,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                   <FiPrinter /> Imprimir Resultados
                 </button>
               </div>
-
               <div className="report-canvas">
                 <div className="report-paper">
                   <div className="patient-data-grid">
@@ -1030,8 +1218,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                     </div>
                   </div>
                   <hr className="divider" />
-
-                  {/* --- AREA DE RESULTADOS CORREGIDA --- */}
                   <div className="results-content">
                     {isLoadingResults ? (
                       <div className="loading-results">
@@ -1054,16 +1240,13 @@ console.log("¿Es Admin?:", user.isadministrator);
                             index > 0
                               ? resultsData.resultados[index - 1]
                               : null;
-
                           const showSectionTitle =
                             index === 0 ||
                             res.grupotitulo !== prevRes.grupotitulo;
-
                           const showAnalysisTitle =
                             index === 0 ||
                             res.analisis !== prevRes?.analisis ||
                             showSectionTitle;
-
                           return (
                             <React.Fragment key={index}>
                               {res.grupotitulo && showSectionTitle && (
@@ -1071,7 +1254,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                                   {res.grupotitulo}
                                 </div>
                               )}
-
                               {showAnalysisTitle && (
                                 <div
                                   className="analysis-header"
@@ -1088,8 +1270,6 @@ console.log("¿Es Admin?:", user.isadministrator);
                                   {res.analisis}
                                 </div>
                               )}
-
-                              {/* Fila del Resultado */}
                               <div className="result-item-row">
                                 <div className="det-col">
                                   <span style={{ fontWeight: 500 }}>
@@ -1181,37 +1361,6 @@ console.log("¿Es Admin?:", user.isadministrator);
         </section>
       </main>
 
-      {contextMenu && (
-        <div
-          className="context-menu"
-          style={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
-        >
-          {contextMenu.item.leido === "1" ? (
-            <div
-              className="context-menu-item"
-              onClick={() => {
-                markUnread.mutate(contextMenu.item.protocoloid);
-                contextMenu.item.leido = "0";
-                setContextMenu(null);
-              }}
-            >
-              <FiBookmark /> Marcar como no leído
-            </div>
-          ) : (
-            <div
-              className="context-menu-item"
-              onClick={() => {
-                markRead.mutate(contextMenu.item.protocoloid);
-                contextMenu.item.leido = "1";
-                setContextMenu(null);
-              }}
-            >
-              <FiBookOpen /> Marcar como leído
-            </div>
-          )}
-        </div>
-      )}
-
       <Email
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
@@ -1220,29 +1369,22 @@ console.log("¿Es Admin?:", user.isadministrator);
       <ModalUsuario
         isOpen={isCreateUserModalOpen}
         onClose={() => setIsCreateUserModalOpen(false)}
-        onUserSaved={() => {
-          alert("¡Usuario creado exitosamente!");
-        }}
+        onUserSaved={() => alert("¡Usuario creado exitosamente!")}
       />
-      <ModalBuscarUsuario 
+      <ModalBuscarUsuario
         isOpen={isSearchUserModalOpen}
         onClose={() => setIsSearchUserModalOpen(false)}
-        onUserFound={handleUserFound} // Conecta con la edición
+        onUserFound={handleUserFound}
       />
-
-      <ModalAdministracion 
-    isOpen={isAdminOpen} 
-    onClose={() => setIsAdminOpen(false)} 
+      <ModalAdministracion
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
       />
-
-      {/*  Modal de Edición */}
-      <ModalEditarUsuario 
-        isOpen={isEditOpen} 
+      <ModalEditarUsuario
+        isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         user={userToEdit}
-        onUserUpdated={() => {
-          alert("Usuario actualizado correctamente");
-        }}
+        onUserUpdated={() => alert("Usuario actualizado correctamente")}
       />
     </div>
   );
