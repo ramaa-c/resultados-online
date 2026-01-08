@@ -6,7 +6,7 @@ import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/ModalUsuario";
+import ModalUsuario from "../components/modalUsuario";
 import ModalEditarUsuario from "../components/ModalEditarUsuario";
 import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
@@ -40,7 +40,92 @@ import {
   FiLayers,
   FiX,
   FiPlus,
+  FiAlertCircle,
 } from "react-icons/fi";
+
+// --- ESTILOS INLINE PARA EL TOGGLE GROUP (Puedes moverlos a tu CSS) ---
+const toggleStyles = {
+  container: {
+    display: "flex",
+    border: "1px solid #cbd5e1",
+    borderRadius: "6px",
+    overflow: "hidden",
+    marginTop: "4px",
+    width: "100%",
+  },
+  button: {
+    flex: 1,
+    border: "none",
+    borderRight: "1px solid #cbd5e1",
+    padding: "8px 4px",
+    fontSize: "0.75rem",
+    cursor: "pointer",
+    backgroundColor: "#f8fafc",
+    color: "#64748b",
+    transition: "all 0.2s",
+    fontWeight: 500,
+  },
+  active: {
+    backgroundColor: "#0198CC", // Tu color primario
+    color: "white",
+    fontWeight: 700,
+  },
+  last: {
+    borderRight: "none",
+  },
+};
+
+// --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
+const TriStateToggle = ({
+  label,
+  value,
+  onChange,
+  labels = { true: "Sí", false: "No", all: "Todos" },
+}) => {
+  return (
+    <div className="filter-group">
+      <label>{label}</label>
+      <div style={toggleStyles.container}>
+        {/* Opción TODOS (Valor: "") */}
+        <button
+          type="button"
+          style={{
+            ...toggleStyles.button,
+            ...(value === "" ? toggleStyles.active : {}),
+          }}
+          onClick={() => onChange("")}
+        >
+          {labels.all}
+        </button>
+
+        {/* Opción TRUE */}
+        <button
+          type="button"
+          style={{
+            ...toggleStyles.button,
+            ...(value === true ? toggleStyles.active : {}),
+          }}
+          onClick={() => onChange(true)}
+        >
+          {labels.true}
+        </button>
+
+        {/* Opción FALSE */}
+        <button
+          type="button"
+          style={{
+            ...toggleStyles.button,
+            ...toggleStyles.last,
+            ...(value === false ? toggleStyles.active : {}),
+          }}
+          onClick={() => onChange(false)}
+        >
+          {labels.false}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // --- SUBCOMPONENTE REUTILIZABLE: SECCIÓN DE FILTRO ASÍNCRONO ---
 const AsyncFilterSection = ({
@@ -56,15 +141,12 @@ const AsyncFilterSection = ({
   const [inputValue, setInputValue] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
   const containerRef = useRef(null);
 
   const canViewAll =
     type === "branch" ? user.canviewallbranches : user.canviewallforwarders;
-
   const restrictedList =
     type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
-
   const useChipsMode =
     !canViewAll && restrictedList.length > 0 && restrictedList.length <= 10;
 
@@ -79,7 +161,6 @@ const AsyncFilterSection = ({
         setShowDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -94,27 +175,17 @@ const AsyncFilterSection = ({
     queryFn: async () => {
       const endpoint = type === "branch" ? "/branches" : "/forwarders";
       const paramName = type === "branch" ? "branch_name" : "forwarder_name";
-
       const res = await api.get(endpoint, {
         params: { [paramName]: queryTerm, page_size: 5 },
       });
-
       const raw = res.data.items || res.data;
-
-      if (Array.isArray(raw)) {
+      if (Array.isArray(raw))
         return raw.map((item) => ({
           id: item.id,
           label: item.name || item.business_name || item.label || item.id,
         }));
-      }
-
-      if (typeof raw === "object" && raw !== null) {
-        return Object.entries(raw).map(([id, name]) => ({
-          id,
-          label: name,
-        }));
-      }
-
+      if (typeof raw === "object" && raw !== null)
+        return Object.entries(raw).map(([id, name]) => ({ id, label: name }));
       return [];
     },
     enabled: !!queryTerm && !useChipsMode && queryTerm.trim().length >= 1,
@@ -128,24 +199,21 @@ const AsyncFilterSection = ({
       setShowDropdown(true);
     }
   };
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleTriggerSearch();
     }
   };
-
   const handleSelect = (item) => {
-    if (!selectedItems.some((i) => i.id === item.id)) {
+    if (!selectedItems.some((i) => i.id === item.id))
       setSelectedItems((prev) => [...prev, item]);
-    }
     setInputValue("");
+    setQueryTerm("");
+    setShowDropdown(false);
   };
-
-  const handleRemove = (id) => {
+  const handleRemove = (id) =>
     setSelectedItems((prev) => prev.filter((i) => i.id !== id));
-  };
 
   const idNameMap = React.useMemo(() => {
     const ids =
@@ -154,12 +222,10 @@ const AsyncFilterSection = ({
       type === "branch"
         ? user.branchnamelist || []
         : user.forwardernamelist || [];
-
     const map = {};
     ids.forEach((id, index) => {
       map[id] = names[index] || id;
     });
-
     return map;
   }, [type, user]);
 
@@ -168,7 +234,6 @@ const AsyncFilterSection = ({
       {restrictedList.map((id) => {
         const isSelected = selectedItems.some((i) => i.id === id);
         const label = idNameMap[id] || id;
-
         return (
           <div
             key={id}
@@ -188,22 +253,21 @@ const AsyncFilterSection = ({
   return (
     <div className="sidebar-section">
       <div className="sidebar-header-sub" onClick={onToggle}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Icon />
           <span>{title}</span>
         </div>
         <span className="arrow-icon">{isOpen ? "▲" : "▼"}</span>
       </div>
-
       <div className={`filters-collapsible ${isOpen ? "show" : ""}`}>
-        <div className="location-filter-body" style={{ padding: "10px" }}>
+        <div className="location-filter-body">
           {useChipsMode ? (
             renderStaticChips()
           ) : (
             <div
               className="async-search-container"
-              style={{ position: "relative" }}
               ref={containerRef}
+              style={{ position: "relative" }}
             >
               <div className="input-wrapper">
                 <input
@@ -213,10 +277,9 @@ const AsyncFilterSection = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  style={{ paddingRight: "35px" }}
+                  style={{ paddingRight: 35 }}
                 />
-
-                {queryTerm ? (
+                {inputValue || queryTerm ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -237,7 +300,6 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Limpiar búsqueda"
                   >
                     <FiX size={18} />
                   </button>
@@ -258,15 +320,12 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Buscar"
                   >
                     <FiSearch size={18} />
                   </button>
                 )}
               </div>
-
-              {/* Dropdown Resultados */}
-              {showDropdown && (
+              {showDropdown && queryTerm && (
                 <div className="search-dropdown">
                   {isFetching && (
                     <div className="dropdown-item loading">
@@ -282,22 +341,19 @@ const AsyncFilterSection = ({
                       Buscando...
                     </div>
                   )}
-
                   {!isFetching && searchResults.length === 0 && !isError && (
                     <div
-                      className="dropdown-item"
+                      className="dropdown-item loading"
                       style={{ fontStyle: "italic", color: "#999" }}
                     >
                       No se encontraron resultados
                     </div>
                   )}
-
-                  {!isFetching && isError && (
+                  {isError && (
                     <div className="dropdown-item" style={{ color: "red" }}>
                       Error: {error?.message || "Falló la búsqueda"}
                     </div>
                   )}
-
                   {!isFetching &&
                     searchResults.map((item) => (
                       <div
@@ -311,8 +367,6 @@ const AsyncFilterSection = ({
                     ))}
                 </div>
               )}
-
-              {/* Chips Seleccionados */}
               {selectedItems.length > 0 && (
                 <div className="selected-chips-area">
                   {selectedItems.map((item) => (
@@ -349,6 +403,7 @@ export default function Resultados() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // --- 1. ESTADO DEL FORMULARIO (Inputs visuales, no disparan búsqueda) ---
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -360,37 +415,24 @@ export default function Resultados() {
     page_size: 15,
     branch_id: "",
     private_healthcare_id: "",
-    unread_only: false,
-    complete_only: false,
+    reserved: "",
+    unread_only: "",
+    complete_only: "",
   });
 
+  // --- 2. ESTADO DE FILTROS ACTIVOS (Lo que se envía a la API) ---
+  // Inicialmente copia de formValues
+  const [activeFilters, setActiveFilters] = useState({ ...formValues });
+
+  // Estados locales para ubicación (se sincronizan inmediatamente)
   const [branchFilter, setBranchFilter] = useState("");
   const [forwarderFilter, setForwarderFilter] = useState("");
-
-  const activeFilters = {
-    ...formValues,
-    branch_id: branchFilter,
-    private_healthcare_id: forwarderFilter,
-  };
 
   const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [openLocations, setOpenLocations] = useState({
     branch: false,
     forwarder: false,
   });
-
-  const handleToggleGeneral = () => {
-    setIsGeneralOpen(!isGeneralOpen);
-  };
-
-  const toggleLocation = (key) => {
-    setOpenLocations((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const showFooter = !isGeneralOpen;
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -407,7 +449,10 @@ export default function Resultados() {
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
 
   const { markRead, markUnread } = useProtocolMutations();
+
+  // React Query usa activeFilters
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+
   const {
     data: resultsData,
     isLoading: isLoadingResults,
@@ -425,37 +470,49 @@ export default function Resultados() {
     }
   }, []);
 
-  const handleUserFound = (userData) => {
-    setUserToEdit(userData);
-    setIsEditOpen(true);
+  // --- EFECTO PARA ACTUALIZACIÓN INMEDIATA DE UBICACIÓN Y TOGGLES ---
+  // Cuando cambian los filtros de ubicación, actualizamos activeFilters y formValues para mantener consistencia
+  useEffect(() => {
+    setActiveFilters((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+      page: 1, // Resetear página
+    }));
+    setFormValues((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+    }));
+  }, [branchFilter, forwarderFilter]);
+
+  // --- HANDLERS ---
+
+  // Actualiza SOLO el estado visual del formulario (Text Inputs)
+  const handleInputChange = (e) => {
+    setFormValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleBranchChange = useCallback((ids) => {
-    setBranchFilter((prev) => {
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleForwarderChange = useCallback((ids) => {
-    setForwarderFilter((prev) => {
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleInputChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.value }));
+  // Acción del botón BUSCAR: Sincroniza formValues -> activeFilters
   const handleSearch = (e) => {
     e.preventDefault();
-    setFormValues((p) => ({ ...p, page: 1 }));
+    setActiveFilters((prev) => ({
+      ...prev,
+      ...formValues,
+      page: 1,
+    }));
   };
-  const handleCheckboxChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.checked }));
+
+  // Acción inmediata para Toggles (Actualiza formValues Y activeFilters)
+  const handleToggleState = (key, value) => {
+    // 1. Actualizamos visual
+    setFormValues((prev) => ({ ...prev, [key]: value }));
+    // 2. Actualizamos query (dispara búsqueda)
+    setActiveFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+  };
+
   const handleReset = () => {
-    setFormValues({
+    const resetValues = {
       date_from: "",
       date_to: "",
       patient_id_number: "",
@@ -466,13 +523,46 @@ export default function Resultados() {
       page_size: 15,
       branch_id: "",
       private_healthcare_id: "",
-      unread_only: false,
-      complete_only: false,
-    });
+      reserved: "",
+      unread_only: "",
+      complete_only: "",
+    };
+    setFormValues(resetValues);
+    // Reiniciamos activeFilters (excepto locations si queremos mantenerlas, aquí reseteamos todo)
+    setActiveFilters(resetValues);
     setSelectedItems([]);
   };
-  const handlePageChange = (n) =>
-    setFormValues((p) => ({ ...p, page: Number(n) }));
+
+  const handlePageChange = (n) => {
+    const page = Number(n);
+    setFormValues((p) => ({ ...p, page }));
+    setActiveFilters((p) => ({ ...p, page }));
+  };
+
+  const handleBranchChange = useCallback((ids) => {
+    setBranchFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleForwarderChange = useCallback((ids) => {
+    setForwarderFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleToggleGeneral = () => setIsGeneralOpen(!isGeneralOpen);
+  const toggleLocation = (key) =>
+    setOpenLocations((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const shouldShowBranch =
+    !isGeneralOpen || (branchFilter && branchFilter.length > 0);
+  const shouldShowForwarder =
+    !isGeneralOpen || (forwarderFilter && forwarderFilter.length > 0);
+  const showFooter =
+    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
+
+  // ... (Resto de handlers como handleLogout, handleRowClick, pdf, etc. se mantienen igual)
+  const handleUserFound = (userData) => {
+    setUserToEdit(userData);
+    setIsEditOpen(true);
+  };
   const handlePreviousPage = () => {
     if (formValues.page > 1) handlePageChange(formValues.page - 1);
   };
@@ -497,7 +587,9 @@ export default function Resultados() {
       setSelectedItems([item]);
     }
   };
+
   const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+
   const handleViewResults = (item = null) => {
     const target =
       item || (selectedItems.length === 1 ? selectedItems[0] : null);
@@ -522,8 +614,8 @@ export default function Resultados() {
     try {
       const blob = await getProtocolPdf(protocolId);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, `PDF_${protocolId}`, `width=1000,height=800`);
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
     } catch (error) {
       console.error(error);
       alert("Error al abrir el PDF.");
@@ -576,39 +668,15 @@ export default function Resultados() {
     }
   };
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      setContextMenu(null);
-      const isClickInsideTable = e.target.closest(".resultados-table");
-      const isClickInsideToolbar = e.target.closest(".panel-header-actions");
-      const isClickInsidePagination = e.target.closest(".pagination-bar");
-      const isClickInsideSidebar = e.target.closest(".sidebar-filters");
-      const isClickInsideContextMenu = e.target.closest(".context-menu");
-      const isClickInsideDetailPanel = e.target.closest(".detail-panel");
-
-      if (
-        !isClickInsideTable &&
-        !isClickInsideToolbar &&
-        !isClickInsidePagination &&
-        !isClickInsideSidebar &&
-        !isClickInsideContextMenu
-      ) {
-        if (isClickInsideDetailPanel && selectedProtocol) return;
-        setSelectedItems([]);
-        setSelectedProtocol(null);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [selectedProtocol]);
-
-  const formatDate = (d) => (!d ? "-" : d);
-  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  // Variable helper
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
+  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  const formatDate = (d) => (!d ? "-" : d);
 
+  // Render
   return (
     <div className="dashboard-container">
       <aside className="sidebar-filters" data-click-safe="true">
@@ -629,7 +697,6 @@ export default function Resultados() {
         </div>
 
         <div className="sidebar-scrollable-content">
-          {/* 1. FILTROS GENERALES */}
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               <div className="filter-group">
@@ -656,6 +723,27 @@ export default function Resultados() {
                   />
                 </div>
               </div>
+
+              {/* --- BOTONES TRI-ESTADO (Disparan búsqueda al cambiar) --- */}
+              <TriStateToggle
+                label="Reservados"
+                value={formValues.reserved}
+                onChange={(val) => handleToggleState("reserved", val)}
+                labels={{ true: "Sí", false: "No", all: "Todos" }}
+              />
+              <TriStateToggle
+                label="Estado Protocolo"
+                value={formValues.complete_only}
+                onChange={(val) => handleToggleState("complete_only", val)}
+                labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
+              />
+              <TriStateToggle
+                label="Estado Lectura"
+                value={formValues.unread_only}
+                onChange={(val) => handleToggleState("unread_only", val)}
+                labels={{ true: "No Leídos", false: "Leídos", all: "Todos" }}
+              />
+
               <div className="filter-group">
                 <label>DNI Paciente</label>
                 <input
@@ -677,29 +765,6 @@ export default function Resultados() {
                   className="input-modern"
                   placeholder="Buscar apellido..."
                 />
-              </div>
-              <div className="filter-group">
-                <label>Estado</label>
-                <div className="filter-checkbox-container">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="complete_only"
-                      checked={formValues.complete_only}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    Completo
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="in_process"
-                      checked={formValues.in_process || false}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    En Proceso
-                  </label>
-                </div>
               </div>
               <div className="filter-group">
                 <label>ID Petición</label>
@@ -754,11 +819,7 @@ export default function Resultados() {
                   type="submit"
                   className="btn-filtrar"
                   disabled={isLoading}
-                  style={{
-                    width: "100%",
-                    opacity: isLoading ? 0.7 : 1,
-                    cursor: isLoading ? "wait" : "pointer",
-                  }}
+                  style={{ width: "100%", opacity: isLoading ? 0.7 : 1 }}
                 >
                   {isLoading ? (
                     <>
@@ -789,34 +850,30 @@ export default function Resultados() {
             </form>
           </div>
 
-          {!isGeneralOpen && (
-            <>
-              {/* FILTRO SEDES */}
-              <AsyncFilterSection
-                title="Sedes"
-                icon={FiMapPin}
-                type="branch"
-                user={user}
-                onSelectionChange={handleBranchChange}
-                isOpen={openLocations.branch}
-                onToggle={() => toggleLocation("branch")}
-              />
-
-              {/* FILTRO CLIENTES */}
-              <AsyncFilterSection
-                title="Clientes"
-                icon={FiUsers}
-                type="forwarder"
-                user={user}
-                onSelectionChange={handleForwarderChange}
-                isOpen={openLocations.forwarder}
-                onToggle={() => toggleLocation("forwarder")}
-              />
-            </>
+          {shouldShowBranch && (
+            <AsyncFilterSection
+              title="Sedes"
+              icon={FiMapPin}
+              type="branch"
+              user={user}
+              onSelectionChange={handleBranchChange}
+              isOpen={openLocations.branch}
+              onToggle={() => toggleLocation("branch")}
+            />
+          )}
+          {shouldShowForwarder && (
+            <AsyncFilterSection
+              title="Clientes"
+              icon={FiLayers}
+              type="forwarder"
+              user={user}
+              onSelectionChange={handleForwarderChange}
+              isOpen={openLocations.forwarder}
+              onToggle={() => toggleLocation("forwarder")}
+            />
           )}
         </div>
 
-        {/* FOOTER SIDEBAR */}
         {showFooter && (
           <div
             style={{
@@ -824,6 +881,7 @@ export default function Resultados() {
               padding: "1rem",
               borderTop: "1px solid #e2e8f0",
               backgroundColor: "#f8fafc",
+              marginBottom: "15px",
             }}
           >
             {user.isadministrator && (
@@ -834,7 +892,9 @@ export default function Resultados() {
                     fontWeight: "700",
                     color: "#94a3b8",
                     textTransform: "uppercase",
-                    marginBottom: 5,
+                    marginBottom: "15px",
+                    marginTop: 0,
+                    textAlign: "center",
                   }}
                 >
                   Administración
@@ -1129,6 +1189,7 @@ export default function Resultados() {
           </div>
         </section>
 
+        {/* DETAIL PANEL ... (se mantiene igual, ya está en el código) */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
@@ -1159,11 +1220,22 @@ export default function Resultados() {
                         </span>
                       </div>
                       <div className="data-cell">
+                        <label>ID Interno</label>
+                        <span>{selectedProtocol.protocoloid}</span>
+                      </div>
+                      <div className="data-cell">
                         <label>Fecha</label>
                         <span>{formatDate(selectedProtocol.ordereddate)}</span>
                       </div>
                     </div>
                     <div className="data-row">
+                      <div className="data-cell">
+                        <label>Loc / Origen</label>
+                        <span>
+                          {selectedProtocol.paclocid} -{" "}
+                          {selectedProtocol.paclocname || "S/D"}
+                        </span>
+                      </div>
                       <div className="data-cell">
                         <label>Sexo</label>
                         <span>
@@ -1178,6 +1250,26 @@ export default function Resultados() {
                       </div>
                     </div>
                     <div className="data-row">
+                      <div className="data-cell">
+                        <label>ID Externo</label>
+                        <span className="font-mono">
+                          {selectedProtocol.idexterno || "-"}
+                        </span>
+                      </div>
+                      <div className="data-cell">
+                        <label>Estado</label>
+                        <span
+                          className={`status-text ${
+                            selectedProtocol.completo
+                              ? "text-complete"
+                              : "text-pending"
+                          }`}
+                        >
+                          {selectedProtocol.completo
+                            ? "Resultados Completos"
+                            : "Resultados Parciales"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <hr className="divider" />
@@ -1324,11 +1416,7 @@ export default function Resultados() {
         </section>
       </main>
 
-      <Email
-        isOpen={isEmailModalOpen}
-        onClose={() => setIsEmailModalOpen(false)}
-        protocolo={selectedItems[0]}
-      />
+      {/* Context Menu y Modales */}
       {contextMenu && (
         <div
           className="context-menu"
@@ -1345,7 +1433,6 @@ export default function Resultados() {
             minWidth: "180px",
           }}
         >
-          {/* Opción Marcar como No Leído */}
           {contextMenu.item.leido === "1" ? (
             <div
               className="context-menu-item"
@@ -1373,7 +1460,6 @@ export default function Resultados() {
               <FiBookmark /> Marcar como no leído
             </div>
           ) : (
-            /* Opción Marcar como Leído */
             <div
               className="context-menu-item"
               style={{

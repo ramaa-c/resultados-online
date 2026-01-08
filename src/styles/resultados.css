@@ -134,8 +134,6 @@ body button:focus{
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 10px;
-  margin-bottom: 20px;
 }
 
 .btn-filtrar:hover {
@@ -1185,4 +1183,40 @@ tr:not(.font-bold-unread) .patient-subdata {
 }
 .remove-icon:hover {
   opacity: 1;
+}
+
+.tri-toggle-container {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.tri-toggle-button {
+  flex: 1;
+  border: none;
+  border-right: 1px solid #cbd5e1;
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background-color: #f8fafc;
+  color: #64748b;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.tri-toggle-button:last-child {
+  border-right: none;
+}
+
+.tri-toggle-button:hover {
+  background-color: #e2e8f0;
+}
+
+.tri-toggle-button.active {
+  background-color: #0198cc;
+  color: #ffffff;
+  font-weight: 700;
 }
