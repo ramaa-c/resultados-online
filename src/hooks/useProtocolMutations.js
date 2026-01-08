@@ -45,9 +45,6 @@ export const useProtocolMutations = () => {
       }
     },
 
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["protocols"] });
-    },
   });
 
   // --- MARCAR NO LEÍDO ---
@@ -67,9 +64,6 @@ export const useProtocolMutations = () => {
       }
     },
 
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["protocols"] });
-    },
   });
 
   return { markRead, markUnread };

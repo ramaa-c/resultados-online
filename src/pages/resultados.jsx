@@ -6,7 +6,7 @@ import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/modalUsuario";
+import ModalUsuario from "../components/ModalUsuario";
 import ModalEditarUsuario from "../components/ModalEditarUsuario";
 import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
@@ -373,7 +373,7 @@ export default function Resultados() {
     private_healthcare_id: forwarderFilter,
   };
 
-  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [openLocations, setOpenLocations] = useState({
     branch: false,
     forwarder: false,
@@ -390,8 +390,7 @@ export default function Resultados() {
     }));
   };
 
-  const showFooter =
-    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
+  const showFooter = !isGeneralOpen;
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -431,13 +430,8 @@ export default function Resultados() {
     setIsEditOpen(true);
   };
 
-  // --- CORRECCIÓN BUCLE INFINITO ---
-  // Usamos useCallback para que la referencia de la función no cambie en cada render
-  // y no dispare el useEffect del hijo innecesariamente.
-
   const handleBranchChange = useCallback((ids) => {
     setBranchFilter((prev) => {
-      // Solo actualizamos si es diferente para evitar renders extra
       if (prev === ids) return prev;
       return ids;
     });
@@ -1165,22 +1159,11 @@ export default function Resultados() {
                         </span>
                       </div>
                       <div className="data-cell">
-                        <label>ID Interno</label>
-                        <span>{selectedProtocol.protocoloid}</span>
-                      </div>
-                      <div className="data-cell">
                         <label>Fecha</label>
                         <span>{formatDate(selectedProtocol.ordereddate)}</span>
                       </div>
                     </div>
                     <div className="data-row">
-                      <div className="data-cell">
-                        <label>Loc / Origen</label>
-                        <span>
-                          {selectedProtocol.paclocid} -{" "}
-                          {selectedProtocol.paclocname || "S/D"}
-                        </span>
-                      </div>
                       <div className="data-cell">
                         <label>Sexo</label>
                         <span>
@@ -1195,26 +1178,6 @@ export default function Resultados() {
                       </div>
                     </div>
                     <div className="data-row">
-                      <div className="data-cell">
-                        <label>ID Externo</label>
-                        <span className="font-mono">
-                          {selectedProtocol.idexterno || "-"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Estado</label>
-                        <span
-                          className={`status-text ${
-                            selectedProtocol.completo
-                              ? "text-complete"
-                              : "text-pending"
-                          }`}
-                        >
-                          {selectedProtocol.completo
-                            ? "Resultados Completos"
-                            : "Resultados Parciales"}
-                        </span>
-                      </div>
                     </div>
                   </div>
                   <hr className="divider" />
@@ -1366,6 +1329,79 @@ export default function Resultados() {
         onClose={() => setIsEmailModalOpen(false)}
         protocolo={selectedItems[0]}
       />
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            top: contextMenu.mouseY,
+            left: contextMenu.mouseX,
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            padding: "5px 0",
+            minWidth: "180px",
+          }}
+        >
+          {/* Opción Marcar como No Leído */}
+          {contextMenu.item.leido === "1" ? (
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markUnread.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "0";
+                setContextMenu(null);
+              }}
+            >
+              <FiBookmark /> Marcar como no leído
+            </div>
+          ) : (
+            /* Opción Marcar como Leído */
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markRead.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "1";
+                setContextMenu(null);
+              }}
+            >
+              <FiBookOpen /> Marcar como leído
+            </div>
+          )}
+        </div>
+      )}
       <ModalUsuario
         isOpen={isCreateUserModalOpen}
         onClose={() => setIsCreateUserModalOpen(false)}
