@@ -12,7 +12,6 @@ import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
-import Email from "./email";
 import "../styles/email.css";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -34,46 +33,11 @@ import {
   FiBookmark,
   FiLogOut,
   FiUser,
-  FiUsers,
-  FiEdit,
   FiMapPin,
   FiLayers,
   FiX,
   FiPlus,
-  FiAlertCircle,
 } from "react-icons/fi";
-
-// --- ESTILOS INLINE PARA EL TOGGLE GROUP (Puedes moverlos a tu CSS) ---
-const toggleStyles = {
-  container: {
-    display: "flex",
-    border: "1px solid #cbd5e1",
-    borderRadius: "6px",
-    overflow: "hidden",
-    marginTop: "4px",
-    width: "100%",
-  },
-  button: {
-    flex: 1,
-    border: "none",
-    borderRight: "1px solid #cbd5e1",
-    padding: "8px 4px",
-    fontSize: "0.75rem",
-    cursor: "pointer",
-    backgroundColor: "#f8fafc",
-    color: "#64748b",
-    transition: "all 0.2s",
-    fontWeight: 500,
-  },
-  active: {
-    backgroundColor: "#0198CC", // Tu color primario
-    color: "white",
-    fontWeight: 700,
-  },
-  last: {
-    borderRight: "none",
-  },
-};
 
 // --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
 const TriStateToggle = ({
@@ -85,39 +49,27 @@ const TriStateToggle = ({
   return (
     <div className="filter-group">
       <label>{label}</label>
-      <div style={toggleStyles.container}>
-        {/* Opción TODOS (Valor: "") */}
+
+      <div className="tri-toggle-container">
         <button
           type="button"
-          style={{
-            ...toggleStyles.button,
-            ...(value === "" ? toggleStyles.active : {}),
-          }}
+          className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
           onClick={() => onChange("")}
         >
           {labels.all}
         </button>
 
-        {/* Opción TRUE */}
         <button
           type="button"
-          style={{
-            ...toggleStyles.button,
-            ...(value === true ? toggleStyles.active : {}),
-          }}
+          className={`tri-toggle-btn ${value === true ? "active" : ""}`}
           onClick={() => onChange(true)}
         >
           {labels.true}
         </button>
 
-        {/* Opción FALSE */}
         <button
           type="button"
-          style={{
-            ...toggleStyles.button,
-            ...toggleStyles.last,
-            ...(value === false ? toggleStyles.active : {}),
-          }}
+          className={`tri-toggle-btn ${value === false ? "active" : ""}`}
           onClick={() => onChange(false)}
         >
           {labels.false}
@@ -403,7 +355,7 @@ export default function Resultados() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // --- 1. ESTADO DEL FORMULARIO (Inputs visuales, no disparan búsqueda) ---
+  // --- ESTADO DEL FORMULARIO ---
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -420,11 +372,8 @@ export default function Resultados() {
     complete_only: "",
   });
 
-  // --- 2. ESTADO DE FILTROS ACTIVOS (Lo que se envía a la API) ---
-  // Inicialmente copia de formValues
+  // --- ESTADO DE FILTROS ACTIVOS ---
   const [activeFilters, setActiveFilters] = useState({ ...formValues });
-
-  // Estados locales para ubicación (se sincronizan inmediatamente)
   const [branchFilter, setBranchFilter] = useState("");
   const [forwarderFilter, setForwarderFilter] = useState("");
 
@@ -447,10 +396,7 @@ export default function Resultados() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
-
   const { markRead, markUnread } = useProtocolMutations();
-
-  // React Query usa activeFilters
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
 
   const {
@@ -470,14 +416,12 @@ export default function Resultados() {
     }
   }, []);
 
-  // --- EFECTO PARA ACTUALIZACIÓN INMEDIATA DE UBICACIÓN Y TOGGLES ---
-  // Cuando cambian los filtros de ubicación, actualizamos activeFilters y formValues para mantener consistencia
   useEffect(() => {
     setActiveFilters((prev) => ({
       ...prev,
       branch_id: branchFilter,
       private_healthcare_id: forwarderFilter,
-      page: 1, // Resetear página
+      page: 1,
     }));
     setFormValues((prev) => ({
       ...prev,
@@ -488,12 +432,10 @@ export default function Resultados() {
 
   // --- HANDLERS ---
 
-  // Actualiza SOLO el estado visual del formulario (Text Inputs)
   const handleInputChange = (e) => {
     setFormValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Acción del botón BUSCAR: Sincroniza formValues -> activeFilters
   const handleSearch = (e) => {
     e.preventDefault();
     setActiveFilters((prev) => ({
@@ -503,11 +445,8 @@ export default function Resultados() {
     }));
   };
 
-  // Acción inmediata para Toggles (Actualiza formValues Y activeFilters)
   const handleToggleState = (key, value) => {
-    // 1. Actualizamos visual
     setFormValues((prev) => ({ ...prev, [key]: value }));
-    // 2. Actualizamos query (dispara búsqueda)
     setActiveFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
 
@@ -528,7 +467,6 @@ export default function Resultados() {
       complete_only: "",
     };
     setFormValues(resetValues);
-    // Reiniciamos activeFilters (excepto locations si queremos mantenerlas, aquí reseteamos todo)
     setActiveFilters(resetValues);
     setSelectedItems([]);
   };
@@ -1025,94 +963,97 @@ export default function Resultados() {
           </div>
 
           <div className="table-wrapper">
-            {isFetching && !isLoading && (
-              <div className="loading-overlay">
-                <div className="spinner"></div>
-              </div>
-            )}
-            {isError && (
-              <div
-                style={{ color: "red", padding: "20px", textAlign: "center" }}
-              >
-                Error al cargar los datos.
-              </div>
-            )}
+            <div className="table-scroll">
+              {isFetching && !isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner"></div>
+                </div>
+              )}
+              {isError && (
+                <div
+                  style={{ color: "red", padding: "20px", textAlign: "center" }}
+                >
+                  Error al cargar los datos.
+                </div>
+              )}
 
-            <table className="resultados-table" data-click-safe="true">
-              <thead>
-                <tr>
-                  <th>Apellido y Nombre / Datos</th>
-                  <th>Protocolo</th>
-                  <th style={{ textAlign: "center" }}>Debe</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.protocolos?.map((item) => {
-                  const isUnread = item.leido === "0";
-                  const selected = isSelected(item.protocoloid);
-                  return (
-                    <tr
-                      key={item.protocoloid}
-                      className={`${selected ? "selected-row" : ""} ${
-                        isUnread ? "font-bold-unread" : ""
-                      }`}
-                      onClick={(e) => handleRowClick(e, item)}
-                      onDoubleClick={() => handleViewResults(item)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                    >
-                      <td className="patient-info-cell">
-                        <div className="patient-main-info">
-                          <div className="name-with-dot">
-                            {item.leido === "0" && (
-                              <span
-                                className="unread-dot-inline"
-                                title="No leído"
-                              ></span>
-                            )}
-                            <span className="name-text">
-                              {item.apellidopaciente}, {item.nombrepaciente}
-                            </span>
+              <table className="resultados-table" data-click-safe="true">
+                <thead>
+                  <tr>
+                    <th>Apellido y Nombre / Datos</th>
+                    <th>Protocolo</th>
+                    <th style={{ textAlign: "center" }}>Debe</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.protocolos?.map((item) => {
+                    const isUnread = item.leido === "0";
+                    const selected = isSelected(item.protocoloid);
+                    return (
+                      <tr
+                        key={item.protocoloid}
+                        className={`${selected ? "selected-row" : ""} ${
+                          isUnread ? "font-bold-unread" : ""
+                        }`}
+                        onClick={(e) => handleRowClick(e, item)}
+                        onDoubleClick={() => handleViewResults(item)}
+                        onContextMenu={(e) => handleContextMenu(e, item)}
+                      >
+                        <td className="patient-info-cell">
+                          <div className="patient-main-info">
+                            <div className="name-with-dot">
+                              {item.leido === "0" && (
+                                <span
+                                  className="unread-dot-inline"
+                                  title="No leído"
+                                ></span>
+                              )}
+                              <span className="name-text">
+                                {item.apellidopaciente}, {item.nombrepaciente}
+                              </span>
+                            </div>
+                            <div className="patient-subdata">
+                              <span>
+                                DNI{" "}
+                                {item.pacid
+                                  .toString()
+                                  .replace(/DNI/gi, "")
+                                  .trim()}
+                              </span>
+                              <span className="separator">•</span>
+                              <span>
+                                Ingreso: {formatDate(item.ordereddate)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="patient-subdata">
-                            <span>
-                              DNI{" "}
-                              {item.pacid
-                                .toString()
-                                .replace(/DNI/gi, "")
-                                .trim()}
+                        </td>
+                        <td className="font-mono">{item.accessionnumber}</td>
+                        <td style={{ textAlign: "center" }}>
+                          <span
+                            className={`indicator-dot ${
+                              item.debe ? "dot-red" : "dot-green"
+                            }`}
+                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                          ></span>
+                        </td>
+                        <td>
+                          {item.completo !== "" ? (
+                            <span className="status-badge status-complete">
+                              <FiCheckCircle /> Completo
                             </span>
-                            <span className="separator">•</span>
-                            <span>Ingreso: {formatDate(item.ordereddate)}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="font-mono">{item.accessionnumber}</td>
-                      <td style={{ textAlign: "center" }}>
-                        <span
-                          className={`indicator-dot ${
-                            item.debe ? "dot-red" : "dot-green"
-                          }`}
-                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                        ></span>
-                      </td>
-                      <td>
-                        {item.completo !== "" ? (
-                          <span className="status-badge status-complete">
-                            <FiCheckCircle /> Completo
-                          </span>
-                        ) : (
-                          <span className="status-badge status-pending">
-                            <FiClock /> En proceso
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
+                          ) : (
+                            <span className="status-badge status-pending">
+                              <FiClock /> En proceso
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <div
               className="pagination-bar"
               style={{
@@ -1189,7 +1130,7 @@ export default function Resultados() {
           </div>
         </section>
 
-        {/* DETAIL PANEL ... (se mantiene igual, ya está en el código) */}
+        {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
@@ -1220,20 +1161,17 @@ export default function Resultados() {
                         </span>
                       </div>
                       <div className="data-cell">
-                        <label>ID Interno</label>
-                        <span>{selectedProtocol.protocoloid}</span>
-                      </div>
-                      <div className="data-cell">
                         <label>Fecha</label>
                         <span>{formatDate(selectedProtocol.ordereddate)}</span>
                       </div>
                     </div>
                     <div className="data-row">
                       <div className="data-cell">
-                        <label>Loc / Origen</label>
+                        <label>Sede</label>
                         <span>
-                          {selectedProtocol.paclocid} -{" "}
-                          {selectedProtocol.paclocname || "S/D"}
+                          {selectedProtocol.paclocname ||
+                            selectedProtocol.paclocid ||
+                            "-"}
                         </span>
                       </div>
                       <div className="data-cell">
@@ -1249,28 +1187,7 @@ export default function Resultados() {
                         <span>{selectedProtocol.pacage} años</span>
                       </div>
                     </div>
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>ID Externo</label>
-                        <span className="font-mono">
-                          {selectedProtocol.idexterno || "-"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Estado</label>
-                        <span
-                          className={`status-text ${
-                            selectedProtocol.completo
-                              ? "text-complete"
-                              : "text-pending"
-                          }`}
-                        >
-                          {selectedProtocol.completo
-                            ? "Resultados Completos"
-                            : "Resultados Parciales"}
-                        </span>
-                      </div>
-                    </div>
+                    <div className="data-row"></div>
                   </div>
                   <hr className="divider" />
                   <div className="results-content">

@@ -35,8 +35,6 @@ export const getProtocols = async (filters) => {
     }
   });
 
-  console.log("Enviando parametros a API:", params.toString());
-
   const response = await api.get("/protocols", { params });
   return response.data;
 };
