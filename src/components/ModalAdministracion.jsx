@@ -13,7 +13,7 @@ import {
   FiCheckCircle,
   FiEye
 } from "react-icons/fi";
-import ModalUsuario from "./ModalUsuario";
+import ModalUsuario from "./modalUsuario";
 import ModalEditarUsuario from "./ModalEditarUsuario";
 import ModalConfirmacion from "./ModalConfirmacion";
 import ModalDetalleUsuario from "./ModalDetalleUsuario";

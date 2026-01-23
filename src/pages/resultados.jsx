@@ -14,6 +14,7 @@ import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
 import "../styles/email.css";
 import JSZip from "jszip";
+import Email from "../pages/email";
 import { saveAs } from "file-saver";
 
 import {
@@ -980,9 +981,9 @@ export default function Resultados() {
               <table className="resultados-table" data-click-safe="true">
                 <thead>
                   <tr>
+                    <th style={{ textAlign: "center" }}>Debe</th>
                     <th>Apellido y Nombre / Datos</th>
                     <th>Protocolo</th>
-                    <th style={{ textAlign: "center" }}>Debe</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -1000,6 +1001,14 @@ export default function Resultados() {
                         onDoubleClick={() => handleViewResults(item)}
                         onContextMenu={(e) => handleContextMenu(e, item)}
                       >
+                        <td style={{ textAlign: "center" }}>
+                          <span
+                            className={`indicator-dot ${
+                              item.debe ? "dot-red" : "dot-green"
+                            }`}
+                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                          ></span>
+                        </td>
                         <td className="patient-info-cell">
                           <div className="patient-main-info">
                             <div className="name-with-dot">
@@ -1015,7 +1024,7 @@ export default function Resultados() {
                             </div>
                             <div className="patient-subdata">
                               <span>
-                                DNI{" "}
+                                DNI:{" "}
                                 {item.pacid
                                   .toString()
                                   .replace(/DNI/gi, "")
@@ -1029,14 +1038,6 @@ export default function Resultados() {
                           </div>
                         </td>
                         <td className="font-mono">{item.accessionnumber}</td>
-                        <td style={{ textAlign: "center" }}>
-                          <span
-                            className={`indicator-dot ${
-                              item.debe ? "dot-red" : "dot-green"
-                            }`}
-                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                          ></span>
-                        </td>
                         <td>
                           {item.completo !== "" ? (
                             <span className="status-badge status-complete">
@@ -1332,6 +1333,12 @@ export default function Resultados() {
           )}
         </section>
       </main>
+
+      <Email
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        protocolo={selectedItems[0]}
+      />
 
       {/* Context Menu y Modales */}
       {contextMenu && (
