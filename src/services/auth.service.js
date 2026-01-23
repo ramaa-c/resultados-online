@@ -1,7 +1,16 @@
 import api from "../api/axios";
 
 export const loginUser = async (credentials) => {
-  const response = await api.post("/auth/login", credentials);
+  const response = await api.post(
+    "/auth/login",
+    {},
+    {
+      headers: {
+        jwtusername: credentials.jwtusername,
+        jwtpassword: credentials.jwtpassword,
+      },
+    },
+  );
   return response.data;
 };
 

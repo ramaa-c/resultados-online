@@ -134,8 +134,6 @@ body button:focus{
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 10px;
-  margin-bottom: 20px;
 }
 
 .btn-filtrar:hover {
@@ -151,9 +149,9 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-    width: 45%;
+    width: 40%;
     background: #ffffff;
-    margin: 10px;
+    margin: 8px;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -215,33 +213,55 @@ body button:focus{
 /* Tabla */
 .table-wrapper {
   flex: 1;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
 }
 
 .resultados-table {
     width: 100%;
     border-collapse: collapse;
     border-spacing: 0; 
+    table-layout: fixed;
 }
 
-/* Columna 1: Nombre y Datos */
+.table-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.pagination-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+}
+
+/* Columna 1: Debe */
 .resultados-table th:nth-child(1),
 .resultados-table td:nth-child(1) {
-    width: 45%;
+    width: 5%;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
-/* Columna 2: Protocolo */
+/* Columna 2: Nombre y Datos */
 .resultados-table th:nth-child(2),
 .resultados-table td:nth-child(2) {
-    width: 15%;
-    text-align: left;
+    width: 55%;
 }
 
-/* Columna 3: Debe */
+/* Columna 3: Protocolo */
 .resultados-table th:nth-child(3),
 .resultados-table td:nth-child(3) {
-    width: 10%;
-    text-align: center;
+    width: 20%;
+    text-align: left;
 }
 
 /* Columna 4: Estado */
@@ -265,7 +285,7 @@ body button:focus{
   z-index: 10;
 }
 .resultados-table td {
-  padding: 12px 16px;
+  padding: 8px 10px;
   vertical-align: middle;
   font-size: 0.9rem;
   color: #334155;
@@ -340,12 +360,359 @@ body button:focus{
 
 /* Panel Derecho */
 .detail-panel {
-    flex: 1;
-    background-color: transparent;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
+  flex: 1; /* Esto es la clave: toma todo el espacio sobrante */
+  width: 0; /* Truco de Flexbox para evitar desbordes */
+  min-width: 0;
+  background-color: #f8fafc;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modern-report-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 20px;
+}
+
+/* --- TARJETA DE PACIENTE (ENCABEZADO) --- */
+.patient-header-card.compact-linear {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 8px 12px; /* Padding mínimo */
+  border: 1px solid #e2e8f0;
+  margin-bottom: 8px; /* Muy poco espacio debajo antes de la tabla */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  min-height: 50px; /* Altura forzada muy baja */
+}
+
+/* Avatar más sutil */
+.patient-avatar-area.small .avatar-circle {
+  width: 42px;  /* Antes 32px -> Aumentamos tamaño */
+  height: 42px;
+  font-size: 1.2rem; /* Icono interno más grande */
+  background-color: #f1f5f9;
+  color: #0198CC; /* Volvemos al azul corporativo para que destaque más */
+  border-radius: 50%; /* Círculo perfecto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.patient-details-linear {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px; /* Espacio mínimo entre el nombre y la línea de datos */
+}
+
+/* Nombre del paciente */
+.patient-name-linear {
+  margin: 0;
+  font-size: 1rem; /* Tamaño justo para ser legible e importante */
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+/* Línea de datos secundarios */
+.linear-data-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap; /* Que no baje de línea si es posible */
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #475569;
+  overflow: hidden; /* Si el nombre del doctor es muy largo, que se corte */
+  text-overflow: ellipsis;
+}
+
+.data-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.data-item .lbl {
+  font-weight: 500;
+  color: #94a3b8; /* Etiqueta gris claro */
+  margin-right: 4px;
+}
+
+.data-item .val {
+  font-weight: 600;
+  color: #334155; /* Valor más oscuro */
+}
+
+/* Separador (el punto •) */
+.separator {
+  color: #cbd5e1;
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 0;
+  margin-top: -2px; /* Pequeño ajuste visual */
+}
+
+/* Nombre del doctor truncado si es muy largo */
+.doc-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Destacar la fecha un poco */
+.separator.highlight {
+    color: #0198CC;
+    opacity: 0.6;
+}
+.data-item.date-item {
+    color: #0198CC;
+}
+.data-item.date-item .val {
+    color: #0198CC;
+}
+.btn-modern-download {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-modern-download:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 2px 20px; /* Casi nada de espacio vertical entre datos */
+  width: 100%;
+  font-size: 0.75rem; /* Texto de datos más chico */
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+.info-item .label {
+  font-size: 0.65rem; /* Etiqueta minúscula */
+  margin-bottom: 0;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.info-item .value {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.info-item .value.highlight {
+  color: #0198CC;
+  font-weight: 700;
+}
+
+.date-box {
+  align-items: flex-end; /* Alinear fecha a la derecha si hay espacio */
+}
+
+/* --- ÁREA DE RESULTADOS --- */
+.results-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+  padding: 0; /* Padding interno manejado por hijos */
+}
+
+.results-list-modern {
+  padding-bottom: 40px;
+}
+
+/* Encabezados de Columnas (Sticky) */
+.results-cols-header {
+  display: grid;
+  /* Mantenemos la proporción pero ajustamos tamaños */
+  grid-template-columns: 3fr 1.5fr 2fr 1fr 1.2fr; 
+  padding: 6px 10px; /* Header muy fino */
+  font-size: 0.7rem; /* Letra pequeña */
+  background: #f1f5f9;
+}
+
+/* GRUPO (Header Azul) */
+.group-header-modern {
+  /* Fondo gradiente Celestial Blue */
+  background: linear-gradient(90deg, #0198CC 0%, #29b6f6 100%);
+  color: white; /* Texto blanco para contraste */
+  
+  /* Dimensiones Compactas */
+  padding: 4px 20px; /* Fino pero con aire a los lados */
+  font-size: 0.8rem; /* Letra ajustada */
+  font-weight: 700;
+  text-transform: uppercase; /* Queda más profesional en encabezados */
+  letter-spacing: 0.5px;
+  
+  /* Posicionamiento */
+  margin-top: 12px; /* Un poquito de aire antes del grupo */
+  margin-bottom: 2px; /* Pegadito a los resultados */
+  width: fit-content; /* Que ocupe solo lo necesario */
+  min-width: 200px; /* Para que no se vea muy corto si el nombre es breve */
+  
+  /* Estilizado de Borde (Efecto Pestaña) */
+  border-radius: 0 15px 15px 0; /* Redondeado solo a la derecha */
+  box-shadow: 2px 2px 5px rgba(1, 152, 204, 0.25); /* Sombra suave azulada */
+}
+.analysis-subheader-modern {
+  /* Fondo muy sutil para diferenciar el bloque */
+  background-color: #f1f9fe; 
+  
+  /* Texto oscuro pero con tinte azulado para jerarquía */
+  color: #0f4c75; 
+  
+  /* Letra FUERTE (Bold) */
+  font-weight: 800; 
+  
+  /* Tamaño compacto */
+  font-size: 0.75rem; 
+  
+  /* Espaciado */
+  padding: 4px 15px; 
+  margin-top: 8px; /* Pequeña pausa antes de empezar el subgrupo */
+  margin-bottom: 2px;
+  
+  /* Detalle visual: Barra lateral en tu color Celestial Blue */
+  border-left: 4px solid #0198CC; 
+  
+  /* Opcional: Todo mayúsculas para más fuerza (descomentar si te gusta) */
+  /* text-transform: uppercase; */
+  /* letter-spacing: 0.5px; */
+}
+
+/* FILA DE RESULTADO */
+.result-row-modern {
+  display: grid;
+  grid-template-columns: 3fr 1.5fr 2fr 1fr 1.2fr;
+  padding: 2px 10px; /* <-- AQUÍ ESTÁ LA CLAVE: Padding vertical casi nulo */
+  min-height: 28px; /* Altura mínima forzada para consistencia */
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  font-size: 0.78rem; /* Letra bien compacta pero legible */
+}
+
+/* Ajuste de fuentes internas */
+.test-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.res-value {
+  font-weight: 700;
+  font-size: 0.85rem; /* El resultado un pelín más grande para destacar */
+}
+
+/* Referencias que ocupen menos */
+.col-ref {
+  font-size: 0.7rem; 
+  line-height: 1.1; /* Líneas pegaditas si el texto es largo */
+  color: #64748b;
+}
+
+/* Badges/Pills más pequeños */
+.status-pill {
+  padding: 1px 6px; /* Pill muy ajustada */
+  font-size: 0.65rem;
+  border-radius: 4px; /* Menos redondeado para ahorrar pixel visual */
+  height: fit-content;
+}
+
+.method-badge {
+  font-size: 0.6rem;
+  padding: 0px 4px;
+}
+
+/* Nota compacta */
+.result-note-row {
+  padding: 2px 10px 4px 10px;
+  font-size: 0.7rem;
+}
+
+/* INSIGNIAS DE ESTADO (Pills) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-success {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.status-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+
+/* TOOLTIP FLOTANTE (Efecto Hover) */
+.hover-tooltip {
+  display: none; /* Oculto por defecto */
+  position: absolute;
+  top: 80%; /* Aparece debajo del nombre */
+  left: 50px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+  border-radius: 8px;
+  width: 250px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  z-index: 100;
+  font-size: 0.8rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.group-hover-trigger:hover .hover-tooltip {
+  display: block;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-note-row {
+    padding: 5px 20px 10px 20px;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-style: italic;
+    background-color: #fffbeb; /* Fondo amarillento suave */
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .no-selection-message {
@@ -377,7 +744,7 @@ body button:focus{
   margin-bottom: 20px;
 }
 
-/* Botón de Imprimir */
+/* BotÃ³n de Imprimir */
 .btn-print {
   background: var(--secondary);
   color: white;
@@ -536,9 +903,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .resultados-table tr.selected-row .name-text {
   color: #0198CC !important;
 }
-.resultados-table tr.selected-row .unread-dot-inline {
-  box-shadow: 0 0 0 2px #fff;
-}
+
 .resultados-table tr:not(.selected-row):hover td {
   background-color: #f1f5f9 !important;
   cursor: pointer;
@@ -655,7 +1020,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 700 !important;
 }
 
-/* Fila LEÍDA*/
+/* Fila LEÃDA*/
 tr:not(.font-bold-unread) {
   color: #64748b;
 }
@@ -671,30 +1036,21 @@ tr:not(.font-bold-unread) {
     padding: 2px 10px !important;
 }
 .name-with-dot {
-    display: flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
 }
-.unread-dot-inline {
-    width: 7px;
-    height: 7px;
-    background-color: #0198CC;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: inline-block;
-}
-
+/* Nombre del paciente */
 .name-text {
-  font-weight: 700;
   color: #0f172a;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   letter-spacing: -0.01em;
   display: block;
   margin-bottom: 4px;
 }
+/* Subdatos del paciente */
 .patient-subdata {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -702,19 +1058,10 @@ tr:not(.font-bold-unread) {
 }
 
 .patient-name {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #1e293b;
     font-weight: 600;
     text-transform: uppercase;
-}
-
-/* Sub-datos: DNI y Fecha */
-.patient-subdata {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
-    color: #64748b;
 }
 
 .separator {
@@ -773,28 +1120,13 @@ tr:not(.font-bold-unread) {
   100% { transform: rotate(360deg); }
 }
 
-.table-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  position: relative;
-}
-
-/* --- ESTADOS DE LECTURA (Leído / No Leído) --- */
-
-.name-with-dot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Fila NO LEÍDA */
+/* Fila NO LEÃDA */
 .font-bold-unread .name-text {
   color: #1a3a4a !important;
   font-weight: 800 !important;
 }
 
-/*  Fila LEÍDA */
+/*  Fila LEÃDA */
 tr:not(.font-bold-unread) .name-text {
   color: #64748b;
   font-weight: 600;
@@ -804,7 +1136,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   opacity: 0.8;
 }
 
-/* ESTILOS DE IMPRESIÓN */
+/* ESTILOS DE IMPRESIÃ“N */
 
 @media print {
   .sidebar-filters,
@@ -875,7 +1207,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   }
 }
 
-/* --- MENÚ CONTEXTUAL (Click Derecho) --- */
+/* --- MENÃš CONTEXTUAL (Click Derecho) --- */
 .context-menu {
   position: fixed;
   z-index: 10000;
@@ -1017,9 +1349,8 @@ tr:not(.font-bold-unread) .patient-subdata {
   100% { transform: rotate(360deg); }
 }
 
-/* --- ESTILOS ESPECÍFICOS PARA EL FILTRO DE UBICACIÓN --- */
+/* --- ESTILOS ESPECÃFICOS PARA EL FILTRO DE UBICACIÃ“N --- */
 
-/* Cabecera del sub-filtro (Sedes y Clientes) */
 .sidebar-header-sub {
   display: flex;
   justify-content: space-between;
@@ -1029,7 +1360,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 15px; /* Separación del bloque anterior */
+  margin-top: 15px;
   font-weight: 600;
   color: var(--secondary);
   font-size: 0.85rem;
@@ -1042,18 +1373,17 @@ tr:not(.font-bold-unread) .patient-subdata {
   color: var(--primary);
 }
 
-/* Cuerpo del filtro de ubicación */
 .location-filter-body {
   background: #fff;
   border: 1px solid var(--border);
   border-top: none;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
-  margin-top: -5px; /* Para que pegue con el header */
+  margin-top: -5px;
   padding: 10px;
 }
 
-/* Grilla de Chips (Modo restringido) */
+/* Grilla de Chips */
 .chips-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1085,14 +1415,14 @@ tr:not(.font-bold-unread) .patient-subdata {
   font-weight: 600;
 }
 
-/* Buscador Asíncrono */
+/* Buscador AsÃ­ncrono */
 .async-search-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-/* Dropdown de resultados de búsqueda */
+/* Dropdown de resultados de bÃºsqueda */
 .search-dropdown {
   position: absolute;
   top: 100%;
@@ -1158,7 +1488,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   color: var(--primary);
 }
 
-/* Área de chips seleccionados (Buscador) */
+/* Ãrea de chips seleccionados (Buscador) */
 .selected-chips-area {
   display: flex;
   flex-wrap: wrap;
@@ -1185,4 +1515,65 @@ tr:not(.font-bold-unread) .patient-subdata {
 }
 .remove-icon:hover {
   opacity: 1;
+}
+
+.tri-toggle-container {
+  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.tri-toggle-btn {
+  flex: 1;
+  border: none;
+  border-right: 1px solid #cbd5e1;
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background-color: #f8fafc;
+  color: #64748b;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.tri-toggle-btn:last-child {
+  border-right: none;
+}
+
+.tri-toggle-btn:hover {
+  background-color: #e2e8f0;
+}
+
+.tri-toggle-btn.active {
+  background-color: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 6px;
+}
+.loading-results {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Centrado Vertical */
+  align-items: center;     /* Centrado Horizontal */
+  height: 100%;            /* Ocupar toda la altura del área de resultados */
+  min-height: 200px;       /* Altura mínima por seguridad */
+  width: 100%;
+  color: #64748b;
+  font-weight: 500;
+  gap: 15px; /* Espacio entre el círculo y el texto */
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #0198CC; /* Color principal */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

@@ -179,7 +179,7 @@ export default function Login() {
 
                 <input
                   type="text"
-                  placeholder="Email o DNI"
+                  placeholder="Email o Usuario"
                   name="jwtusername"
                   value={formData.jwtusername}
                   onChange={handleChange}

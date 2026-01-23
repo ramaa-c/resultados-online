@@ -12,9 +12,9 @@ import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
-import Email from "./email";
 import "../styles/email.css";
 import JSZip from "jszip";
+import Email from "../pages/email";
 import { saveAs } from "file-saver";
 
 import {
@@ -34,13 +34,54 @@ import {
   FiBookmark,
   FiLogOut,
   FiUser,
-  FiUsers,
-  FiEdit,
   FiMapPin,
   FiLayers,
   FiX,
   FiPlus,
+  FiAlertCircle, 
+  FiAlertTriangle, 
+  FiCheck
 } from "react-icons/fi";
+
+// --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
+const TriStateToggle = ({
+  label,
+  value,
+  onChange,
+  labels = { true: "Sí", false: "No", all: "Todos" },
+}) => {
+  return (
+    <div className="filter-group">
+      <label>{label}</label>
+
+      <div className="tri-toggle-container">
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
+          onClick={() => onChange("")}
+        >
+          {labels.all}
+        </button>
+
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === true ? "active" : ""}`}
+          onClick={() => onChange(true)}
+        >
+          {labels.true}
+        </button>
+
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === false ? "active" : ""}`}
+          onClick={() => onChange(false)}
+        >
+          {labels.false}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // --- SUBCOMPONENTE REUTILIZABLE: SECCIÓN DE FILTRO ASÍNCRONO ---
 const AsyncFilterSection = ({
@@ -56,15 +97,12 @@ const AsyncFilterSection = ({
   const [inputValue, setInputValue] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
   const containerRef = useRef(null);
 
   const canViewAll =
     type === "branch" ? user.canviewallbranches : user.canviewallforwarders;
-
   const restrictedList =
     type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
-
   const useChipsMode =
     !canViewAll && restrictedList.length > 0 && restrictedList.length <= 10;
 
@@ -79,7 +117,6 @@ const AsyncFilterSection = ({
         setShowDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -94,27 +131,17 @@ const AsyncFilterSection = ({
     queryFn: async () => {
       const endpoint = type === "branch" ? "/branches" : "/forwarders";
       const paramName = type === "branch" ? "branch_name" : "forwarder_name";
-
       const res = await api.get(endpoint, {
         params: { [paramName]: queryTerm, page_size: 5 },
       });
-
       const raw = res.data.items || res.data;
-
-      if (Array.isArray(raw)) {
+      if (Array.isArray(raw))
         return raw.map((item) => ({
           id: item.id,
           label: item.name || item.business_name || item.label || item.id,
         }));
-      }
-
-      if (typeof raw === "object" && raw !== null) {
-        return Object.entries(raw).map(([id, name]) => ({
-          id,
-          label: name,
-        }));
-      }
-
+      if (typeof raw === "object" && raw !== null)
+        return Object.entries(raw).map(([id, name]) => ({ id, label: name }));
       return [];
     },
     enabled: !!queryTerm && !useChipsMode && queryTerm.trim().length >= 1,
@@ -128,24 +155,21 @@ const AsyncFilterSection = ({
       setShowDropdown(true);
     }
   };
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleTriggerSearch();
     }
   };
-
   const handleSelect = (item) => {
-    if (!selectedItems.some((i) => i.id === item.id)) {
+    if (!selectedItems.some((i) => i.id === item.id))
       setSelectedItems((prev) => [...prev, item]);
-    }
     setInputValue("");
+    setQueryTerm("");
+    setShowDropdown(false);
   };
-
-  const handleRemove = (id) => {
+  const handleRemove = (id) =>
     setSelectedItems((prev) => prev.filter((i) => i.id !== id));
-  };
 
   const idNameMap = React.useMemo(() => {
     const ids =
@@ -154,12 +178,10 @@ const AsyncFilterSection = ({
       type === "branch"
         ? user.branchnamelist || []
         : user.forwardernamelist || [];
-
     const map = {};
     ids.forEach((id, index) => {
       map[id] = names[index] || id;
     });
-
     return map;
   }, [type, user]);
 
@@ -168,7 +190,6 @@ const AsyncFilterSection = ({
       {restrictedList.map((id) => {
         const isSelected = selectedItems.some((i) => i.id === id);
         const label = idNameMap[id] || id;
-
         return (
           <div
             key={id}
@@ -188,22 +209,21 @@ const AsyncFilterSection = ({
   return (
     <div className="sidebar-section">
       <div className="sidebar-header-sub" onClick={onToggle}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Icon />
           <span>{title}</span>
         </div>
         <span className="arrow-icon">{isOpen ? "▲" : "▼"}</span>
       </div>
-
       <div className={`filters-collapsible ${isOpen ? "show" : ""}`}>
-        <div className="location-filter-body" style={{ padding: "10px" }}>
+        <div className="location-filter-body">
           {useChipsMode ? (
             renderStaticChips()
           ) : (
             <div
               className="async-search-container"
-              style={{ position: "relative" }}
               ref={containerRef}
+              style={{ position: "relative" }}
             >
               <div className="input-wrapper">
                 <input
@@ -213,10 +233,9 @@ const AsyncFilterSection = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  style={{ paddingRight: "35px" }}
+                  style={{ paddingRight: 35 }}
                 />
-
-                {queryTerm ? (
+                {inputValue || queryTerm ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -237,7 +256,6 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Limpiar búsqueda"
                   >
                     <FiX size={18} />
                   </button>
@@ -258,15 +276,12 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Buscar"
                   >
                     <FiSearch size={18} />
                   </button>
                 )}
               </div>
-
-              {/* Dropdown Resultados */}
-              {showDropdown && (
+              {showDropdown && queryTerm && (
                 <div className="search-dropdown">
                   {isFetching && (
                     <div className="dropdown-item loading">
@@ -282,22 +297,19 @@ const AsyncFilterSection = ({
                       Buscando...
                     </div>
                   )}
-
                   {!isFetching && searchResults.length === 0 && !isError && (
                     <div
-                      className="dropdown-item"
+                      className="dropdown-item loading"
                       style={{ fontStyle: "italic", color: "#999" }}
                     >
                       No se encontraron resultados
                     </div>
                   )}
-
-                  {!isFetching && isError && (
+                  {isError && (
                     <div className="dropdown-item" style={{ color: "red" }}>
                       Error: {error?.message || "Falló la búsqueda"}
                     </div>
                   )}
-
                   {!isFetching &&
                     searchResults.map((item) => (
                       <div
@@ -311,8 +323,6 @@ const AsyncFilterSection = ({
                     ))}
                 </div>
               )}
-
-              {/* Chips Seleccionados */}
               {selectedItems.length > 0 && (
                 <div className="selected-chips-area">
                   {selectedItems.map((item) => (
@@ -349,6 +359,7 @@ export default function Resultados() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // --- ESTADO DEL FORMULARIO ---
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -360,38 +371,21 @@ export default function Resultados() {
     page_size: 15,
     branch_id: "",
     private_healthcare_id: "",
-    unread_only: false,
-    complete_only: false,
+    reserved: "",
+    unread_only: "",
+    complete_only: "",
   });
 
+  // --- ESTADO DE FILTROS ACTIVOS ---
+  const [activeFilters, setActiveFilters] = useState({ ...formValues });
   const [branchFilter, setBranchFilter] = useState("");
   const [forwarderFilter, setForwarderFilter] = useState("");
-
-  const activeFilters = {
-    ...formValues,
-    branch_id: branchFilter,
-    private_healthcare_id: forwarderFilter,
-  };
 
   const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [openLocations, setOpenLocations] = useState({
     branch: false,
     forwarder: false,
   });
-
-  const handleToggleGeneral = () => {
-    setIsGeneralOpen(!isGeneralOpen);
-  };
-
-  const toggleLocation = (key) => {
-    setOpenLocations((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-
-    const showFooter = !isGeneralOpen;
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -406,9 +400,9 @@ export default function Resultados() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
-
   const { markRead, markUnread } = useProtocolMutations();
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+
   const {
     data: resultsData,
     isLoading: isLoadingResults,
@@ -426,42 +420,42 @@ export default function Resultados() {
     }
   }, []);
 
-  const handleUserFound = (userData) => {
-    setUserToEdit(userData);
-    setIsEditOpen(true);
+  useEffect(() => {
+    setActiveFilters((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+      page: 1,
+    }));
+    setFormValues((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+    }));
+  }, [branchFilter, forwarderFilter]);
+
+  // --- HANDLERS ---
+
+  const handleInputChange = (e) => {
+    setFormValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // --- CORRECCIÓN BUCLE INFINITO ---
-  // Usamos useCallback para que la referencia de la función no cambie en cada render
-  // y no dispare el useEffect del hijo innecesariamente.
-
-  const handleBranchChange = useCallback((ids) => {
-    setBranchFilter((prev) => {
-      // Solo actualizamos si es diferente para evitar renders extra
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleForwarderChange = useCallback((ids) => {
-    setForwarderFilter((prev) => {
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleInputChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.value }));
   const handleSearch = (e) => {
     e.preventDefault();
-    setFormValues((p) => ({ ...p, page: 1 }));
+    setActiveFilters((prev) => ({
+      ...prev,
+      ...formValues,
+      page: 1,
+    }));
   };
-  const handleCheckboxChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.checked }));
+
+  const handleToggleState = (key, value) => {
+    setFormValues((prev) => ({ ...prev, [key]: value }));
+    setActiveFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+  };
+
   const handleReset = () => {
-    setFormValues({
+    const resetValues = {
       date_from: "",
       date_to: "",
       patient_id_number: "",
@@ -472,13 +466,45 @@ export default function Resultados() {
       page_size: 15,
       branch_id: "",
       private_healthcare_id: "",
-      unread_only: false,
-      complete_only: false,
-    });
+      reserved: "",
+      unread_only: "",
+      complete_only: "",
+    };
+    setFormValues(resetValues);
+    setActiveFilters(resetValues);
     setSelectedItems([]);
   };
-  const handlePageChange = (n) =>
-    setFormValues((p) => ({ ...p, page: Number(n) }));
+
+  const handlePageChange = (n) => {
+    const page = Number(n);
+    setFormValues((p) => ({ ...p, page }));
+    setActiveFilters((p) => ({ ...p, page }));
+  };
+
+  const handleBranchChange = useCallback((ids) => {
+    setBranchFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleForwarderChange = useCallback((ids) => {
+    setForwarderFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleToggleGeneral = () => setIsGeneralOpen(!isGeneralOpen);
+  const toggleLocation = (key) =>
+    setOpenLocations((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const shouldShowBranch =
+    !isGeneralOpen || (branchFilter && branchFilter.length > 0);
+  const shouldShowForwarder =
+    !isGeneralOpen || (forwarderFilter && forwarderFilter.length > 0);
+  const showFooter =
+    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
+
+  // ... (Resto de handlers como handleLogout, handleRowClick, pdf, etc. se mantienen igual)
+  const handleUserFound = (userData) => {
+    setUserToEdit(userData);
+    setIsEditOpen(true);
+  };
   const handlePreviousPage = () => {
     if (formValues.page > 1) handlePageChange(formValues.page - 1);
   };
@@ -503,7 +529,9 @@ export default function Resultados() {
       setSelectedItems([item]);
     }
   };
+
   const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+
   const handleViewResults = (item = null) => {
     const target =
       item || (selectedItems.length === 1 ? selectedItems[0] : null);
@@ -528,8 +556,8 @@ export default function Resultados() {
     try {
       const blob = await getProtocolPdf(protocolId);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, `PDF_${protocolId}`, `width=1000,height=800`);
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
     } catch (error) {
       console.error(error);
       alert("Error al abrir el PDF.");
@@ -582,39 +610,15 @@ export default function Resultados() {
     }
   };
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      setContextMenu(null);
-      const isClickInsideTable = e.target.closest(".resultados-table");
-      const isClickInsideToolbar = e.target.closest(".panel-header-actions");
-      const isClickInsidePagination = e.target.closest(".pagination-bar");
-      const isClickInsideSidebar = e.target.closest(".sidebar-filters");
-      const isClickInsideContextMenu = e.target.closest(".context-menu");
-      const isClickInsideDetailPanel = e.target.closest(".detail-panel");
-
-      if (
-        !isClickInsideTable &&
-        !isClickInsideToolbar &&
-        !isClickInsidePagination &&
-        !isClickInsideSidebar &&
-        !isClickInsideContextMenu
-      ) {
-        if (isClickInsideDetailPanel && selectedProtocol) return;
-        setSelectedItems([]);
-        setSelectedProtocol(null);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [selectedProtocol]);
-
-  const formatDate = (d) => (!d ? "-" : d);
-  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  // Variable helper
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
+  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  const formatDate = (d) => (!d ? "-" : d);
 
+  // Render
   return (
     <div className="dashboard-container">
       <aside className="sidebar-filters" data-click-safe="true">
@@ -635,7 +639,6 @@ export default function Resultados() {
         </div>
 
         <div className="sidebar-scrollable-content">
-          {/* 1. FILTROS GENERALES */}
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               <div className="filter-group">
@@ -662,6 +665,27 @@ export default function Resultados() {
                   />
                 </div>
               </div>
+
+              {/* --- BOTONES TRI-ESTADO (Disparan búsqueda al cambiar) --- */}
+              <TriStateToggle
+                label="Reservados"
+                value={formValues.reserved}
+                onChange={(val) => handleToggleState("reserved", val)}
+                labels={{ true: "Sí", false: "No", all: "Todos" }}
+              />
+              <TriStateToggle
+                label="Estado Protocolo"
+                value={formValues.complete_only}
+                onChange={(val) => handleToggleState("complete_only", val)}
+                labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
+              />
+              <TriStateToggle
+                label="Estado Lectura"
+                value={formValues.unread_only}
+                onChange={(val) => handleToggleState("unread_only", val)}
+                labels={{ true: "No Leídos", false: "Leídos", all: "Todos" }}
+              />
+
               <div className="filter-group">
                 <label>DNI Paciente</label>
                 <input
@@ -683,29 +707,6 @@ export default function Resultados() {
                   className="input-modern"
                   placeholder="Buscar apellido..."
                 />
-              </div>
-              <div className="filter-group">
-                <label>Estado</label>
-                <div className="filter-checkbox-container">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="complete_only"
-                      checked={formValues.complete_only}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    Completo
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="in_process"
-                      checked={formValues.in_process || false}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    En Proceso
-                  </label>
-                </div>
               </div>
               <div className="filter-group">
                 <label>ID Petición</label>
@@ -760,11 +761,7 @@ export default function Resultados() {
                   type="submit"
                   className="btn-filtrar"
                   disabled={isLoading}
-                  style={{
-                    width: "100%",
-                    opacity: isLoading ? 0.7 : 1,
-                    cursor: isLoading ? "wait" : "pointer",
-                  }}
+                  style={{ width: "100%", opacity: isLoading ? 0.7 : 1 }}
                 >
                   {isLoading ? (
                     <>
@@ -795,34 +792,30 @@ export default function Resultados() {
             </form>
           </div>
 
-          {!isGeneralOpen && (
-            <>
-              {/* FILTRO SEDES */}
-              <AsyncFilterSection
-                title="Sedes"
-                icon={FiMapPin}
-                type="branch"
-                user={user}
-                onSelectionChange={handleBranchChange}
-                isOpen={openLocations.branch}
-                onToggle={() => toggleLocation("branch")}
-              />
-
-              {/* FILTRO CLIENTES */}
-              <AsyncFilterSection
-                title="Clientes"
-                icon={FiUsers}
-                type="forwarder"
-                user={user}
-                onSelectionChange={handleForwarderChange}
-                isOpen={openLocations.forwarder}
-                onToggle={() => toggleLocation("forwarder")}
-              />
-            </>
+          {shouldShowBranch && (
+            <AsyncFilterSection
+              title="Sedes"
+              icon={FiMapPin}
+              type="branch"
+              user={user}
+              onSelectionChange={handleBranchChange}
+              isOpen={openLocations.branch}
+              onToggle={() => toggleLocation("branch")}
+            />
+          )}
+          {shouldShowForwarder && (
+            <AsyncFilterSection
+              title="Clientes"
+              icon={FiLayers}
+              type="forwarder"
+              user={user}
+              onSelectionChange={handleForwarderChange}
+              isOpen={openLocations.forwarder}
+              onToggle={() => toggleLocation("forwarder")}
+            />
           )}
         </div>
 
-        {/* FOOTER SIDEBAR */}
         {showFooter && (
           <div
             style={{
@@ -830,6 +823,7 @@ export default function Resultados() {
               padding: "1rem",
               borderTop: "1px solid #e2e8f0",
               backgroundColor: "#f8fafc",
+              marginBottom: "15px",
             }}
           >
             {user.isadministrator && (
@@ -840,7 +834,9 @@ export default function Resultados() {
                     fontWeight: "700",
                     color: "#94a3b8",
                     textTransform: "uppercase",
-                    marginBottom: 5,
+                    marginBottom: "15px",
+                    marginTop: 0,
+                    textAlign: "center",
                   }}
                 >
                   Administración
@@ -971,94 +967,97 @@ export default function Resultados() {
           </div>
 
           <div className="table-wrapper">
-            {isFetching && !isLoading && (
-              <div className="loading-overlay">
-                <div className="spinner"></div>
-              </div>
-            )}
-            {isError && (
-              <div
-                style={{ color: "red", padding: "20px", textAlign: "center" }}
-              >
-                Error al cargar los datos.
-              </div>
-            )}
+            <div className="table-scroll">
+              {isFetching && !isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner"></div>
+                </div>
+              )}
+              {isError && (
+                <div
+                  style={{ color: "red", padding: "20px", textAlign: "center" }}
+                >
+                  Error al cargar los datos.
+                </div>
+              )}
 
-            <table className="resultados-table" data-click-safe="true">
-              <thead>
-                <tr>
-                  <th>Apellido y Nombre / Datos</th>
-                  <th>Protocolo</th>
-                  <th style={{ textAlign: "center" }}>Debe</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.protocolos?.map((item) => {
-                  const isUnread = item.leido === "0";
-                  const selected = isSelected(item.protocoloid);
-                  return (
-                    <tr
-                      key={item.protocoloid}
-                      className={`${selected ? "selected-row" : ""} ${
-                        isUnread ? "font-bold-unread" : ""
-                      }`}
-                      onClick={(e) => handleRowClick(e, item)}
-                      onDoubleClick={() => handleViewResults(item)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                    >
-                      <td className="patient-info-cell">
-                        <div className="patient-main-info">
-                          <div className="name-with-dot">
-                            {item.leido === "0" && (
-                              <span
-                                className="unread-dot-inline"
-                                title="No leído"
-                              ></span>
-                            )}
-                            <span className="name-text">
-                              {item.apellidopaciente}, {item.nombrepaciente}
-                            </span>
+              <table className="resultados-table" data-click-safe="true">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "center" }}>Debe</th>
+                    <th>Apellido y Nombre / Datos</th>
+                    <th>Protocolo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.protocolos?.map((item) => {
+                    const isUnread = item.leido === "0";
+                    const selected = isSelected(item.protocoloid);
+                    return (
+                      <tr
+                        key={item.protocoloid}
+                        className={`${selected ? "selected-row" : ""} ${
+                          isUnread ? "font-bold-unread" : ""
+                        }`}
+                        onClick={(e) => handleRowClick(e, item)}
+                        onDoubleClick={() => handleViewResults(item)}
+                        onContextMenu={(e) => handleContextMenu(e, item)}
+                      >
+                        <td style={{ textAlign: "center" }}>
+                          <span
+                            className={`indicator-dot ${
+                              item.debe ? "dot-red" : "dot-green"
+                            }`}
+                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                          ></span>
+                        </td>
+                        <td className="patient-info-cell">
+                          <div className="patient-main-info">
+                            <div className="name-with-dot">
+                              {item.leido === "0" && (
+                                <span
+                                  className="unread-dot-inline"
+                                  title="No leído"
+                                ></span>
+                              )}
+                              <span className="name-text">
+                                {item.apellidopaciente}, {item.nombrepaciente}
+                              </span>
+                            </div>
+                            <div className="patient-subdata">
+                              <span>
+                                DNI:{" "}
+                                {item.pacid
+                                  .toString()
+                                  .replace(/DNI/gi, "")
+                                  .trim()}
+                              </span>
+                              <span className="separator">•</span>
+                              <span>
+                                Ingreso: {formatDate(item.ordereddate)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="patient-subdata">
-                            <span>
-                              DNI{" "}
-                              {item.pacid
-                                .toString()
-                                .replace(/DNI/gi, "")
-                                .trim()}
+                        </td>
+                        <td className="font-mono">{item.accessionnumber}</td>
+                        <td>
+                          {item.completo !== "" ? (
+                            <span className="status-badge status-complete">
+                              <FiCheckCircle /> Completo
                             </span>
-                            <span className="separator">•</span>
-                            <span>Ingreso: {formatDate(item.ordereddate)}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="font-mono">{item.accessionnumber}</td>
-                      <td style={{ textAlign: "center" }}>
-                        <span
-                          className={`indicator-dot ${
-                            item.debe ? "dot-red" : "dot-green"
-                          }`}
-                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                        ></span>
-                      </td>
-                      <td>
-                        {item.completo !== "" ? (
-                          <span className="status-badge status-complete">
-                            <FiCheckCircle /> Completo
-                          </span>
-                        ) : (
-                          <span className="status-badge status-pending">
-                            <FiClock /> En proceso
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
+                          ) : (
+                            <span className="status-badge status-pending">
+                              <FiClock /> En proceso
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <div
               className="pagination-bar"
               style={{
@@ -1135,227 +1134,179 @@ export default function Resultados() {
           </div>
         </section>
 
+        {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
-            <>
-              <div className="detail-header">
-                <div className="patient-info">
-                  <h2>
-                    <FiActivity className="icon-title" /> Visualización de
-                    Resultados
+            <div className="modern-report-container">
+              {/* --- 1. CABECERA TIPO TARJETA DEL PACIENTE --- */}
+              <div className="patient-header-card compact-linear">
+              <div className="patient-avatar-area small">
+                <div className="avatar-circle">
+                  <FiUser />
+                </div>
+              </div>
+
+              <div className="patient-details-linear">
+                {/* Fila 1: Nombre Principal */}
+                <div className="linear-top-row">
+                  <h2 className="patient-name-linear">
+                    {selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}
                   </h2>
-                  <div className="protocol-main-badge">
-                    Protocolo:{" "}
-                    <strong>{selectedProtocol.accessionnumber}</strong>
-                  </div>
                 </div>
-                <button className="btn-print" onClick={() => window.print()}>
-                  <FiPrinter /> Imprimir Resultados
-                </button>
+
+                {/* Fila 2: Datos secundarios en una sola línea separados por puntos */}
+                <div className="linear-data-row">
+                  <span className="data-item">
+                    <span className="lbl">DNI:</span>
+                    <span className="val">{selectedProtocol.pacid}</span>
+                  </span>
+                  
+                  <span className="separator">•</span>
+                  
+                  <span className="data-item">
+                  <span className="lbl">Edad:</span>
+                  <span className="val">
+                    {selectedProtocol.pacage} años
+                    {/* Solo mostramos la fecha si existe */}
+                    {selectedProtocol.birthdate && ` (${formatDate(selectedProtocol.birthdate)})`}
+                  </span>
+                </span>
+
+                  <span className="separator">•</span>
+                  
+                  <span className="data-item">
+                    <span className="lbl">Dr:</span>
+                    <span className="val doc-name" title={selectedProtocol.doctor_name}>{selectedProtocol.doctor_name || "No especificado"}</span>
+                  </span>
+
+                  {/* Fecha destacada al final */}
+                  <span className="separator highlight">•</span>
+                  <span className="data-item date-item">
+                    <FiClock size={11} style={{ marginRight: 3 }} />
+                    <span className="val">{formatDate(selectedProtocol.ordereddate)}</span>
+                  </span>
+                </div>
               </div>
-              <div className="report-canvas">
-                <div className="report-paper">
-                  <div className="patient-data-grid">
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>Paciente</label>
-                        <span className="val-important">
-                          {selectedProtocol.apellidopaciente},{" "}
-                          {selectedProtocol.nombrepaciente}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>ID Interno</label>
-                        <span>{selectedProtocol.protocoloid}</span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Fecha</label>
-                        <span>{formatDate(selectedProtocol.ordereddate)}</span>
-                      </div>
-                    </div>
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>Loc / Origen</label>
-                        <span>
-                          {selectedProtocol.paclocid} -{" "}
-                          {selectedProtocol.paclocname || "S/D"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Sexo</label>
-                        <span>
-                          {selectedProtocol.pacsex === "M"
-                            ? "Masculino"
-                            : "Femenino"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Edad</label>
-                        <span>{selectedProtocol.pacage} años</span>
-                      </div>
-                    </div>
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>ID Externo</label>
-                        <span className="font-mono">
-                          {selectedProtocol.idexterno || "-"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Estado</label>
-                        <span
-                          className={`status-text ${
-                            selectedProtocol.completo
-                              ? "text-complete"
-                              : "text-pending"
-                          }`}
-                        >
-                          {selectedProtocol.completo
-                            ? "Resultados Completos"
-                            : "Resultados Parciales"}
-                        </span>
-                      </div>
-                    </div>
+            </div>
+
+              {/* --- 2. LISTA DE RESULTADOS --- */}
+              <div className="results-scroll-area">
+                {isLoadingResults ? (
+                  <div className="loading-results">
+                    <div className="spinner"></div> Cargando resultados...
                   </div>
-                  <hr className="divider" />
-                  <div className="results-content">
-                    {isLoadingResults ? (
-                      <div className="loading-results">
-                        Cargando análisis...
-                      </div>
-                    ) : isErrorResults ? (
-                      <div className="error-container">
-                        Error al conectar con el servidor.
-                      </div>
-                    ) : resultsData?.resultados?.length > 0 ? (
-                      <>
-                        <div className="results-table-header">
-                          <span>Determinación</span>
-                          <span>Resultado</span>
-                          <span>Unidades</span>
-                          <span>Valores de Referencia</span>
-                        </div>
-                        {resultsData.resultados.map((res, index) => {
-                          const prevRes =
-                            index > 0
-                              ? resultsData.resultados[index - 1]
-                              : null;
-                          const showSectionTitle =
-                            index === 0 ||
-                            res.grupotitulo !== prevRes.grupotitulo;
-                          const showAnalysisTitle =
-                            index === 0 ||
-                            res.analisis !== prevRes?.analisis ||
-                            showSectionTitle;
-                          return (
-                            <React.Fragment key={index}>
-                              {res.grupotitulo && showSectionTitle && (
-                                <div className="result-category">
-                                  {res.grupotitulo}
-                                </div>
-                              )}
-                              {showAnalysisTitle && (
-                                <div
-                                  className="analysis-header"
-                                  style={{
-                                    backgroundColor: "#f1f5f9",
-                                    padding: "8px 12px",
-                                    fontWeight: "bold",
-                                    color: "#334155",
-                                    fontSize: "0.95rem",
-                                    borderBottom: "1px solid #e2e8f0",
-                                    marginTop: showSectionTitle ? "0" : "5px",
-                                  }}
-                                >
-                                  {res.analisis}
-                                </div>
-                              )}
-                              <div className="result-item-row">
-                                <div className="det-col">
-                                  <span style={{ fontWeight: 500 }}>
-                                    {res.descripcionpractica}
-                                  </span>
-                                  {res.metodo && (
-                                    <div
-                                      style={{
-                                        fontSize: "0.75rem",
-                                        color: "#64748b",
-                                        marginTop: "2px",
-                                      }}
-                                    >
-                                      Mtd: {res.metodo}
+                ) : isErrorResults ? (
+                  <div className="error-container">Error al cargar resultados.</div>
+                ) : resultsData?.resultados?.length > 0 ? (
+                  <div className="results-list-modern">
+                    
+                    {/* Encabezados de columnas generales */}
+                    <div className="results-cols-header">
+                        <span className="col-det">Determinación</span>
+                        <span className="col-res">Resultado</span>
+                        <span className="col-ref">Valores Ref.</span>
+                        <span className="col-unit">Unidad</span>
+                        <span className="col-status">Estado</span>
+                    </div>
+
+                    {resultsData.resultados.map((res, index) => {
+                      const prevRes = index > 0 ? resultsData.resultados[index - 1] : null;
+                      
+                      // Detectar cambio de Grupo (Bioquímica, Hematología...)
+                      const isNewGroup = index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
+                      
+                      // Detectar cambio de Subtítulo/Analisis
+                      const isNewAnalysis = index === 0 || res.analisis !== prevRes?.analisis || isNewGroup;
+
+                      return (
+                        <React.Fragment key={index}>
+                          {/* GRUPO PRINCIPAL (Header Azul) */}
+                          {res.grupotitulo && isNewGroup && (
+                            <div className="group-header-modern">
+                              {res.grupotitulo}
+                            </div>
+                          )}
+
+                          {/* SUBTITULO (Si aplica) */}
+                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && (
+                             <div className="analysis-subheader-modern">
+                                {res.analisis}
+                             </div>
+                          )}
+
+                          {/* FILA DE RESULTADO */}
+                          <div className="result-row-modern group-hover-trigger">
+                            
+                            {/* Columna 1: Nombre y Badges */}
+                            <div className="col-det">
+                                <span className="test-name">{res.descripcionpractica}</span>
+                                {/* Ejemplo de badges (puedes condicionarlos) */}
+                                {res.metodo && <span className="method-badge">{res.metodo}</span>}
+                                
+                                {/* TOOLTIP FLOTANTE (Como en la imagen) */}
+                                {res.observaciones && (
+                                    <div className="hover-tooltip">
+                                        <strong>Información:</strong>
+                                        <p>{res.observaciones}</p>
                                     </div>
-                                  )}
-                                </div>
-                                <div className="res-col highlighted">
-                                  {res.resultado}
-                                  {res.notaresultado && (
-                                    <div className="res-note">
-                                      {res.notaresultado}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="uni-col">
-                                  {res.unidadmedida || "-"}
-                                </div>
-                                <div className="ref-col">
-                                  {res.valoresreferencia ||
-                                    res.rangovalidacion ||
-                                    "-"}
-                                </div>
-                              </div>
-                              {res.observaciones && (
-                                <div className="res-obs">
-                                  Obs: {res.observaciones}
-                                </div>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                        {resultsData?.comentarios?.length > 0 && (
-                          <div className="general-comments">
-                            <h4>Comentarios Generales:</h4>
-                            {resultsData.comentarios.map((c, i) => (
-                              <p key={i}>{c.comentario}</p>
-                            ))}
+                                )}
+                            </div>
+
+                            {/* Columna 2: Resultado */}
+                            <div className="col-res">
+                                <span className="res-value">{res.resultado}</span>
+                            </div>
+
+                            {/* Columna 3: Referencia */}
+                            <div className="col-ref">
+                                {res.valoresreferencia || res.rangovalidacion || "-"}
+                            </div>
+
+                            {/* Columna 4: Unidad */}
+                            <div className="col-unit">
+                                {res.unidadmedida}
+                            </div>
+
+                            {/* Columna 5: Estado (Simulado visualmente) */}
+                            <div className="col-status">
+                                {/* LÓGICA DE ESTADO: 
+                                    Aquí deberías usar una propiedad real de tu backend si existe (ej: res.flag).
+                                    Como ejemplo, renderizo 'Normal' por defecto. */}
+                                {res.flag === 'H' || res.flag === 'L' ? (
+                                    <span className="status-pill status-danger">
+                                        Elevado <FiAlertCircle />
+                                    </span>
+                                ) : (
+                                    <span className="status-pill status-success">
+                                        Normal <FiCheck />
+                                    </span>
+                                )}
+                            </div>
                           </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="no-data-message">
-                        <FiInfo size={30} />
-                        <p>
-                          Este protocolo no contiene resultados registrados aún.
-                        </p>
-                      </div>
-                    )}
+                          
+                          {/* Nota debajo del resultado si existe */}
+                          {res.notaresultado && (
+                              <div className="result-note-row">
+                                  Nota: {res.notaresultado}
+                              </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <div className="no-data-message">
+                    <FiInfo size={30} />
+                    <p>No hay resultados visualizables.</p>
+                  </div>
+                )}
               </div>
-            </>
+            </div>
           ) : (
             <div className="no-selection-message">
-              {selectedItems.length > 1 ? (
-                <>
-                  <FiCheckCircle
-                    size={50}
-                    style={{ opacity: 0.3, color: "#2563eb" }}
-                  />
-                  <p>{selectedItems.length} protocolos seleccionados</p>
-                  <small>
-                    Presione "Descargar Todo" para bajar los protocolos
-                    completados.
-                  </small>
-                </>
-              ) : (
-                <>
-                  <FiEye size={50} style={{ opacity: 0.3 }} />
-                  <p>
-                    Haga <strong>doble clic</strong> en un paciente para ver sus
-                    resultados
-                  </p>
-                </>
-              )}
+               <FiActivity size={60} style={{ opacity: 0.1, color: "#0198CC" }} />
+               <h3>Seleccione un protocolo</h3>
+               <p>Haga doble clic en la lista izquierda para ver el detalle.</p>
             </div>
           )}
         </section>
@@ -1366,6 +1317,8 @@ export default function Resultados() {
         onClose={() => setIsEmailModalOpen(false)}
         protocolo={selectedItems[0]}
       />
+
+      {/* Context Menu y Modales */}
       {contextMenu && (
         <div
           className="context-menu"
@@ -1382,7 +1335,6 @@ export default function Resultados() {
             minWidth: "180px",
           }}
         >
-          {/* Opción Marcar como No Leído */}
           {contextMenu.item.leido === "1" ? (
             <div
               className="context-menu-item"
@@ -1395,19 +1347,21 @@ export default function Resultados() {
                 fontSize: "0.9rem",
                 color: "#333",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
               onClick={() => {
                 markUnread.mutate(contextMenu.item.protocoloid);
-                // Actualización optimista local para verlo reflejado ya
-                contextMenu.item.leido = "0"; 
+                contextMenu.item.leido = "0";
                 setContextMenu(null);
               }}
             >
               <FiBookmark /> Marcar como no leído
             </div>
           ) : (
-            /* Opción Marcar como Leído */
             <div
               className="context-menu-item"
               style={{
@@ -1419,8 +1373,12 @@ export default function Resultados() {
                 fontSize: "0.9rem",
                 color: "#333",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
               onClick={() => {
                 markRead.mutate(contextMenu.item.protocoloid);
                 contextMenu.item.leido = "1";
