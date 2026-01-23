@@ -413,7 +413,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
             <div className="modal-body">
               <div>
                 <h4 className="section-title">Datos de Cuenta</h4>
-                <div className="form-grid-top">
+                <div className="form-grid-top" style={{ marginBottom: "-25px" }}>
                   <div className="form-group">
                     <label className="form-label">Usuario</label>
                     <input
