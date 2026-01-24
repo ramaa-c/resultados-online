@@ -134,13 +134,6 @@ export default function Email({ isOpen, onClose, protocolo }) {
               )}
             </button>
           </form>
-
-          <div className="recent-history">
-            <h4>Envíos realizados</h4>
-            <div className="empty-history">
-              No hay envíos previos para este protocolo.
-            </div>
-          </div>
         </div>
       </div>
     </div>

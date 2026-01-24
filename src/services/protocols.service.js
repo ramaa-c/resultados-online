@@ -1,13 +1,5 @@
 import api from "../api/axios";
 
-const getTodayISO = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}${month}${day}`;
-};
-
 export const getProtocols = async (filters) => {
   const params = new URLSearchParams();
   let processedFilters = { ...filters };
@@ -22,30 +14,6 @@ export const getProtocols = async (filters) => {
     processedFilters.patient_name = partesNombre.join(" ");
   }
   delete processedFilters.apellido_paciente;
-
-  const hasStrongFilters =
-    (processedFilters.patient_id_number &&
-      processedFilters.patient_id_number.trim() !== "") ||
-    (processedFilters.accession_number &&
-      processedFilters.accession_number.trim() !== "") ||
-    (processedFilters.patient_name &&
-      processedFilters.patient_name.trim() !== "") ||
-    processedFilters.unread_only === true;
-
-  if (!processedFilters.date_from && !processedFilters.date_to) {
-    if (hasStrongFilters) {
-      processedFilters.date_from = "20000101";
-      processedFilters.date_to = getTodayISO();
-    } else {
-      const today = getTodayISO();
-      processedFilters.date_from = today;
-      processedFilters.date_to = today;
-    }
-  } else if (processedFilters.date_from && !processedFilters.date_to) {
-    processedFilters.date_to = processedFilters.date_from;
-  } else if (!processedFilters.date_from && processedFilters.date_to) {
-    processedFilters.date_from = processedFilters.date_to;
-  }
 
   Object.entries(processedFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "" && value !== null) {
@@ -66,7 +34,6 @@ export const getProtocols = async (filters) => {
       params.append(key, valorFinal);
     }
   });
-  console.log("📡 Sending params to API:", params.toString());
 
   const response = await api.get("/protocols", { params });
   return response.data;

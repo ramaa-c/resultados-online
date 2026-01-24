@@ -4,6 +4,8 @@ import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
+import { ResponsiveToolbar } from "../components/ResponsiveToolbar"; 
+import { AdvancedPagination } from "../components/AdvancedPagination"; 
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/modalUsuario";
@@ -12,9 +14,9 @@ import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
-import Email from "./email";
 import "../styles/email.css";
 import JSZip from "jszip";
+import Email from "../pages/email";
 import { saveAs } from "file-saver";
 
 import {
@@ -34,13 +36,51 @@ import {
   FiBookmark,
   FiLogOut,
   FiUser,
-  FiUsers,
-  FiEdit,
   FiMapPin,
   FiLayers,
   FiX,
   FiPlus,
 } from "react-icons/fi";
+
+// --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
+const TriStateToggle = ({
+  label,
+  value,
+  onChange,
+  labels = { true: "Sí", false: "No", all: "Todos" },
+}) => {
+  return (
+    <div className="filter-group">
+      <label>{label}</label>
+
+      <div className="tri-toggle-container">
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
+          onClick={() => onChange("")}
+        >
+          {labels.all}
+        </button>
+
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === true ? "active" : ""}`}
+          onClick={() => onChange(true)}
+        >
+          {labels.true}
+        </button>
+
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === false ? "active" : ""}`}
+          onClick={() => onChange(false)}
+        >
+          {labels.false}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // --- SUBCOMPONENTE REUTILIZABLE: SECCIÓN DE FILTRO ASÍNCRONO ---
 const AsyncFilterSection = ({
@@ -56,15 +96,12 @@ const AsyncFilterSection = ({
   const [inputValue, setInputValue] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
   const containerRef = useRef(null);
 
   const canViewAll =
     type === "branch" ? user.canviewallbranches : user.canviewallforwarders;
-
   const restrictedList =
     type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
-
   const useChipsMode =
     !canViewAll && restrictedList.length > 0 && restrictedList.length <= 10;
 
@@ -79,7 +116,6 @@ const AsyncFilterSection = ({
         setShowDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -94,27 +130,17 @@ const AsyncFilterSection = ({
     queryFn: async () => {
       const endpoint = type === "branch" ? "/branches" : "/forwarders";
       const paramName = type === "branch" ? "branch_name" : "forwarder_name";
-
       const res = await api.get(endpoint, {
         params: { [paramName]: queryTerm, page_size: 5 },
       });
-
       const raw = res.data.items || res.data;
-
-      if (Array.isArray(raw)) {
+      if (Array.isArray(raw))
         return raw.map((item) => ({
           id: item.id,
           label: item.name || item.business_name || item.label || item.id,
         }));
-      }
-
-      if (typeof raw === "object" && raw !== null) {
-        return Object.entries(raw).map(([id, name]) => ({
-          id,
-          label: name,
-        }));
-      }
-
+      if (typeof raw === "object" && raw !== null)
+        return Object.entries(raw).map(([id, name]) => ({ id, label: name }));
       return [];
     },
     enabled: !!queryTerm && !useChipsMode && queryTerm.trim().length >= 1,
@@ -128,24 +154,21 @@ const AsyncFilterSection = ({
       setShowDropdown(true);
     }
   };
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleTriggerSearch();
     }
   };
-
   const handleSelect = (item) => {
-    if (!selectedItems.some((i) => i.id === item.id)) {
+    if (!selectedItems.some((i) => i.id === item.id))
       setSelectedItems((prev) => [...prev, item]);
-    }
     setInputValue("");
+    setQueryTerm("");
+    setShowDropdown(false);
   };
-
-  const handleRemove = (id) => {
+  const handleRemove = (id) =>
     setSelectedItems((prev) => prev.filter((i) => i.id !== id));
-  };
 
   const idNameMap = React.useMemo(() => {
     const ids =
@@ -154,12 +177,10 @@ const AsyncFilterSection = ({
       type === "branch"
         ? user.branchnamelist || []
         : user.forwardernamelist || [];
-
     const map = {};
     ids.forEach((id, index) => {
       map[id] = names[index] || id;
     });
-
     return map;
   }, [type, user]);
 
@@ -168,7 +189,6 @@ const AsyncFilterSection = ({
       {restrictedList.map((id) => {
         const isSelected = selectedItems.some((i) => i.id === id);
         const label = idNameMap[id] || id;
-
         return (
           <div
             key={id}
@@ -188,22 +208,21 @@ const AsyncFilterSection = ({
   return (
     <div className="sidebar-section">
       <div className="sidebar-header-sub" onClick={onToggle}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Icon />
           <span>{title}</span>
         </div>
         <span className="arrow-icon">{isOpen ? "▲" : "▼"}</span>
       </div>
-
       <div className={`filters-collapsible ${isOpen ? "show" : ""}`}>
-        <div className="location-filter-body" style={{ padding: "10px" }}>
+        <div className="location-filter-body">
           {useChipsMode ? (
             renderStaticChips()
           ) : (
             <div
               className="async-search-container"
-              style={{ position: "relative" }}
               ref={containerRef}
+              style={{ position: "relative" }}
             >
               <div className="input-wrapper">
                 <input
@@ -213,10 +232,9 @@ const AsyncFilterSection = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  style={{ paddingRight: "35px" }}
+                  style={{ paddingRight: 35 }}
                 />
-
-                {queryTerm ? (
+                {inputValue || queryTerm ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -237,7 +255,6 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Limpiar búsqueda"
                   >
                     <FiX size={18} />
                   </button>
@@ -258,15 +275,12 @@ const AsyncFilterSection = ({
                       display: "flex",
                       alignItems: "center",
                     }}
-                    title="Buscar"
                   >
                     <FiSearch size={18} />
                   </button>
                 )}
               </div>
-
-              {/* Dropdown Resultados */}
-              {showDropdown && (
+              {showDropdown && queryTerm && (
                 <div className="search-dropdown">
                   {isFetching && (
                     <div className="dropdown-item loading">
@@ -282,22 +296,19 @@ const AsyncFilterSection = ({
                       Buscando...
                     </div>
                   )}
-
                   {!isFetching && searchResults.length === 0 && !isError && (
                     <div
-                      className="dropdown-item"
+                      className="dropdown-item loading"
                       style={{ fontStyle: "italic", color: "#999" }}
                     >
                       No se encontraron resultados
                     </div>
                   )}
-
-                  {!isFetching && isError && (
+                  {isError && (
                     <div className="dropdown-item" style={{ color: "red" }}>
                       Error: {error?.message || "Falló la búsqueda"}
                     </div>
                   )}
-
                   {!isFetching &&
                     searchResults.map((item) => (
                       <div
@@ -311,8 +322,6 @@ const AsyncFilterSection = ({
                     ))}
                 </div>
               )}
-
-              {/* Chips Seleccionados */}
               {selectedItems.length > 0 && (
                 <div className="selected-chips-area">
                   {selectedItems.map((item) => (
@@ -349,6 +358,7 @@ export default function Resultados() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // --- ESTADO DEL FORMULARIO ---
   const [formValues, setFormValues] = useState({
     date_from: "",
     date_to: "",
@@ -357,41 +367,24 @@ export default function Resultados() {
     apellido_paciente: "",
     accession_number: "",
     page: 1,
-    page_size: 15,
+    page_size: 20,
     branch_id: "",
     private_healthcare_id: "",
-    unread_only: false,
-    complete_only: false,
+    reserved: "",
+    unread_only: "",
+    complete_only: "",
   });
 
+  // --- ESTADO DE FILTROS ACTIVOS ---
+  const [activeFilters, setActiveFilters] = useState({ ...formValues });
   const [branchFilter, setBranchFilter] = useState("");
   const [forwarderFilter, setForwarderFilter] = useState("");
 
-  const activeFilters = {
-    ...formValues,
-    branch_id: branchFilter,
-    private_healthcare_id: forwarderFilter,
-  };
-
-  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [openLocations, setOpenLocations] = useState({
     branch: false,
     forwarder: false,
   });
-
-  const handleToggleGeneral = () => {
-    setIsGeneralOpen(!isGeneralOpen);
-  };
-
-  const toggleLocation = (key) => {
-    setOpenLocations((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const showFooter =
-    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -406,14 +399,19 @@ export default function Resultados() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
-
   const { markRead, markUnread } = useProtocolMutations();
   const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
+
+  // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
+  const currentCount = data?.protocolos?.length || 0;
+  const pageSize = Number(formValues.page_size);
+  const hasMoreData = currentCount === pageSize;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -426,42 +424,91 @@ export default function Resultados() {
     }
   }, []);
 
-  const handleUserFound = (userData) => {
-    setUserToEdit(userData);
-    setIsEditOpen(true);
+  // --- LÓGICA DE CLICKS Y DESELECCIÓN ---
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const isContextMenuClick = target.closest(".context-menu");
+
+      if (contextMenu) {
+        if (!isContextMenuClick) {
+          setContextMenu(null);
+        }
+        return; 
+      }
+
+      if (selectedItems.length === 0) return;
+
+      const isRowClick = target.closest("tr"); 
+      const isToolbarClick = target.closest(".toolbar-container");
+      const isModalClick = target.closest(".modal-overlay") || target.closest(".ReactModal__Content");
+      const isDetailPanel = target.closest(".detail-panel");
+      const isSafeDetailClick = isDetailPanel && selectedProtocol !== null;
+
+      if (!isRowClick && 
+          !isToolbarClick && 
+          !isModalClick && 
+          !isContextMenuClick &&
+          !isSafeDetailClick
+      ) {
+        setSelectedItems([]);
+        setSelectedProtocol(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSelectedItems([]);
+        setSelectedProtocol(null);
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenu, selectedItems, selectedProtocol]);
+
+  useEffect(() => {
+    setActiveFilters((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+      page: 1,
+    }));
+    setFormValues((prev) => ({
+      ...prev,
+      branch_id: branchFilter,
+      private_healthcare_id: forwarderFilter,
+    }));
+  }, [branchFilter, forwarderFilter]);
+
+  // --- HANDLERS ---
+
+  const handleInputChange = (e) => {
+    setFormValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // --- CORRECCIÓN BUCLE INFINITO ---
-  // Usamos useCallback para que la referencia de la función no cambie en cada render
-  // y no dispare el useEffect del hijo innecesariamente.
-
-  const handleBranchChange = useCallback((ids) => {
-    setBranchFilter((prev) => {
-      // Solo actualizamos si es diferente para evitar renders extra
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleForwarderChange = useCallback((ids) => {
-    setForwarderFilter((prev) => {
-      if (prev === ids) return prev;
-      return ids;
-    });
-    setFormValues((p) => ({ ...p, page: 1 }));
-  }, []);
-
-  const handleInputChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.value }));
   const handleSearch = (e) => {
     e.preventDefault();
-    setFormValues((p) => ({ ...p, page: 1 }));
+    setActiveFilters((prev) => ({
+      ...prev,
+      ...formValues,
+      page: 1,
+    }));
   };
-  const handleCheckboxChange = (e) =>
-    setFormValues((p) => ({ ...p, [e.target.name]: e.target.checked }));
+
+  const handleToggleState = (key, value) => {
+    setFormValues((prev) => ({ ...prev, [key]: value }));
+    setActiveFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+  };
+
   const handleReset = () => {
-    setFormValues({
+    const resetValues = {
       date_from: "",
       date_to: "",
       patient_id_number: "",
@@ -469,22 +516,46 @@ export default function Resultados() {
       apellido_paciente: "",
       accession_number: "",
       page: 1,
-      page_size: 15,
+      page_size: 20,
       branch_id: "",
       private_healthcare_id: "",
-      unread_only: false,
-      complete_only: false,
-    });
+      reserved: "",
+      unread_only: "",
+      complete_only: "",
+    };
+    setFormValues(resetValues);
+    setActiveFilters(resetValues);
     setSelectedItems([]);
   };
-  const handlePageChange = (n) =>
-    setFormValues((p) => ({ ...p, page: Number(n) }));
-  const handlePreviousPage = () => {
-    if (formValues.page > 1) handlePageChange(formValues.page - 1);
+
+  const handlePageChange = (n) => {
+    const page = Number(n);
+    setFormValues((p) => ({ ...p, page }));
+    setActiveFilters((p) => ({ ...p, page }));
   };
-  const handleNextPage = () => {
-    if (data?.protocolos?.length === Number(formValues.page_size))
-      handlePageChange(formValues.page + 1);
+
+  const handleBranchChange = useCallback((ids) => {
+    setBranchFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleForwarderChange = useCallback((ids) => {
+    setForwarderFilter((prev) => (prev === ids ? prev : ids));
+  }, []);
+
+  const handleToggleGeneral = () => setIsGeneralOpen(!isGeneralOpen);
+  const toggleLocation = (key) =>
+    setOpenLocations((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const shouldShowBranch =
+    !isGeneralOpen || (branchFilter && branchFilter.length > 0);
+  const shouldShowForwarder =
+    !isGeneralOpen || (forwarderFilter && forwarderFilter.length > 0);
+  const showFooter =
+    !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
+
+  const handleUserFound = (userData) => {
+    setUserToEdit(userData);
+    setIsEditOpen(true);
   };
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -494,16 +565,21 @@ export default function Resultados() {
   const handleRowClick = (e, item) => {
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
-        const exists = prev.find((p) => p.protocoloid === item.protocoloid);
-        return exists
-          ? prev.filter((p) => p.protocoloid !== item.protocoloid)
-          : [...prev, item];
+        const exists = prev.some((p) => String(p.protocoloid) === String(item.protocoloid));
+        
+        if (exists) {
+          return prev.filter((p) => String(p.protocoloid) !== String(item.protocoloid));
+        } else {
+          return [...prev, item];
+        }
       });
     } else {
       setSelectedItems([item]);
     }
   };
-  const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+
+  const isSelected = (id) => selectedItems.some((p) => String(p.protocoloid) === String(id));
+
   const handleViewResults = (item = null) => {
     const target =
       item || (selectedItems.length === 1 ? selectedItems[0] : null);
@@ -528,8 +604,8 @@ export default function Resultados() {
     try {
       const blob = await getProtocolPdf(protocolId);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, `PDF_${protocolId}`, `width=1000,height=800`);
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
     } catch (error) {
       console.error(error);
       alert("Error al abrir el PDF.");
@@ -582,38 +658,44 @@ export default function Resultados() {
     }
   };
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      setContextMenu(null);
-      const isClickInsideTable = e.target.closest(".resultados-table");
-      const isClickInsideToolbar = e.target.closest(".panel-header-actions");
-      const isClickInsidePagination = e.target.closest(".pagination-bar");
-      const isClickInsideSidebar = e.target.closest(".sidebar-filters");
-      const isClickInsideContextMenu = e.target.closest(".context-menu");
-      const isClickInsideDetailPanel = e.target.closest(".detail-panel");
-
-      if (
-        !isClickInsideTable &&
-        !isClickInsideToolbar &&
-        !isClickInsidePagination &&
-        !isClickInsideSidebar &&
-        !isClickInsideContextMenu
-      ) {
-        if (isClickInsideDetailPanel && selectedProtocol) return;
-        setSelectedItems([]);
-        setSelectedProtocol(null);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [selectedProtocol]);
-
-  const formatDate = (d) => (!d ? "-" : d);
-  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  // Variable helper
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
+  const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
+  const formatDate = (d) => (!d ? "-" : d);
+
+  const toolbarActions = [
+    {
+      id: "email",
+      label: "Enviar por Email",
+      icon: <FiMail />,
+      onClick: () => setIsEmailModalOpen(true),
+      disabled: selectedItems.length !== 1,
+    },
+    {
+      id: "pdf",
+      label: "Visualizar PDF",
+      icon: <FiFileText />,
+      onClick: () => handleViewPDF(selectedItems[0]?.protocoloid),
+      disabled: isPdfDisabled,
+    },
+    {
+      id: "view",
+      label: "Ver Resultados",
+      icon: <FiEye />,
+      onClick: () => handleViewResults(),
+      disabled: selectedItems.length !== 1,
+    },
+    {
+      id: "download",
+      label: selectedItems.length > 1 ? "Descargar Todo" : "Descargar",
+      icon: <FiDownload />,
+      onClick: handleDownloadAction,
+      disabled: !hasDownloadableItems || isDownloadLoading,
+    },
+  ];
 
   return (
     <div className="dashboard-container">
@@ -635,7 +717,6 @@ export default function Resultados() {
         </div>
 
         <div className="sidebar-scrollable-content">
-          {/* 1. FILTROS GENERALES */}
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               <div className="filter-group">
@@ -662,6 +743,30 @@ export default function Resultados() {
                   />
                 </div>
               </div>
+
+              <TriStateToggle
+                label="Reservados"
+                value={formValues.reserved}
+                onChange={(val) => handleToggleState("reserved", val)}
+                labels={{ true: "Sí", false: "No", all: "Todos" }}
+              />
+              <TriStateToggle
+                label="Estado Protocolo"
+                value={formValues.complete_only}
+                onChange={(val) => handleToggleState("complete_only", val)}
+                labels={{
+                  true: "Completo",
+                  false: "En Proceso",
+                  all: "Todos",
+                }}
+              />
+              <TriStateToggle
+                label="Estado Lectura"
+                value={formValues.unread_only}
+                onChange={(val) => handleToggleState("unread_only", val)}
+                labels={{ true: "No Leídos", false: "Leídos", all: "Todos" }}
+              />
+
               <div className="filter-group">
                 <label>DNI Paciente</label>
                 <input
@@ -683,29 +788,6 @@ export default function Resultados() {
                   className="input-modern"
                   placeholder="Buscar apellido..."
                 />
-              </div>
-              <div className="filter-group">
-                <label>Estado</label>
-                <div className="filter-checkbox-container">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="complete_only"
-                      checked={formValues.complete_only}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    Completo
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="in_process"
-                      checked={formValues.in_process || false}
-                      onChange={handleCheckboxChange}
-                    />{" "}
-                    En Proceso
-                  </label>
-                </div>
               </div>
               <div className="filter-group">
                 <label>ID Petición</label>
@@ -741,6 +823,7 @@ export default function Resultados() {
                     className="input-modern"
                   >
                     <option value={15}>15</option>
+                    <option value={20}>20</option>
                     <option value={25}>25</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
@@ -760,11 +843,7 @@ export default function Resultados() {
                   type="submit"
                   className="btn-filtrar"
                   disabled={isLoading}
-                  style={{
-                    width: "100%",
-                    opacity: isLoading ? 0.7 : 1,
-                    cursor: isLoading ? "wait" : "pointer",
-                  }}
+                  style={{ width: "100%", opacity: isLoading ? 0.7 : 1 }}
                 >
                   {isLoading ? (
                     <>
@@ -795,34 +874,30 @@ export default function Resultados() {
             </form>
           </div>
 
-          {!isGeneralOpen && (
-            <>
-              {/* FILTRO SEDES */}
-              <AsyncFilterSection
-                title="Sedes"
-                icon={FiMapPin}
-                type="branch"
-                user={user}
-                onSelectionChange={handleBranchChange}
-                isOpen={openLocations.branch}
-                onToggle={() => toggleLocation("branch")}
-              />
-
-              {/* FILTRO CLIENTES */}
-              <AsyncFilterSection
-                title="Clientes"
-                icon={FiUsers}
-                type="forwarder"
-                user={user}
-                onSelectionChange={handleForwarderChange}
-                isOpen={openLocations.forwarder}
-                onToggle={() => toggleLocation("forwarder")}
-              />
-            </>
+          {shouldShowBranch && (
+            <AsyncFilterSection
+              title="Sedes"
+              icon={FiMapPin}
+              type="branch"
+              user={user}
+              onSelectionChange={handleBranchChange}
+              isOpen={openLocations.branch}
+              onToggle={() => toggleLocation("branch")}
+            />
+          )}
+          {shouldShowForwarder && (
+            <AsyncFilterSection
+              title="Clientes"
+              icon={FiLayers}
+              type="forwarder"
+              user={user}
+              onSelectionChange={handleForwarderChange}
+              isOpen={openLocations.forwarder}
+              onToggle={() => toggleLocation("forwarder")}
+            />
           )}
         </div>
 
-        {/* FOOTER SIDEBAR */}
         {showFooter && (
           <div
             style={{
@@ -830,6 +905,7 @@ export default function Resultados() {
               padding: "1rem",
               borderTop: "1px solid #e2e8f0",
               backgroundColor: "#f8fafc",
+              marginBottom: "15px",
             }}
           >
             {user.isadministrator && (
@@ -840,7 +916,9 @@ export default function Resultados() {
                     fontWeight: "700",
                     color: "#94a3b8",
                     textTransform: "uppercase",
-                    marginBottom: 5,
+                    marginBottom: "15px",
+                    marginTop: 0,
+                    textAlign: "center",
                   }}
                 >
                   Administración
@@ -922,219 +1000,115 @@ export default function Resultados() {
 
       <main className="split-view">
         <section className="list-panel">
-          <div className="panel-header-actions">
-            <button
-              className="btn-mini-action"
-              onClick={() => setIsEmailModalOpen(true)}
-              disabled={selectedItems.length !== 1}
-              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
-            >
-              <FiMail size={20} /> Enviar por Email
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
-              disabled={isPdfDisabled}
-              style={{ opacity: isPdfDisabled ? 0.5 : 1 }}
-            >
-              {isPdfLoading ? (
-                "..."
-              ) : (
-                <>
-                  <FiFileText size={20} /> Visualizar PDF
-                </>
-              )}
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={() => handleViewResults()}
-              disabled={selectedItems.length !== 1}
-              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
-            >
-              <FiEye size={20} /> Ver Resultados
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={handleDownloadAction}
-              disabled={!hasDownloadableItems || isDownloadLoading}
-              style={{ opacity: !hasDownloadableItems ? 0.5 : 1 }}
-            >
-              {isDownloadLoading ? (
-                "Procesando..."
-              ) : (
-                <>
-                  <FiDownload size={20} />{" "}
-                  {selectedItems.length > 1 ? " Descargar Todo" : " Descargar"}
-                </>
-              )}
-            </button>
-          </div>
+          <ResponsiveToolbar actions={toolbarActions} />
 
           <div className="table-wrapper">
-            {isFetching && !isLoading && (
-              <div className="loading-overlay">
-                <div className="spinner"></div>
-              </div>
-            )}
-            {isError && (
-              <div
-                style={{ color: "red", padding: "20px", textAlign: "center" }}
-              >
-                Error al cargar los datos.
-              </div>
-            )}
-
-            <table className="resultados-table" data-click-safe="true">
-              <thead>
-                <tr>
-                  <th>Apellido y Nombre / Datos</th>
-                  <th>Protocolo</th>
-                  <th style={{ textAlign: "center" }}>Debe</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.protocolos?.map((item) => {
-                  const isUnread = item.leido === "0";
-                  const selected = isSelected(item.protocoloid);
-                  return (
-                    <tr
-                      key={item.protocoloid}
-                      className={`${selected ? "selected-row" : ""} ${
-                        isUnread ? "font-bold-unread" : ""
-                      }`}
-                      onClick={(e) => handleRowClick(e, item)}
-                      onDoubleClick={() => handleViewResults(item)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                    >
-                      <td className="patient-info-cell">
-                        <div className="patient-main-info">
-                          <div className="name-with-dot">
-                            {item.leido === "0" && (
-                              <span
-                                className="unread-dot-inline"
-                                title="No leído"
-                              ></span>
-                            )}
-                            <span className="name-text">
-                              {item.apellidopaciente}, {item.nombrepaciente}
-                            </span>
-                          </div>
-                          <div className="patient-subdata">
-                            <span>
-                              DNI{" "}
-                              {item.pacid
-                                .toString()
-                                .replace(/DNI/gi, "")
-                                .trim()}
-                            </span>
-                            <span className="separator">•</span>
-                            <span>Ingreso: {formatDate(item.ordereddate)}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="font-mono">{item.accessionnumber}</td>
-                      <td style={{ textAlign: "center" }}>
-                        <span
-                          className={`indicator-dot ${
-                            item.debe ? "dot-red" : "dot-green"
-                          }`}
-                          title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                        ></span>
-                      </td>
-                      <td>
-                        {item.completo !== "" ? (
-                          <span className="status-badge status-complete">
-                            <FiCheckCircle /> Completo
-                          </span>
-                        ) : (
-                          <span className="status-badge status-pending">
-                            <FiClock /> En proceso
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            <div
-              className="pagination-bar"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.8rem",
-                borderTop: "1px solid #eee",
-              }}
-            >
-              <span style={{ color: "#666", fontSize: "0.9rem" }}>
-                Mostrando {data?.protocolos?.length || 0} resultados
-              </span>
-              <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
-              >
-                <button
-                  onClick={handlePreviousPage}
-                  disabled={formValues.page === 1 || isLoading}
-                  className="btn-pagination"
+            <div className="table-scroll">
+              {isFetching && !isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner"></div>
+                </div>
+              )}
+              {isError && (
+                <div
                   style={{
-                    padding: "8px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    background: formValues.page === 1 ? "#f5f5f5" : "white",
-                    cursor: formValues.page === 1 ? "not-allowed" : "pointer",
-                    color: formValues.page === 1 ? "#aaa" : "#333",
-                  }}
-                >
-                  &lt; Anterior
-                </button>
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    minWidth: "30px",
+                    color: "red",
+                    padding: "20px",
                     textAlign: "center",
                   }}
                 >
-                  {formValues.page}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={
-                    isLoading ||
-                    (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                  }
-                  className="btn-pagination"
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    background:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "#f5f5f5"
-                        : "white",
-                    cursor:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "not-allowed"
-                        : "pointer",
-                    color:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "#aaa"
-                        : "#333",
-                  }}
-                >
-                  Siguiente &gt;
-                </button>
-              </div>
+                  Error al cargar los datos.
+                </div>
+              )}
+
+              <table className="resultados-table" data-click-safe="true">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "center" }}>Debe</th>
+                    <th>Apellido y Nombre / Datos</th>
+                    <th>Protocolo</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.protocolos?.map((item) => {
+                    const isUnread = item.leido === "0";
+                    const selected = isSelected(item.protocoloid);
+                    return (
+                      <tr
+                        key={item.protocoloid}
+                        className={`${selected ? "selected-row" : ""} ${
+                          isUnread ? "font-bold-unread" : ""
+                        }`}
+                        onClick={(e) => handleRowClick(e, item)}
+                        onDoubleClick={() => handleViewResults(item)}
+                        onContextMenu={(e) => handleContextMenu(e, item)}
+                      >
+                        <td style={{ textAlign: "center" }}>
+                          <span
+                            className={`indicator-dot ${
+                              item.debe ? "dot-red" : "dot-green"
+                            }`}
+                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                          ></span>
+                        </td>
+                        <td className="patient-info-cell">
+                          <div className="patient-main-info">
+                            <div className="name-with-dot">
+                              {item.leido === "0" && (
+                                <span
+                                  className="unread-dot-inline"
+                                  title="No leído"
+                                ></span>
+                              )}
+                              <span className="name-text">
+                                {item.apellidopaciente}, {item.nombrepaciente}
+                              </span>
+                            </div>
+                            <div className="patient-subdata">
+                              <span>
+                                DNI:{" "}
+                                {item.pacid
+                                  .toString()
+                                  .replace(/DNI/gi, "")
+                                  .trim()}
+                              </span>
+                              <span className="separator">•</span>
+                              <span>
+                                Ingreso: {formatDate(item.ordereddate)}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="font-mono">{item.accessionnumber}</td>
+                        <td>
+                          {item.completo !== "" ? (
+                            <span className="status-badge status-complete">
+                              <FiCheckCircle /> Completo
+                            </span>
+                          ) : (
+                            <span className="status-badge status-pending">
+                              <FiClock /> En proceso
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+            
+            <AdvancedPagination 
+               page={Number(formValues.page)}
+               onPageChange={handlePageChange}
+               hasMoreData={hasMoreData}
+               isLoading={isLoading}
+            />
           </div>
         </section>
 
+        {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <>
@@ -1149,7 +1123,10 @@ export default function Resultados() {
                     <strong>{selectedProtocol.accessionnumber}</strong>
                   </div>
                 </div>
-                <button className="btn-print" onClick={() => window.print()}>
+                <button
+                  className="btn-print"
+                  onClick={() => window.print()}
+                >
                   <FiPrinter /> Imprimir Resultados
                 </button>
               </div>
@@ -1165,20 +1142,19 @@ export default function Resultados() {
                         </span>
                       </div>
                       <div className="data-cell">
-                        <label>ID Interno</label>
-                        <span>{selectedProtocol.protocoloid}</span>
-                      </div>
-                      <div className="data-cell">
                         <label>Fecha</label>
-                        <span>{formatDate(selectedProtocol.ordereddate)}</span>
+                        <span>
+                          {formatDate(selectedProtocol.ordereddate)}
+                        </span>
                       </div>
                     </div>
                     <div className="data-row">
                       <div className="data-cell">
-                        <label>Loc / Origen</label>
+                        <label>Sede</label>
                         <span>
-                          {selectedProtocol.paclocid} -{" "}
-                          {selectedProtocol.paclocname || "S/D"}
+                          {selectedProtocol.paclocname ||
+                            selectedProtocol.paclocid ||
+                            "-"}
                         </span>
                       </div>
                       <div className="data-cell">
@@ -1194,28 +1170,7 @@ export default function Resultados() {
                         <span>{selectedProtocol.pacage} años</span>
                       </div>
                     </div>
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>ID Externo</label>
-                        <span className="font-mono">
-                          {selectedProtocol.idexterno || "-"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Estado</label>
-                        <span
-                          className={`status-text ${
-                            selectedProtocol.completo
-                              ? "text-complete"
-                              : "text-pending"
-                          }`}
-                        >
-                          {selectedProtocol.completo
-                            ? "Resultados Completos"
-                            : "Resultados Parciales"}
-                        </span>
-                      </div>
-                    </div>
+                    <div className="data-row"></div>
                   </div>
                   <hr className="divider" />
                   <div className="results-content">
@@ -1264,7 +1219,9 @@ export default function Resultados() {
                                     color: "#334155",
                                     fontSize: "0.95rem",
                                     borderBottom: "1px solid #e2e8f0",
-                                    marginTop: showSectionTitle ? "0" : "5px",
+                                    marginTop: showSectionTitle
+                                      ? "0"
+                                      : "5px",
                                   }}
                                 >
                                   {res.analisis}
@@ -1325,7 +1282,8 @@ export default function Resultados() {
                       <div className="no-data-message">
                         <FiInfo size={30} />
                         <p>
-                          Este protocolo no contiene resultados registrados aún.
+                          Este protocolo no contiene resultados registrados
+                          aún.
                         </p>
                       </div>
                     )}
@@ -1351,8 +1309,8 @@ export default function Resultados() {
                 <>
                   <FiEye size={50} style={{ opacity: 0.3 }} />
                   <p>
-                    Haga <strong>doble clic</strong> en un paciente para ver sus
-                    resultados
+                    Haga <strong>doble clic</strong> en un paciente para ver
+                    sus resultados
                   </p>
                 </>
               )}
@@ -1366,6 +1324,80 @@ export default function Resultados() {
         onClose={() => setIsEmailModalOpen(false)}
         protocolo={selectedItems[0]}
       />
+
+      {/* Context Menu y Modales */}
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            top: contextMenu.mouseY,
+            left: contextMenu.mouseX,
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            padding: "5px 0",
+            minWidth: "180px",
+          }}
+          onClick={(e) => e.stopPropagation()} 
+        >
+          {contextMenu.item.leido === "1" ? (
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markUnread.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "0";
+                setContextMenu(null);
+              }}
+            >
+              <FiBookmark /> Marcar como no leído
+            </div>
+          ) : (
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markRead.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "1";
+                setContextMenu(null);
+              }}
+            >
+              <FiBookOpen /> Marcar como leído
+            </div>
+          )}
+        </div>
+      )}
       <ModalUsuario
         isOpen={isCreateUserModalOpen}
         onClose={() => setIsCreateUserModalOpen(false)}
