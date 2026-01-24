@@ -42,8 +42,33 @@ import {
   FiPlus,
   FiAlertCircle, 
   FiAlertTriangle, 
-  FiCheck
+  FiCheck,
+  FiWifiOff 
 } from "react-icons/fi";
+
+// --- COMPONENTE VISUAL DE ERROR ---
+const ErrorStateDisplay = ({ title, message, retryAction }) => (
+  <div className="error-state-container">
+    <div className="error-icon-wrapper">
+      <FiAlertTriangle size={36} />
+    </div>
+    <h3 className="error-title">
+      {title || "Error de Carga"}
+    </h3>
+    <p className="error-message">
+      {message || "Ocurrió un inconveniente al intentar obtener los datos. Por favor, verifique su conexión o intente nuevamente."}
+    </p>
+    {retryAction && (
+      <button 
+        onClick={retryAction}
+        className="btn-retry"
+        type="button"
+      >
+        <FiActivity /> Reintentar
+      </button>
+    )}
+  </div>
+);
 
 // --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
 const TriStateToggle = ({
@@ -403,12 +428,13 @@ export default function Resultados() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
   const { markRead, markUnread } = useProtocolMutations();
-  const { data, isLoading, isError, isFetching } = useProtocols(activeFilters);
+  const { data, isLoading, isError, isFetching, refetch } = useProtocols(activeFilters);
 
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
+    refetch: refetchResults
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
   // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
@@ -1012,96 +1038,91 @@ export default function Resultados() {
                   <div className="spinner"></div>
                 </div>
               )}
-              {isError && (
-                <div
-                  style={{
-                    color: "red",
-                    padding: "20px",
-                    textAlign: "center",
-                  }}
-                >
-                  Error al cargar los datos.
-                </div>
+              {/* --- IMPLEMENTACIÓN 1: ERROR EN LA TABLA PRINCIPAL --- */}
+              {isError ? (
+                <ErrorStateDisplay 
+                  title="No se pudieron cargar los protocolos"
+                  message="Hubo un problema al conectar con el servidor para obtener la lista. Por favor, intente recargar."
+                  retryAction={refetch}
+                />
+              ) : (
+                <table className="resultados-table" data-click-safe="true">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "center" }}>Debe</th>
+                      <th>Apellido y Nombre / Datos</th>
+                      <th>Protocolo</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.protocolos?.map((item) => {
+                      const isUnread = item.leido === "0";
+                      const selected = isSelected(item.protocoloid);
+                      return (
+                        <tr
+                          key={item.protocoloid}
+                          className={`${selected ? "selected-row" : ""} ${
+                            isUnread ? "font-bold-unread" : ""
+                          }`}
+                          onClick={(e) => handleRowClick(e, item)}
+                          onDoubleClick={() => handleViewResults(item)}
+                          onContextMenu={(e) => handleContextMenu(e, item)}
+                        >
+                          <td style={{ textAlign: "center" }}>
+                            <span
+                              className={`indicator-dot ${
+                                item.debe ? "dot-red" : "dot-green"
+                              }`}
+                              title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                            ></span>
+                          </td>
+                          <td className="patient-info-cell">
+                            <div className="patient-main-info">
+                              <div className="name-with-dot">
+                                {item.leido === "0" && (
+                                  <span
+                                    className="unread-dot-inline"
+                                    title="No leído"
+                                  ></span>
+                                )}
+                                <span className="name-text">
+                                  {item.apellidopaciente}, {item.nombrepaciente}
+                                </span>
+                              </div>
+                              <div className="patient-subdata">
+                                <span>
+                                  DNI:{" "}
+                                  {item.pacid
+                                    .toString()
+                                    .replace(/DNI/gi, "")
+                                    .trim()}
+                                </span>
+                                <span className="separator">•</span>
+                                <span>
+                                  Ingreso: {formatDate(item.ordereddate)}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="font-mono">{item.protocoloid}</td>
+                          <td>
+                            {item.completo !== "" ? (
+                              <span className="status-badge status-complete">
+                                <FiCheckCircle /> Completo
+                              </span>
+                            ) : (
+                              <span className="status-badge status-pending">
+                                <FiClock /> En proceso
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
-
-              <table className="resultados-table" data-click-safe="true">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "center" }}>Debe</th>
-                    <th>Apellido y Nombre / Datos</th>
-                    <th>Protocolo</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data?.protocolos?.map((item) => {
-                    const isUnread = item.leido === "0";
-                    const selected = isSelected(item.protocoloid);
-                    return (
-                      <tr
-                        key={item.protocoloid}
-                        className={`${selected ? "selected-row" : ""} ${
-                          isUnread ? "font-bold-unread" : ""
-                        }`}
-                        onClick={(e) => handleRowClick(e, item)}
-                        onDoubleClick={() => handleViewResults(item)}
-                        onContextMenu={(e) => handleContextMenu(e, item)}
-                      >
-                        <td style={{ textAlign: "center" }}>
-                          <span
-                            className={`indicator-dot ${
-                              item.debe ? "dot-red" : "dot-green"
-                            }`}
-                            title={item.debe ? "Posee Deuda" : "Sin Deuda"}
-                          ></span>
-                        </td>
-                        <td className="patient-info-cell">
-                          <div className="patient-main-info">
-                            <div className="name-with-dot">
-                              {item.leido === "0" && (
-                                <span
-                                  className="unread-dot-inline"
-                                  title="No leído"
-                                ></span>
-                              )}
-                              <span className="name-text">
-                                {item.apellidopaciente}, {item.nombrepaciente}
-                              </span>
-                            </div>
-                            <div className="patient-subdata">
-                              <span>
-                                DNI:{" "}
-                                {item.pacid
-                                  .toString()
-                                  .replace(/DNI/gi, "")
-                                  .trim()}
-                              </span>
-                              <span className="separator">•</span>
-                              <span>
-                                Ingreso: {formatDate(item.ordereddate)}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        {/* --- AQUÍ ESTÁ EL CAMBIO SOLICITADO --- */}
-                        <td className="font-mono">{item.protocoloid}</td>
-                        {/* -------------------------------------- */}
-                        <td>
-                          {item.completo !== "" ? (
-                            <span className="status-badge status-complete">
-                              <FiCheckCircle /> Completo
-                            </span>
-                          ) : (
-                            <span className="status-badge status-pending">
-                              <FiClock /> En proceso
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
             </div>
             
             <AdvancedPagination 
@@ -1175,7 +1196,12 @@ export default function Resultados() {
                     <div className="spinner"></div> Cargando resultados...
                   </div>
                 ) : isErrorResults ? (
-                  <div className="error-container">Error al cargar resultados.</div>
+                  /* --- IMPLEMENTACIÓN 2: ERROR EN EL DETALLE DE RESULTADOS --- */
+                  <ErrorStateDisplay 
+                    title="Error al cargar resultados"
+                    message="No se pudieron obtener los detalles para este protocolo. Por favor, intente nuevamente."
+                    retryAction={refetchResults}
+                  />
                 ) : resultsData?.resultados?.length > 0 ? (
                   <div className="results-list-modern">
                     
