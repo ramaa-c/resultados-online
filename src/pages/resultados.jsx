@@ -4,6 +4,8 @@ import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
+import { ResponsiveToolbar } from "../components/ResponsiveToolbar"; 
+import { AdvancedPagination } from "../components/AdvancedPagination"; 
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/modalUsuario";
@@ -365,7 +367,7 @@ export default function Resultados() {
     apellido_paciente: "",
     accession_number: "",
     page: 1,
-    page_size: 15,
+    page_size: 20,
     branch_id: "",
     private_healthcare_id: "",
     reserved: "",
@@ -406,6 +408,11 @@ export default function Resultados() {
     isError: isErrorResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
+  // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
+  const currentCount = data?.protocolos?.length || 0;
+  const pageSize = Number(formValues.page_size);
+  const hasMoreData = currentCount === pageSize;
+
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
     if (storedUser) {
@@ -416,6 +423,55 @@ export default function Resultados() {
       }
     }
   }, []);
+
+  // --- LÓGICA DE CLICKS Y DESELECCIÓN ---
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const isContextMenuClick = target.closest(".context-menu");
+
+      if (contextMenu) {
+        if (!isContextMenuClick) {
+          setContextMenu(null);
+        }
+        return; 
+      }
+
+      if (selectedItems.length === 0) return;
+
+      const isRowClick = target.closest("tr"); 
+      const isToolbarClick = target.closest(".toolbar-container");
+      const isModalClick = target.closest(".modal-overlay") || target.closest(".ReactModal__Content");
+      const isDetailPanel = target.closest(".detail-panel");
+      const isSafeDetailClick = isDetailPanel && selectedProtocol !== null;
+
+      if (!isRowClick && 
+          !isToolbarClick && 
+          !isModalClick && 
+          !isContextMenuClick &&
+          !isSafeDetailClick
+      ) {
+        setSelectedItems([]);
+        setSelectedProtocol(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSelectedItems([]);
+        setSelectedProtocol(null);
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [contextMenu, selectedItems, selectedProtocol]);
 
   useEffect(() => {
     setActiveFilters((prev) => ({
@@ -460,7 +516,7 @@ export default function Resultados() {
       apellido_paciente: "",
       accession_number: "",
       page: 1,
-      page_size: 15,
+      page_size: 20,
       branch_id: "",
       private_healthcare_id: "",
       reserved: "",
@@ -497,17 +553,9 @@ export default function Resultados() {
   const showFooter =
     !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
 
-  // ... (Resto de handlers como handleLogout, handleRowClick, pdf, etc. se mantienen igual)
   const handleUserFound = (userData) => {
     setUserToEdit(userData);
     setIsEditOpen(true);
-  };
-  const handlePreviousPage = () => {
-    if (formValues.page > 1) handlePageChange(formValues.page - 1);
-  };
-  const handleNextPage = () => {
-    if (data?.protocolos?.length === Number(formValues.page_size))
-      handlePageChange(formValues.page + 1);
   };
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -517,17 +565,20 @@ export default function Resultados() {
   const handleRowClick = (e, item) => {
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
-        const exists = prev.find((p) => p.protocoloid === item.protocoloid);
-        return exists
-          ? prev.filter((p) => p.protocoloid !== item.protocoloid)
-          : [...prev, item];
+        const exists = prev.some((p) => String(p.protocoloid) === String(item.protocoloid));
+        
+        if (exists) {
+          return prev.filter((p) => String(p.protocoloid) !== String(item.protocoloid));
+        } else {
+          return [...prev, item];
+        }
       });
     } else {
       setSelectedItems([item]);
     }
   };
 
-  const isSelected = (id) => selectedItems.some((p) => p.protocoloid === id);
+  const isSelected = (id) => selectedItems.some((p) => String(p.protocoloid) === String(id));
 
   const handleViewResults = (item = null) => {
     const target =
@@ -615,7 +666,37 @@ export default function Resultados() {
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
   const formatDate = (d) => (!d ? "-" : d);
 
-  // Render
+  const toolbarActions = [
+    {
+      id: "email",
+      label: "Enviar por Email",
+      icon: <FiMail />,
+      onClick: () => setIsEmailModalOpen(true),
+      disabled: selectedItems.length !== 1,
+    },
+    {
+      id: "pdf",
+      label: "Visualizar PDF",
+      icon: <FiFileText />,
+      onClick: () => handleViewPDF(selectedItems[0]?.protocoloid),
+      disabled: isPdfDisabled,
+    },
+    {
+      id: "view",
+      label: "Ver Resultados",
+      icon: <FiEye />,
+      onClick: () => handleViewResults(),
+      disabled: selectedItems.length !== 1,
+    },
+    {
+      id: "download",
+      label: selectedItems.length > 1 ? "Descargar Todo" : "Descargar",
+      icon: <FiDownload />,
+      onClick: handleDownloadAction,
+      disabled: !hasDownloadableItems || isDownloadLoading,
+    },
+  ];
+
   return (
     <div className="dashboard-container">
       <aside className="sidebar-filters" data-click-safe="true">
@@ -663,7 +744,6 @@ export default function Resultados() {
                 </div>
               </div>
 
-              {/* --- BOTONES TRI-ESTADO (Disparan búsqueda al cambiar) --- */}
               <TriStateToggle
                 label="Reservados"
                 value={formValues.reserved}
@@ -674,7 +754,11 @@ export default function Resultados() {
                 label="Estado Protocolo"
                 value={formValues.complete_only}
                 onChange={(val) => handleToggleState("complete_only", val)}
-                labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
+                labels={{
+                  true: "Completo",
+                  false: "En Proceso",
+                  all: "Todos",
+                }}
               />
               <TriStateToggle
                 label="Estado Lectura"
@@ -739,6 +823,7 @@ export default function Resultados() {
                     className="input-modern"
                   >
                     <option value={15}>15</option>
+                    <option value={20}>20</option>
                     <option value={25}>25</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
@@ -915,53 +1000,7 @@ export default function Resultados() {
 
       <main className="split-view">
         <section className="list-panel">
-          <div className="panel-header-actions">
-            <button
-              className="btn-mini-action"
-              onClick={() => setIsEmailModalOpen(true)}
-              disabled={selectedItems.length !== 1}
-              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
-            >
-              <FiMail size={20} /> Enviar por Email
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={() => handleViewPDF(selectedItems[0]?.protocoloid)}
-              disabled={isPdfDisabled}
-              style={{ opacity: isPdfDisabled ? 0.5 : 1 }}
-            >
-              {isPdfLoading ? (
-                "..."
-              ) : (
-                <>
-                  <FiFileText size={20} /> Visualizar PDF
-                </>
-              )}
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={() => handleViewResults()}
-              disabled={selectedItems.length !== 1}
-              style={{ opacity: selectedItems.length !== 1 ? 0.5 : 1 }}
-            >
-              <FiEye size={20} /> Ver Resultados
-            </button>
-            <button
-              className="btn-mini-action"
-              onClick={handleDownloadAction}
-              disabled={!hasDownloadableItems || isDownloadLoading}
-              style={{ opacity: !hasDownloadableItems ? 0.5 : 1 }}
-            >
-              {isDownloadLoading ? (
-                "Procesando..."
-              ) : (
-                <>
-                  <FiDownload size={20} />{" "}
-                  {selectedItems.length > 1 ? " Descargar Todo" : " Descargar"}
-                </>
-              )}
-            </button>
-          </div>
+          <ResponsiveToolbar actions={toolbarActions} />
 
           <div className="table-wrapper">
             <div className="table-scroll">
@@ -972,7 +1011,11 @@ export default function Resultados() {
               )}
               {isError && (
                 <div
-                  style={{ color: "red", padding: "20px", textAlign: "center" }}
+                  style={{
+                    color: "red",
+                    padding: "20px",
+                    textAlign: "center",
+                  }}
                 >
                   Error al cargar los datos.
                 </div>
@@ -1055,79 +1098,13 @@ export default function Resultados() {
                 </tbody>
               </table>
             </div>
-            <div
-              className="pagination-bar"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.8rem",
-                borderTop: "1px solid #eee",
-              }}
-            >
-              <span style={{ color: "#666", fontSize: "0.9rem" }}>
-                Mostrando {data?.protocolos?.length || 0} resultados
-              </span>
-              <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
-              >
-                <button
-                  onClick={handlePreviousPage}
-                  disabled={formValues.page === 1 || isLoading}
-                  className="btn-pagination"
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    background: formValues.page === 1 ? "#f5f5f5" : "white",
-                    cursor: formValues.page === 1 ? "not-allowed" : "pointer",
-                    color: formValues.page === 1 ? "#aaa" : "#333",
-                  }}
-                >
-                  &lt; Anterior
-                </button>
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    minWidth: "30px",
-                    textAlign: "center",
-                  }}
-                >
-                  {formValues.page}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={
-                    isLoading ||
-                    (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                  }
-                  className="btn-pagination"
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    background:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "#f5f5f5"
-                        : "white",
-                    cursor:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "not-allowed"
-                        : "pointer",
-                    color:
-                      (data?.protocolos?.length || 0) <
-                      Number(formValues.page_size)
-                        ? "#aaa"
-                        : "#333",
-                  }}
-                >
-                  Siguiente &gt;
-                </button>
-              </div>
-            </div>
+            
+            <AdvancedPagination 
+               page={Number(formValues.page)}
+               onPageChange={handlePageChange}
+               hasMoreData={hasMoreData}
+               isLoading={isLoading}
+            />
           </div>
         </section>
 
@@ -1146,7 +1123,10 @@ export default function Resultados() {
                     <strong>{selectedProtocol.accessionnumber}</strong>
                   </div>
                 </div>
-                <button className="btn-print" onClick={() => window.print()}>
+                <button
+                  className="btn-print"
+                  onClick={() => window.print()}
+                >
                   <FiPrinter /> Imprimir Resultados
                 </button>
               </div>
@@ -1163,7 +1143,9 @@ export default function Resultados() {
                       </div>
                       <div className="data-cell">
                         <label>Fecha</label>
-                        <span>{formatDate(selectedProtocol.ordereddate)}</span>
+                        <span>
+                          {formatDate(selectedProtocol.ordereddate)}
+                        </span>
                       </div>
                     </div>
                     <div className="data-row">
@@ -1237,7 +1219,9 @@ export default function Resultados() {
                                     color: "#334155",
                                     fontSize: "0.95rem",
                                     borderBottom: "1px solid #e2e8f0",
-                                    marginTop: showSectionTitle ? "0" : "5px",
+                                    marginTop: showSectionTitle
+                                      ? "0"
+                                      : "5px",
                                   }}
                                 >
                                   {res.analisis}
@@ -1298,7 +1282,8 @@ export default function Resultados() {
                       <div className="no-data-message">
                         <FiInfo size={30} />
                         <p>
-                          Este protocolo no contiene resultados registrados aún.
+                          Este protocolo no contiene resultados registrados
+                          aún.
                         </p>
                       </div>
                     )}
@@ -1324,8 +1309,8 @@ export default function Resultados() {
                 <>
                   <FiEye size={50} style={{ opacity: 0.3 }} />
                   <p>
-                    Haga <strong>doble clic</strong> en un paciente para ver sus
-                    resultados
+                    Haga <strong>doble clic</strong> en un paciente para ver
+                    sus resultados
                   </p>
                 </>
               )}
@@ -1356,6 +1341,7 @@ export default function Resultados() {
             padding: "5px 0",
             minWidth: "180px",
           }}
+          onClick={(e) => e.stopPropagation()} 
         >
           {contextMenu.item.leido === "1" ? (
             <div

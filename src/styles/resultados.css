@@ -19,16 +19,16 @@ body {
   outline: none;
 }
 
-body button:focus{
+body button:focus {
   outline: none;
 }
 
 .dashboard-container {
-    background-color: #f1f5f9;
-    display: flex;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+  background-color: #f1f5f9;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* --- SIDEBAR --- */
@@ -41,7 +41,6 @@ body button:focus{
   flex-direction: column;
   flex-shrink: 0;
   height: 100vh;
-
   overflow: hidden;
   z-index: 10;
 }
@@ -149,65 +148,17 @@ body button:focus{
 
 /* Panel Izquierdo */
 .list-panel {
-    width: 35%;
-    background: #ffffff;
-    margin: 8px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 20px);
-    max-height: 100vh;
-    overflow: hidden;
-}
-
-/* --- BARRA DE ACCIONES SUPERIOR --- */
-.panel-header-actions {
-  padding: 8px 12px;
-  background: #FFF;
-  border-bottom: 1px solid var(--border);
+  width: 40%;
+  background: #ffffff;
+  margin: 8px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
-  gap: 8px;
-  align-items: center;
-  overflow-x: auto;
-  scrollbar-width: none; 
-}
-.panel-header-actions::-webkit-scrollbar {
-  display: none;
-}
-
-.btn-mini-action {
-  background: white;
-  border: 1px solid #cbd5e1;
-  padding: 6px 10px;
-  font-size: 0.75rem;
-  height: 32px;
-  
-  border-radius: 6px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.btn-mini-action:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background-color: #f0f9ff;
-  transform: translateY(-1px);
-}
-
-.btn-mini-action.active {
-  background: var(--primary-light);
-  color: var(--primary);
-  border-color: var(--primary);
-  font-weight: 600;
+  flex-direction: column;
+  height: calc(100vh - 20px);
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 /* Tabla */
@@ -221,10 +172,10 @@ body button:focus{
 }
 
 .resultados-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0; 
-    table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 .table-scroll {
@@ -233,41 +184,98 @@ body button:focus{
   min-height: 0;
 }
 
+/* --- PAGINACIÓN MODERNA (NUEVO) --- */
 .pagination-bar {
   position: sticky;
   bottom: 0;
   z-index: 20;
   background: white;
   border-top: 1px solid var(--border);
-  padding: 8px 12px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  color: #64748b;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.btn-page.active {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  font-weight: 700;
+}
+
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8fafc;
+}
+
+.btn-page-text {
+  padding: 0 12px;
+}
+
+.pagination-dots {
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin: 0 4px;
 }
 
 /* Columna 1: Debe */
 .resultados-table th:nth-child(1),
 .resultados-table td:nth-child(1) {
-    width: 5%;
-    text-align: center;
-    padding-left: 8px;
-    padding-right: 8px;
+  width: 5%;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* Columna 2: Nombre y Datos */
 .resultados-table th:nth-child(2),
 .resultados-table td:nth-child(2) {
-    width: 60%;
+  width: 55%;
 }
 
 /* Columna 3: Protocolo */
 .resultados-table th:nth-child(3),
 .resultados-table td:nth-child(3) {
-    width: 18%;
-    text-align: left;
+  width: 18%;
+  text-align: left;
 }
 
 /* Columna 4: Estado */
 .resultados-table th:nth-child(4),
 .resultados-table td:nth-child(4) {
-    width: 17%;
+  width: 22%;
 }
 
 .resultados-table th {
@@ -284,6 +292,7 @@ body button:focus{
   top: 0;
   z-index: 10;
 }
+
 .resultados-table td {
   padding: 8px 10px;
   vertical-align: middle;
@@ -360,12 +369,12 @@ body button:focus{
 
 /* Panel Derecho */
 .detail-panel {
-    flex: 1;
-    background-color: transparent;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
+  flex: 1;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
 }
 
 .no-selection-message {
@@ -378,6 +387,7 @@ body button:focus{
   color: #64748b;
   gap: 15px;
 }
+
 .no-selection-message p {
   font-size: 1.1rem;
   margin: 0;
@@ -423,18 +433,6 @@ body button:focus{
   display: flex;
   gap: 8px;
   margin: 0;
-}
-
-.btn-print {
-  background: var(--secondary);
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  gap: 6px;
-  align-items: center;
 }
 
 .report-canvas {
@@ -541,12 +539,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .resultados-table tr.selected-row td {
-    background-color: rgba(1, 152, 204, 0.12) !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: 1px solid rgba(1, 152, 204, 0.2);
-    border-bottom: 1px solid rgba(1, 152, 204, 0.2);
-    transition: background-color 0.2s ease;
+  background-color: rgba(1, 152, 204, 0.12) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: 1px solid rgba(1, 152, 204, 0.2);
+  border-bottom: 1px solid rgba(1, 152, 204, 0.2);
+  transition: background-color 0.2s ease;
 }
 
 .resultados-table tr.selected-row td:first-child {
@@ -561,6 +559,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: #f1f5f9 !important;
   cursor: pointer;
 }
+
 /* Ficha de datos del paciente */
 .patient-data-grid {
   display: flex;
@@ -634,6 +633,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-top: 1px solid #eee;
   margin: 10px 0;
 }
+
 .res-note {
   font-size: 0.8rem;
   color: #666;
@@ -662,11 +662,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 5px;
   color: #333;
 }
-.btn-mini-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  filter: grayscale(1); 
-}
+
 .font-bold-unread {
   background-color: #ffffff;
   color: #1e293b;
@@ -680,18 +676,21 @@ tr:not(.font-bold-unread) {
 
 /* Contenedor de info del paciente */
 .patient-main-info {
-   display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0px;
 }
+
 .patient-info-cell {
-    padding: 2px 10px !important;
+  padding: 2px 10px !important;
 }
+
 .name-with-dot {
   display: flex;
   align-items: center;
 }
+
 /* Nombre del paciente */
 .name-text {
   color: #0f172a;
@@ -700,6 +699,7 @@ tr:not(.font-bold-unread) {
   display: block;
   margin-bottom: 4px;
 }
+
 /* Subdatos del paciente */
 .patient-subdata {
   font-size: 0.75rem;
@@ -711,14 +711,14 @@ tr:not(.font-bold-unread) {
 }
 
 .patient-name {
-    font-size: 0.9rem;
-    color: #1e293b;
-    font-weight: 600;
-    text-transform: uppercase;
+  font-size: 0.9rem;
+  color: #1e293b;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .separator {
-    color: #cbd5e1;
+  color: #cbd5e1;
 }
 
 .resultados-table tr {
@@ -727,18 +727,18 @@ tr:not(.font-bold-unread) {
 }
 
 .resultados-table th {
-    background-color: #f8fafc;
-    color: #475569;
-    font-weight: 600;
-    padding: 4px 10px;
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 4px 10px;
 }
 
 /* Indicador DEBE */
 .indicator-dot {
-    height: 8px;
-    width: 8px;
-    border-radius: 50%;
-    display: inline-block;
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
 .dot-red { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
@@ -779,7 +779,7 @@ tr:not(.font-bold-unread) {
   font-weight: 800 !important;
 }
 
-/*  Fila LEÍDA */
+/* Fila LEÍDA */
 tr:not(.font-bold-unread) .name-text {
   color: #64748b;
   font-weight: 600;
@@ -795,10 +795,14 @@ tr:not(.font-bold-unread) .patient-subdata {
   .sidebar-filters,
   .filter-checkbox-group,
   .list-panel,
-  .panel-header-actions,
   .filter-toggle-btn,
   .btn-print,
   .detail-header button {
+    display: none !important;
+  }
+
+  /* Ocultar el nuevo toolbar al imprimir */
+  .toolbar-container {
     display: none !important;
   }
 
@@ -846,13 +850,11 @@ tr:not(.font-bold-unread) .patient-subdata {
     background: white !important;
   }
 
-@media print {
   body, .report-paper, p, span, td, th, h1, h2, h3 {
     color: black !important;
-    -webkit-print-color-adjust: exact; 
+    -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-}
 
   @page {
     margin: 1.5cm;
@@ -922,7 +924,6 @@ tr:not(.font-bold-unread) .patient-subdata {
   background-color: #0198CC;
 }
 
-
 * {
   scrollbar-width: thin;
   scrollbar-color: #90d5ed transparent;
@@ -957,15 +958,16 @@ tr:not(.font-bold-unread) .patient-subdata {
   width: 18px;
   height: 18px;
   border: 2px solid #cbd5e1;
-  display: inline-block; 
+  display: inline-block;
   border-radius: 4px;
   position: relative;
   top: 5px;
   transition: all 0.2s ease;
   background: #fff;
-  margin-right: 10px; 
+  margin-right: 10px;
   flex-shrink: 0;
 }
+
 .checkbox-label input:checked + .custom-checkbox {
   background-color: #10B981;
   border-color: #10B981;
@@ -1141,7 +1143,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   color: var(--primary);
 }
 
-/* Área de chips seleccionados (Buscador) */
+/* Área de chips seleccionados */
 .selected-chips-area {
   display: flex;
   flex-wrap: wrap;
@@ -1166,6 +1168,7 @@ tr:not(.font-bold-unread) .patient-subdata {
   cursor: pointer;
   opacity: 0.7;
 }
+
 .remove-icon:hover {
   opacity: 1;
 }
