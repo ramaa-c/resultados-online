@@ -591,7 +591,8 @@ export default function Resultados() {
     navigate("/login");
   };
 
-  const handleRowClick = (e, item) => {
+ const handleRowClick = (e, item) => {
+    // 1. Lógica de Selección Múltiple (Ctrl/Meta Key)
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
         const exists = prev.some((p) => String(p.protocoloid) === String(item.protocoloid));
@@ -602,10 +603,25 @@ export default function Resultados() {
           return [...prev, item];
         }
       });
+      // Si estamos seleccionando múltiples con Ctrl, quizás NO queremos cambiar el panel de detalle automáticamente
+      // para no volver loco al usuario. Opcional.
     } else {
+      // 2. Selección Simple (Comportamiento normal)
       setSelectedItems([item]);
+      
+      // 3. CARGAR RESULTADOS EN EL PANEL DERECHO
+      setSelectedProtocol(item);
+      
+      // 4. MARCAR COMO LEÍDO (Si no lo está)
+      if (item.leido === "0") {
+        markRead.mutate(item.protocoloid);
+        // Actualización optimista local para feedback instantáneo
+        item.leido = "1"; 
+        
+
+      }
     }
-  };
+  }
 
   const isSelected = (id) => selectedItems.some((p) => String(p.protocoloid) === String(id));
 
@@ -710,13 +726,7 @@ export default function Resultados() {
       onClick: () => handleViewPDF(selectedItems[0]?.protocoloid),
       disabled: isPdfDisabled,
     },
-    {
-      id: "view",
-      label: "Ver Resultados",
-      icon: <FiEye />,
-      onClick: () => handleViewResults(),
-      disabled: selectedItems.length !== 1,
-    },
+
     {
       id: "download",
       label: selectedItems.length > 1 ? "Descargar Todo" : "Descargar",
@@ -748,90 +758,91 @@ export default function Resultados() {
         <div className="sidebar-scrollable-content">
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
-              <div className="filter-group">
-                <label>Fecha Desde</label>
-                <div className="input-wrapper">
+              {/* --- FECHAS (Apiladas pero compactas) --- */}
+              {/* Usamos un contenedor grid para que ocupen poco espacio vertical */}
+              <div className="compact-date-group">
+                <div className="date-item">
+                  <label>Desde</label>
                   <input
                     type="date"
                     name="date_from"
                     value={formValues.date_from}
                     onChange={handleInputChange}
-                    className="input-modern pl-icon"
+                    className="input-modern compact"
                   />
                 </div>
-              </div>
-              <div className="filter-group">
-                <label>Fecha Hasta</label>
-                <div className="input-wrapper">
+                <div className="date-item">
+                  <label>Hasta</label>
                   <input
                     type="date"
                     name="date_to"
                     value={formValues.date_to}
                     onChange={handleInputChange}
-                    className="input-modern pl-icon"
+                    className="input-modern compact"
                   />
                 </div>
               </div>
 
-              <TriStateToggle
-                label="Reservados"
-                value={formValues.reserved}
-                onChange={(val) => handleToggleState("reserved", val)}
-                labels={{ true: "Sí", false: "No", all: "Todos" }}
-              />
-              <TriStateToggle
-                label="Estado Protocolo"
-                value={formValues.complete_only}
-                onChange={(val) => handleToggleState("complete_only", val)}
-                labels={{
-                  true: "Completo",
-                  false: "En Proceso",
-                  all: "Todos",
-                }}
-              />
-              <TriStateToggle
-                label="Estado Lectura"
-                value={formValues.unread_only}
-                onChange={(val) => handleToggleState("unread_only", val)}
-                labels={{ true: "No Leídos", false: "Leídos", all: "Todos" }}
-              />
+              {/* --- TOGGLES (Estilo Segmented Control: Título Arriba, Botones unidos abajo) --- */}
+              <div className="toggles-stack-wrapper">
+                  <TriStateToggle
+                    label="Reservados"
+                    value={formValues.reserved}
+                    onChange={(val) => handleToggleState("reserved", val)}
+                    labels={{ true: "Sí", false: "No", all: "Todos" }}
+                  />
+                  <TriStateToggle
+                    label="Estado Protocolo" // Ahora sí entra el texto completo
+                    value={formValues.complete_only}
+                    onChange={(val) => handleToggleState("complete_only", val)}
+                    labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
+                  />
+                  <TriStateToggle
+                    label="Estado Lectura" // Texto completo
+                    value={formValues.unread_only}
+                    onChange={(val) => handleToggleState("unread_only", val)}
+                    labels={{ true: "No Leído", false: "Leído", all: "Todos" }}
+                  />
+              </div>
 
-              <div className="filter-group">
+              {/* --- RESTO DE INPUTS (Simplificados) --- */}
+              <div className="filter-group compact">
                 <label>DNI Paciente</label>
                 <input
                   type="text"
                   name="patient_id_number"
                   value={formValues.patient_id_number}
                   onChange={handleInputChange}
-                  className="input-modern"
+                  className="input-modern compact"
                   placeholder="Ej: 25459633"
                 />
               </div>
-              <div className="filter-group">
+              
+              <div className="filter-group compact">
                 <label>Apellido</label>
                 <input
                   type="text"
                   name="apellido_paciente"
                   value={formValues.apellido_paciente}
                   onChange={handleInputChange}
-                  className="input-modern"
-                  placeholder="Buscar apellido..."
+                  className="input-modern compact"
+                  placeholder="Buscar..."
                 />
               </div>
-              <div className="filter-group">
+
+              <div className="filter-group compact">
                 <label>ID Petición</label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    name="accession_number"
-                    value={formValues.accession_number}
-                    onChange={handleInputChange}
-                    className="input-modern pl-icon"
-                    placeholder="Protocolo / ID"
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="accession_number"
+                  value={formValues.accession_number}
+                  onChange={handleInputChange}
+                  className="input-modern compact"
+                  placeholder="Protocolo / ID"
+                />
               </div>
-              <div className="filter-row">
+
+              <div className="filter-row compact-row">
                 <div className="filter-group half">
                   <label>Pág.</label>
                   <input
@@ -839,7 +850,7 @@ export default function Resultados() {
                     name="page"
                     value={formValues.page}
                     onChange={(e) => handlePageChange(e.target.value)}
-                    className="input-modern"
+                    className="input-modern compact"
                     min={1}
                   />
                 </div>
@@ -849,7 +860,7 @@ export default function Resultados() {
                     name="page_size"
                     value={formValues.page_size}
                     onChange={handleInputChange}
-                    className="input-modern"
+                    className="input-modern compact"
                   >
                     <option value={15}>15</option>
                     <option value={20}>20</option>
@@ -860,44 +871,23 @@ export default function Resultados() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  marginTop: "10px",
-                  gap: "10px",
-                }}
-              >
+              {/* --- BOTONES DE ACCIÓN (Lado a lado, como te gustó) --- */}
+              <div className="filter-actions-row">
                 <button
                   type="submit"
-                  className="btn-filtrar"
+                  className="btn-filtrar primary"
                   disabled={isLoading}
-                  style={{ width: "100%", opacity: isLoading ? 0.7 : 1 }}
                 >
-                  {isLoading ? (
-                    <>
-                      <span className="spinner-loader"></span> Buscando...
-                    </>
-                  ) : (
-                    <>
-                      <FiSearch /> Buscar
-                    </>
-                  )}
+                  {isLoading ? <span className="spinner-loader"></span> : <><FiSearch /> Buscar</>}
                 </button>
+                
                 <button
                   type="button"
-                  className="btn-filtrar"
+                  className="btn-filtrar secondary"
                   onClick={handleReset}
                   disabled={isLoading}
-                  style={{
-                    width: "100%",
-                    backgroundColor: "transparent",
-                    color: "#64748B",
-                    border: "1px solid #CBD5E1",
-                    boxShadow: "none",
-                  }}
                 >
-                  <FiTrash2 /> Limpiar
+                  <FiTrash2 />
                 </button>
               </div>
             </form>
@@ -927,101 +917,52 @@ export default function Resultados() {
           )}
         </div>
 
-        {showFooter && (
-          <div
-            style={{
-              marginTop: "auto",
-              padding: "1rem",
-              borderTop: "1px solid #e2e8f0",
-              backgroundColor: "#f8fafc",
-              marginBottom: "15px",
-            }}
-          >
+       {showFooter && (
+          <div className="sidebar-footer">
+            {/* Botón Admin (Si aplica) */}
             {user.isadministrator && (
-              <div style={{ marginBottom: 10 }}>
-                <p
-                  style={{
-                    fontSize: "0.7rem",
-                    fontWeight: "700",
-                    color: "#94a3b8",
-                    textTransform: "uppercase",
-                    marginBottom: "15px",
-                    marginTop: 0,
-                    textAlign: "center",
-                  }}
-                >
-                  Administración
-                </p>
+              <div style={{ marginBottom: 15 }}>
                 <button
                   onClick={() => setIsAdminOpen(true)}
-                  className="btn-filtrar"
-                  style={{
-                    backgroundColor: "#0198CC",
-                    color: "white",
-                    width: "100%",
-                    padding: "8px",
-                    justifyContent: "center",
-                  }}
+                  className="btn-admin-premium" // <--- CLASE NUEVA
                 >
-                  <FiUser size={16} /> Panel de Usuarios
+                  <FiUser size={18} /> 
+                  <span>Administración</span>
                 </button>
               </div>
             )}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 10,
-                paddingBottom: 10,
-                borderBottom: "1px dashed #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  width: 35,
-                  height: 35,
-                  borderRadius: "50%",
-                  background: "#e0f2fe",
-                  color: "#0284c7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+
+            {/* Tarjeta de Usuario */}
+            <div className="user-card-info">
+              <div className="user-avatar-footer">
                 <FiUser />
               </div>
               <div style={{ overflow: "hidden" }}>
                 <p
                   style={{
                     margin: 0,
-                    fontWeight: 600,
-                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
                     color: "#334155",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
-                    maxWidth: 140,
+                    maxWidth: 130,
                   }}
                 >
                   {user.fullname || user.username}
                 </p>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                  {user.email || "Sin email"}
+                <span style={{ fontSize: "0.65rem", color: "#64748b", display: "block" }}>
+                  {user.email || "Usuario"}
                 </span>
               </div>
             </div>
+
+            {/* Botón Logout */}
             <button
               onClick={handleLogout}
-              className="btn-filtrar"
-              style={{
-                backgroundColor: "white",
-                color: "#dc2626",
-                borderColor: "#fecaca",
-                width: "100%",
-                justifyContent: "center",
-              }}
+              className="btn-logout-modern"
             >
-              <FiLogOut /> Cerrar Sesión
+              <FiLogOut size={14} /> Cerrar Sesión
             </button>
           </div>
         )}
@@ -1066,7 +1007,7 @@ export default function Resultados() {
                             isUnread ? "font-bold-unread" : ""
                           }`}
                           onClick={(e) => handleRowClick(e, item)}
-                          onDoubleClick={() => handleViewResults(item)}
+                          
                           onContextMenu={(e) => handleContextMenu(e, item)}
                         >
                           <td style={{ textAlign: "center" }}>
@@ -1223,7 +1164,18 @@ export default function Resultados() {
                       // Detectar cambio de Subtítulo/Analisis
                       const isNewAnalysis = index === 0 || res.analisis !== prevRes?.analisis || isNewGroup;
 
-                      return (
+                      /* --- NUEVA LÓGICA ANTI-REDUNDANCIA --- */
+                      // Convertimos a minúsculas para comparar sin errores
+                      const analysisName = (res.analisis || "").toLowerCase().trim();
+                      const practiceName = (res.descripcionpractica || "").toLowerCase().trim();
+
+                      // Si el nombre de la práctica "empieza con" o "incluye" al nombre del análisis, es redundante.
+                      // Ej: Análisis "Glucosa" está en Práctica "Glucosa Enzimática" -> TRUE (Lo ocultamos)
+                      // Ej: Análisis "Hepatograma" está en Práctica "Bilirrubina" -> FALSE (Lo mostramos)
+                      const isRedundantHeader = practiceName.includes(analysisName);
+
+                      
+                       return (
                         <React.Fragment key={index}>
                           {/* GRUPO PRINCIPAL (Header Azul) */}
                           {res.grupotitulo && isNewGroup && (
@@ -1232,8 +1184,8 @@ export default function Resultados() {
                             </div>
                           )}
 
-                          {/* SUBTITULO (Si aplica) */}
-                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && (
+                          {/* SUBTITULO (Solo si aplica y NO es redundante) */}
+                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && !isRedundantHeader && (
                              <div className="analysis-subheader-modern">
                                 {res.analisis}
                              </div>

@@ -413,3 +413,83 @@ input[type="checkbox"]:hover {
   gap: 8px;
   font-size: 0.9rem;
 }
+
+/* Botón de acción circular genérico */
+.btn-mini-action {
+  /* 1. Flexbox para centrado perfecto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 2. Dimensiones fijas para que sea un círculo */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  
+  /* 3. Estética base */
+  border: 1px solid #cbd5e1;
+  background-color: white;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0; /* Importante quitar padding interno */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto Hover Genérico (Levantarse un poco) */
+.btn-mini-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* --- VARIANTES DE COLOR (Para limpiar tu JSX) --- */
+
+/* Editar (Gris/Azul oscuro) */
+.btn-mini-action.edit:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+/* Ver Detalle (Neutro) */
+.btn-mini-action.view:hover {
+  border-color: #cbd5e1;
+  color: #334155;
+  background-color: #e2e8f0;
+}
+
+/* Reset Password (Azul Celestial) */
+/* Puedes agregar esta clase en el botón de la llave */
+.btn-mini-action.reset {
+  color: #0198CC; 
+  border-color: #BAE6FD; 
+  background-color: #F0F9FF;
+}
+.btn-mini-action.reset:hover {
+  background-color: #0198CC;
+  color: white;
+  border-color: #0198CC;
+}
+
+/* Bloqueado (Rojo) */
+.btn-mini-action.blocked {
+  color: #ef4444; 
+  border-color: #fecaca; 
+  background-color: #fef2f2;
+}
+.btn-mini-action.blocked:hover {
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+/* Activo/Desbloquear (Verde) */
+.btn-mini-action.active-user {
+  color: #16a34a; 
+  border-color: #bbf7d0; 
+  background-color: #f0fdf4;
+}
+.btn-mini-action.active-user:hover {
+  background-color: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
