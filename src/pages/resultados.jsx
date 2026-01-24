@@ -1083,7 +1083,9 @@ export default function Resultados() {
                             </div>
                           </div>
                         </td>
-                        <td className="font-mono">{item.accessionnumber}</td>
+                        {/* --- AQUÍ ESTÁ EL CAMBIO SOLICITADO --- */}
+                        <td className="font-mono">{item.protocoloid}</td>
+                        {/* -------------------------------------- */}
                         <td>
                           {item.completo !== "" ? (
                             <span className="status-badge status-complete">
