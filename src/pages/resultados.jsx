@@ -8,7 +8,7 @@ import { ResponsiveToolbar } from "../components/ResponsiveToolbar";
 import { AdvancedPagination } from "../components/AdvancedPagination"; 
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import ModalUsuario from "../components/modalUsuario";
+import ModalUsuario from "../components/ModalUsuario";
 import ModalEditarUsuario from "../components/ModalEditarUsuario";
 import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
@@ -40,6 +40,9 @@ import {
   FiLayers,
   FiX,
   FiPlus,
+  FiAlertCircle, 
+  FiAlertTriangle, 
+  FiCheck
 } from "react-icons/fi";
 
 // --- SUBCOMPONENTE: BOTÓN TRI-ESTADO ---
@@ -1111,186 +1114,171 @@ export default function Resultados() {
         {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
-            <>
-              <div className="detail-header">
-                <div className="patient-info">
-                  <h2>
-                    <FiActivity className="icon-title" /> Visualización de
-                    Resultados
+            <div className="modern-report-container">
+              {/* --- 1. CABECERA TIPO TARJETA DEL PACIENTE --- */}
+              <div className="patient-header-card compact-linear">
+              <div className="patient-avatar-area small">
+                <div className="avatar-circle">
+                  <FiUser />
+                </div>
+              </div>
+
+              <div className="patient-details-linear">
+                {/* Fila 1: Nombre Principal */}
+                <div className="linear-top-row">
+                  <h2 className="patient-name-linear">
+                    {selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}
                   </h2>
-                  <div className="protocol-main-badge">
-                    Protocolo:{" "}
-                    <strong>{selectedProtocol.accessionnumber}</strong>
-                  </div>
                 </div>
-                <button
-                  className="btn-print"
-                  onClick={() => window.print()}
-                >
-                  <FiPrinter /> Imprimir Resultados
-                </button>
+
+                {/* Fila 2: Datos secundarios en una sola línea separados por puntos */}
+                <div className="linear-data-row">
+                  <span className="data-item">
+                    <span className="lbl">DNI:</span>
+                    <span className="val">{selectedProtocol.pacid}</span>
+                  </span>
+                  
+                  <span className="separator">•</span>
+                  
+                  <span className="data-item">
+                  <span className="lbl">Edad:</span>
+                  <span className="val">
+                    {selectedProtocol.pacage} años
+                    {/* Solo mostramos la fecha si existe */}
+                    {selectedProtocol.birthdate && ` (${formatDate(selectedProtocol.birthdate)})`}
+                  </span>
+                </span>
+
+                  <span className="separator">•</span>
+                  
+                  <span className="data-item">
+                    <span className="lbl">Dr:</span>
+                    <span className="val doc-name" title={selectedProtocol.doctor_name}>{selectedProtocol.doctor_name || "No especificado"}</span>
+                  </span>
+
+                  {/* Fecha destacada al final */}
+                  <span className="separator highlight">•</span>
+                  <span className="data-item date-item">
+                    <FiClock size={11} style={{ marginRight: 3 }} />
+                    <span className="val">{formatDate(selectedProtocol.ordereddate)}</span>
+                  </span>
+                </div>
               </div>
-              <div className="report-canvas">
-                <div className="report-paper">
-                  <div className="patient-data-grid">
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>Paciente</label>
-                        <span className="val-important">
-                          {selectedProtocol.apellidopaciente},{" "}
-                          {selectedProtocol.nombrepaciente}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Fecha</label>
-                        <span>
-                          {formatDate(selectedProtocol.ordereddate)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="data-row">
-                      <div className="data-cell">
-                        <label>Sede</label>
-                        <span>
-                          {selectedProtocol.paclocname ||
-                            selectedProtocol.paclocid ||
-                            "-"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Sexo</label>
-                        <span>
-                          {selectedProtocol.pacsex === "M"
-                            ? "Masculino"
-                            : "Femenino"}
-                        </span>
-                      </div>
-                      <div className="data-cell">
-                        <label>Edad</label>
-                        <span>{selectedProtocol.pacage} años</span>
-                      </div>
-                    </div>
-                    <div className="data-row"></div>
+            </div>
+
+              {/* --- 2. LISTA DE RESULTADOS --- */}
+              <div className="results-scroll-area">
+                {isLoadingResults ? (
+                  <div className="loading-results">
+                    <div className="spinner"></div> Cargando resultados...
                   </div>
-                  <hr className="divider" />
-                  <div className="results-content">
-                    {isLoadingResults ? (
-                      <div className="loading-results">
-                        Cargando análisis...
-                      </div>
-                    ) : isErrorResults ? (
-                      <div className="error-container">
-                        Error al conectar con el servidor.
-                      </div>
-                    ) : resultsData?.resultados?.length > 0 ? (
-                      <>
-                        <div className="results-table-header">
-                          <span>Determinación</span>
-                          <span>Resultado</span>
-                          <span>Unidades</span>
-                          <span>Valores de Referencia</span>
-                        </div>
-                        {resultsData.resultados.map((res, index) => {
-                          const prevRes =
-                            index > 0
-                              ? resultsData.resultados[index - 1]
-                              : null;
-                          const showSectionTitle =
-                            index === 0 ||
-                            res.grupotitulo !== prevRes.grupotitulo;
-                          const showAnalysisTitle =
-                            index === 0 ||
-                            res.analisis !== prevRes?.analisis ||
-                            showSectionTitle;
-                          return (
-                            <React.Fragment key={index}>
-                              {res.grupotitulo && showSectionTitle && (
-                                <div className="result-category">
-                                  {res.grupotitulo}
-                                </div>
-                              )}
-                              {showAnalysisTitle && (
-                                <div
-                                  className="analysis-header"
-                                  style={{
-                                    backgroundColor: "#f1f5f9",
-                                    padding: "8px 12px",
-                                    fontWeight: "bold",
-                                    color: "#334155",
-                                    fontSize: "0.95rem",
-                                    borderBottom: "1px solid #e2e8f0",
-                                    marginTop: showSectionTitle
-                                      ? "0"
-                                      : "5px",
-                                  }}
-                                >
-                                  {res.analisis}
-                                </div>
-                              )}
-                              <div className="result-item-row">
-                                <div className="det-col">
-                                  <span style={{ fontWeight: 500 }}>
-                                    {res.descripcionpractica}
-                                  </span>
-                                  {res.metodo && (
-                                    <div
-                                      style={{
-                                        fontSize: "0.75rem",
-                                        color: "#64748b",
-                                        marginTop: "2px",
-                                      }}
-                                    >
-                                      Mtd: {res.metodo}
+                ) : isErrorResults ? (
+                  <div className="error-container">Error al cargar resultados.</div>
+                ) : resultsData?.resultados?.length > 0 ? (
+                  <div className="results-list-modern">
+                    
+                    {/* Encabezados de columnas generales */}
+                    <div className="results-cols-header">
+                        <span className="col-det">Determinación</span>
+                        <span className="col-res">Resultado</span>
+                        <span className="col-ref">Valores Ref.</span>
+                        <span className="col-unit">Unidad</span>
+                        <span className="col-status">Estado</span>
+                    </div>
+
+                    {resultsData.resultados.map((res, index) => {
+                      const prevRes = index > 0 ? resultsData.resultados[index - 1] : null;
+                      
+                      // Detectar cambio de Grupo (Bioquímica, Hematología...)
+                      const isNewGroup = index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
+                      
+                      // Detectar cambio de Subtítulo/Analisis
+                      const isNewAnalysis = index === 0 || res.analisis !== prevRes?.analisis || isNewGroup;
+
+                      return (
+                        <React.Fragment key={index}>
+                          {/* GRUPO PRINCIPAL (Header Azul) */}
+                          {res.grupotitulo && isNewGroup && (
+                            <div className="group-header-modern">
+                              {res.grupotitulo}
+                            </div>
+                          )}
+
+                          {/* SUBTITULO (Si aplica) */}
+                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && (
+                             <div className="analysis-subheader-modern">
+                                {res.analisis}
+                             </div>
+                          )}
+
+                          {/* FILA DE RESULTADO */}
+                          <div className="result-row-modern group-hover-trigger">
+                            
+                            {/* Columna 1: Nombre y Badges */}
+                            <div className="col-det">
+                                <span className="test-name">{res.descripcionpractica}</span>
+                                {/* Ejemplo de badges (puedes condicionarlos) */}
+                                {res.metodo && <span className="method-badge">{res.metodo}</span>}
+                                
+                                {/* TOOLTIP FLOTANTE (Como en la imagen) */}
+                                {res.observaciones && (
+                                    <div className="hover-tooltip">
+                                        <strong>Información:</strong>
+                                        <p>{res.observaciones}</p>
                                     </div>
-                                  )}
-                                </div>
-                                <div className="res-col highlighted">
-                                  {res.resultado}
-                                  {res.notaresultado && (
-                                    <div className="res-note">
-                                      {res.notaresultado}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="uni-col">
-                                  {res.unidadmedida || "-"}
-                                </div>
-                                <div className="ref-col">
-                                  {res.valoresreferencia ||
-                                    res.rangovalidacion ||
-                                    "-"}
-                                </div>
-                              </div>
-                              {res.observaciones && (
-                                <div className="res-obs">
-                                  Obs: {res.observaciones}
-                                </div>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                        {resultsData?.comentarios?.length > 0 && (
-                          <div className="general-comments">
-                            <h4>Comentarios Generales:</h4>
-                            {resultsData.comentarios.map((c, i) => (
-                              <p key={i}>{c.comentario}</p>
-                            ))}
+                                )}
+                            </div>
+
+                            {/* Columna 2: Resultado */}
+                            <div className="col-res">
+                                <span className="res-value">{res.resultado}</span>
+                            </div>
+
+                            {/* Columna 3: Referencia */}
+                            <div className="col-ref">
+                                {res.valoresreferencia || res.rangovalidacion || "-"}
+                            </div>
+
+                            {/* Columna 4: Unidad */}
+                            <div className="col-unit">
+                                {res.unidadmedida}
+                            </div>
+
+                            {/* Columna 5: Estado (Simulado visualmente) */}
+                            <div className="col-status">
+                                {/* LÓGICA DE ESTADO: 
+                                    Aquí deberías usar una propiedad real de tu backend si existe (ej: res.flag).
+                                    Como ejemplo, renderizo 'Normal' por defecto. */}
+                                {res.flag === 'H' || res.flag === 'L' ? (
+                                    <span className="status-pill status-danger">
+                                        Elevado <FiAlertCircle />
+                                    </span>
+                                ) : (
+                                    <span className="status-pill status-success">
+                                        Normal <FiCheck />
+                                    </span>
+                                )}
+                            </div>
                           </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="no-data-message">
-                        <FiInfo size={30} />
-                        <p>
-                          Este protocolo no contiene resultados registrados
-                          aún.
-                        </p>
-                      </div>
-                    )}
+                          
+                          {/* Nota debajo del resultado si existe */}
+                          {res.notaresultado && (
+                              <div className="result-note-row">
+                                  Nota: {res.notaresultado}
+                              </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <div className="no-data-message">
+                    <FiInfo size={30} />
+                    <p>No hay resultados visualizables.</p>
+                  </div>
+                )}
               </div>
-            </>
+            </div>
           ) : (
             <div className="no-selection-message">
               {selectedItems.length > 1 ? (
