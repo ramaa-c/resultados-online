@@ -5,32 +5,27 @@ import {
   FiChevronsLeft, 
   FiChevronsRight 
 } from "react-icons/fi";
-import '../styles/resultados.css'; // Usamos tus estilos existentes
+import '../styles/resultados.css';
 
 export const AdvancedPagination = ({ 
   page, 
   onPageChange, 
-  hasMoreData, // Prop clave: true si la API trajo resultados llenos
+  hasMoreData,
   isLoading 
 }) => {
   
-  // Función segura para cambiar página
   const handleMove = (newPage) => {
     if (newPage >= 1 && !isLoading) {
       onPageChange(newPage);
     }
   };
 
-  // Renderizar números de página (Ventana deslizante)
-  // Mostramos: Actual - 2, Actual - 1, [Actual], Actual + 1, Actual + 2
   const renderPageNumbers = () => {
     const pages = [];
-    const range = 2; // Cuántos números a los lados
+    const range = 2;
 
     for (let i = page - range; i <= page + range; i++) {
       if (i > 0) {
-        // Solo mostramos páginas futuras si "parece" haber más datos
-        // O si son páginas pasadas (que sabemos que existen)
         const isFuture = i > page;
         if (isFuture && !hasMoreData) continue; 
 
@@ -51,13 +46,13 @@ export const AdvancedPagination = ({
 
   return (
     <div className="pagination-bar">
-      {/* Texto informativo (Opcional, ya que no tenemos total) */}
+      {/* Texto informativo */}
       <span style={{ color: "#666", fontSize: "0.85rem", fontWeight: 500 }}>
         Página {page}
       </span>
 
       <div className="pagination-controls">
-        {/* --- RETROCESO RÁPIDO (-10) --- */}
+        {/* --- RETROCESO (-10) --- */}
         <button 
           className="btn-page" 
           onClick={() => handleMove(page - 10)}
@@ -90,7 +85,7 @@ export const AdvancedPagination = ({
           <FiChevronRight />
         </button>
 
-        {/* --- AVANCE RÁPIDO (+10) --- */}
+        {/* --- AVANCE (+10) --- */}
         <button 
           className="btn-page" 
           onClick={() => handleMove(page + 10)}
