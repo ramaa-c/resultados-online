@@ -68,7 +68,7 @@ export default function Email({ isOpen, onClose, protocolo }) {
               <label>
                 <FiHash /> PROTOCOLO
               </label>
-              <span>{protocolo.accessionnumber || protocolo.protocoloid}</span>
+              <span>{protocolo.protocoloid || protocolo.accessionnumber}</span>
             </div>
             <div className="info-item">
               <label>
