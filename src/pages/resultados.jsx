@@ -1020,7 +1020,9 @@ export default function Resultados() {
                           )}
                           <div className="result-row-modern group-hover-trigger">
                             <div className="col-det">
-                              <span className="test-name">{res.descripcionpractica}</span>
+                              <span className="test-name">
+                                {(res.descripcionpractica || "").replace(/\s*%$/, "")}
+                              </span>
                               {res.metodo && <span className="method-badge">{res.metodo}</span>}
                               {res.observaciones && <div className="hover-tooltip"><strong>Información:</strong><p>{res.observaciones}</p></div>}
                             </div>

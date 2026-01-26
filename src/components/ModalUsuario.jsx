@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,9 +13,8 @@ import {
   FiPlus,
   FiCheck,
   FiSave,
-  FiSettings,
   FiEdit3,
-  FiFileText
+  FiLoader // <--- 1. Importamos el icono de carga
 } from "react-icons/fi";
 import "../styles/modalUsuario.css";
 
@@ -35,7 +34,7 @@ const schema = z.object({
   forwarderidlist: z.array(z.string()).optional(),
 });
 
-// --- COMPONENTE: MODAL PARA INPUT DE TEXTO (ESTILO FINAL) ---
+// --- COMPONENTE: MODAL PARA INPUT DE TEXTO ---
 const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose }) => {
   const [textValue, setTextValue] = useState(initialValue);
 
@@ -43,28 +42,17 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
     <div 
       onClick={(e) => e.stopPropagation()} 
       style={{
-        position: "absolute", 
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: "rgba(255, 255, 255, 0.6)", 
-        zIndex: 60,
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center",
-        borderRadius: "8px", 
-        backdropFilter: "blur(3px)" 
+        position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: "rgba(255, 255, 255, 0.6)", zIndex: 60,
+        display: "flex", justifyContent: "center", alignItems: "center",
+        borderRadius: "8px", backdropFilter: "blur(3px)" 
       }}
     >
       <div style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e2e8f0",
-        padding: "15px 20px", 
-        borderRadius: "12px",
-        width: "280px", 
+        backgroundColor: "#ffffff", border: "1px solid #e2e8f0",
+        padding: "15px 20px", borderRadius: "12px", width: "280px", 
         boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)", 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "10px",
-        animation: "fadeIn 0.2s ease-out"
+        display: "flex", flexDirection: "column", gap: "10px", animation: "fadeIn 0.2s ease-out"
       }}>
         <div style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "8px", marginBottom: "0px" }}>
           <h4 style={{ margin: "0", fontSize: "0.85rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: "600" }}>
@@ -83,18 +71,10 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
             rows={3}
             placeholder="Escriba los servicios aquí..."
             style={{
-              width: "100%",
-              backgroundColor: "#f8fafc",
-              color: "#334155",
-              border: "1px solid #cbd5e1",
-              borderRadius: "8px",
-              padding: "10px",
-              fontFamily: "'Inter', sans-serif",
-              fontSize: "0.9rem",
-              resize: "none",
-              outline: "none",
-              boxSizing: "border-box",
-              lineHeight: "1.4"
+              width: "100%", backgroundColor: "#f8fafc", color: "#334155",
+              border: "1px solid #cbd5e1", borderRadius: "8px", padding: "10px",
+              fontFamily: "'Inter', sans-serif", fontSize: "0.9rem", resize: "none",
+              outline: "none", boxSizing: "border-box", lineHeight: "1.4"
             }}
             onFocus={(e) => {
               e.target.style.backgroundColor = "#ffffff";
@@ -114,8 +94,7 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "5px" }}>
           <button 
-            type="button" 
-            onClick={onClose} 
+            type="button" onClick={onClose} 
             style={{ 
               border: "1px solid #e2e8f0", background: "white", color: "#64748b",
               padding: "6px 12px", borderRadius: "6px", cursor: "pointer", 
@@ -127,8 +106,7 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
             Cancelar
           </button>
           <button 
-            type="button" 
-            onClick={() => onSave(textValue)} 
+            type="button" onClick={() => onSave(textValue)} 
             style={{ 
               background: "linear-gradient(135deg, #0198CC 0%, #006b8f 100%)", 
               color: "white", border: "none", padding: "6px 16px", 
@@ -146,16 +124,10 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
 
 // --- SELECTOR ASÍNCRONO ---
 const AsyncSelector = ({
-  title,
-  queryKey,
-  fetchUrl,
-  searchParamName,
-  selectedIds,
-  onToggleItem,
-  isDisabled,
-  hasConfiguration = false,
-  configurations = {}, 
-  onConfigureItem = () => {} 
+  title, queryKey, fetchUrl, searchParamName,
+  selectedIds, onToggleItem, isDisabled,
+  hasConfiguration = false, configurations = {}, onConfigureItem = () => {},
+  initialLabels = {}
 }) => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -163,14 +135,16 @@ const AsyncSelector = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [itemsRegistry, setItemsRegistry] = useState({});
 
+  useEffect(() => {
+    if (initialLabels && Object.keys(initialLabels).length > 0) {
+      setItemsRegistry(prev => ({ ...prev, ...initialLabels }));
+    }
+  }, [initialLabels]);
+
   const { data, isLoading, isError } = useQuery({
     queryKey: [queryKey, page, searchQuery],
     queryFn: async () => {
-      const params = {
-        page: page,
-        page_size: pageSize,
-        [searchParamName]: searchQuery,
-      };
+      const params = { page, page_size: pageSize, [searchParamName]: searchQuery };
       const res = await api.get(fetchUrl, { params });
       const rawData = res.data.items || res.data;
 
@@ -181,8 +155,7 @@ const AsyncSelector = ({
         }));
       } else {
         return Object.entries(rawData).map(([id, label]) => ({
-          id: id.toString(),
-          label: label || id,
+          id: id.toString(), label: label || id,
         }));
       }
     },
@@ -193,25 +166,15 @@ const AsyncSelector = ({
     if (data && Array.isArray(data)) {
       setItemsRegistry((prevRegistry) => {
         const newEntries = {};
-        data.forEach((item) => {
-          newEntries[item.id] = item.label;
-        });
+        data.forEach((item) => { newEntries[item.id] = item.label; });
         return { ...prevRegistry, ...newEntries };
       });
     }
   }, [data]);
 
-  const triggerSearch = () => {
-    setSearchQuery(inputValue);
-    setPage(1);
-  };
-
+  const triggerSearch = () => { setSearchQuery(inputValue); setPage(1); };
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerSearch();
-    }
+    if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); triggerSearch(); }
   };
 
   return (
@@ -300,26 +263,20 @@ const AsyncSelector = ({
                         style={{
                           border: hasText ? "1px solid #bae6fd" : "1px dashed #cbd5e1",
                           background: hasText ? "#e0f2fe" : "transparent",
-                          cursor: "pointer", 
-                          color: hasText ? "#0284c7" : "#64748b",
-                          padding: "4px 8px",
-                          borderRadius: "4px", 
-                          display: "flex", 
-                          alignItems: "center",
-                          gap: "4px",
-                          marginRight: "8px",
-                          transition: "all 0.2s",
-                          fontSize: "0.75rem",
-                          fontWeight: "600"
+                          cursor: "pointer", color: hasText ? "#0284c7" : "#64748b",
+                          padding: "4px 8px", borderRadius: "4px", 
+                          display: "flex", alignItems: "center", gap: "4px",
+                          marginRight: "8px", transition: "all 0.2s",
+                          fontSize: "0.75rem", fontWeight: "600"
                         }}
                         onMouseEnter={(e) => { if(!hasText) e.currentTarget.style.backgroundColor = "#f1f5f9"; }}
                         onMouseLeave={(e) => { if(!hasText) e.currentTarget.style.backgroundColor = "transparent"; }}
                       >
-                         {hasText ? (
-                           <> <FiEdit3 size={12} /> <span>Editar</span> </>
-                         ) : (
-                           <> <FiPlus size={12} /> <span>Servicios</span> </>
-                         )}
+                          {hasText ? (
+                            <> <FiEdit3 size={12} /> <span>Editar</span> </>
+                          ) : (
+                            <> <FiPlus size={12} /> <span>Servicios</span> </>
+                          )}
                       </button>
                     )}
 
@@ -337,7 +294,7 @@ const AsyncSelector = ({
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
+// --- COMPONENTE PRINCIPAL UNIFICADO ---
 const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
   const {
     register, handleSubmit, watch, setValue, reset,
@@ -345,16 +302,10 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      username: "",
-      fullname: "",
-      email: "",
-      isadministrator: false,
-      canviewreserved: false,
-      mustchangepassword: true,
-      canviewallbranches: false,
-      branchidlist: [],
-      canviewallforwarders: false,
-      forwarderidlist: [],
+      username: "", fullname: "", email: "",
+      isadministrator: false, canviewreserved: false, mustchangepassword: true,
+      canviewallbranches: false, branchidlist: [],
+      canviewallforwarders: false, forwarderidlist: [],
     },
   });
 
@@ -367,9 +318,40 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
   const [forwarderServicesMap, setForwarderServicesMap] = useState({});
   const [configuringForwarder, setConfiguringForwarder] = useState(null);
 
+  const getInitialLabels = (ids, names) => {
+    const map = {};
+    if (ids && names && Array.isArray(ids) && Array.isArray(names)) {
+      const limit = Math.min(ids.length, names.length);
+      for (let i = 0; i < limit; i++) {
+        map[String(ids[i])] = names[i];
+      }
+    }
+    return map;
+  };
+
+  const initialBranchLabels = useMemo(() => {
+    if (!userToEdit) return {};
+    return getInitialLabels(userToEdit.branchidlist, userToEdit.branchnamelist);
+  }, [userToEdit]);
+
+  const initialForwarderLabels = useMemo(() => {
+    if (!userToEdit) return {};
+    return getInitialLabels(userToEdit.forwarderidlist, userToEdit.forwardernamelist);
+  }, [userToEdit]);
+
   useEffect(() => {
     if (userToEdit) {
-      reset(userToEdit);
+      const safeBranchIds = userToEdit.branchidlist ? userToEdit.branchidlist.map(String) : [];
+      const safeForwarderIds = userToEdit.forwarderidlist ? userToEdit.forwarderidlist.map(String) : [];
+      
+      const formData = {
+         ...userToEdit,
+         branchidlist: safeBranchIds,
+         forwarderidlist: safeForwarderIds
+      };
+      
+      reset(formData);
+
       if (userToEdit.forwarderidlist && userToEdit.forwarderservicelist) {
         const servicesMap = {};
         userToEdit.forwarderidlist.forEach((fwId, index) => {
@@ -380,7 +362,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
       }
     } else {
       reset({ 
-        username: "", fullname: "", email: "", status: "activo", 
+        username: "", fullname: "", email: "", 
         isadministrator: false, canviewreserved: false, mustchangepassword: true,
         canviewallbranches: false, branchidlist: [], 
         canviewallforwarders: false, forwarderidlist: [] 
@@ -399,7 +381,6 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         delete newMap[itemId];
         setForwarderServicesMap(newMap);
     }
-
     setValue(fieldName, newList, { shouldDirty: true });
   };
 
@@ -429,21 +410,24 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
         ...data,
         userid: userToEdit ? userToEdit.userid : 0,
         status: userToEdit ? userToEdit.status : "activo",
-        mustchangepassword: true,
+        mustchangepassword: data.mustchangepassword,
         createdate: createdStr,
         expirationdate: expirationStr,
         branchidlist: data.canviewallbranches ? [] : data.branchidlist,
         branchnamelist: [],
-        
         forwarderidlist: finalForwarderIds,
         forwarderservicelist: data.canviewallforwarders ? [] : finalServiceList, 
         forwardernamelist: [],
       };
 
-      if (userToEdit) await api.post("/users", payload);
-      else await api.post("/users", payload);
+      if (userToEdit) {
+        await api.put("/users", payload);
+        toast.success("Usuario actualizado correctamente");
+      } else {
+        await api.post("/users", payload);
+        toast.success("Usuario creado correctamente");
+      }
 
-      toast.success(userToEdit ? "Usuario actualizado" : "Usuario creado");
       onUserSaved && onUserSaved();
       onClose();
     } catch (error) {
@@ -457,156 +441,102 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
 
   return (
     <div className="modal-usuario-overlay">
+      
+      {/* 2. AGREGAMOS EL CSS KEYFRAME AQUÍ MISMO PARA QUE FUNCIONE DIRECTO */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+
       <div className="modal-overlay">
         <div className="modal-container" style={{ position: "relative" }}> 
           
           <div className="modal-header">
-             <h2 className="modal-title">{userToEdit ? <FiCheck /> : <FiPlus />} {userToEdit ? "Editar Usuario" : "Nuevo Usuario"}</h2>
+             <h2 className="modal-title">
+                {userToEdit ? <FiEdit3 /> : <FiPlus />} {userToEdit ? "Editar Usuario" : "Nuevo Usuario"}
+             </h2>
              <button type="button" className="modal-close-btn" onClick={onClose}><FiX /></button>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
             <div className="modal-body">
-              {/* --- DATOS DE CUENTA (Optimizado para aprovechar el espacio 2x2) --- */}
+              
+              {/* --- DATOS DE CUENTA COMPACTADOS --- */}
               <div>
                 <h4 className="section-title">Datos de Cuenta</h4>
-                
-                {/* Usamos CSS Grid de 2 columnas:
-                    1. Usuario       2. Nombre
-                    3. Email         4. Checkboxes (Aquí llenamos el hueco)
-                */}
-                <div style={{ 
-                  display: "grid", 
-                  gridTemplateColumns: "1fr 1fr", 
-                  gap: "15px", 
-                  marginBottom: "-25px" 
-                }}>
-                  
-                  {/* 1. Usuario */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "15px", rowGap: "5px", marginBottom: "-15px" }}>
                   <div className="form-group">
-                    <label className="form-label">Usuario</label>
-                    <input type="text" className={`form-input ${errors.username ? "error" : ""}`} {...register("username")} />
+                    <label className="form-label" style={{ marginBottom: "2px" }}>Usuario</label>
+                    <input type="text" className={`form-input ${errors.username ? "error" : ""}`} {...register("username")} style={{ height: "32px", padding: "0 8px" }} />
                     {errors.username && <span className="error-msg">{errors.username.message}</span>}
                   </div>
-
-                  {/* 2. Nombre Completo */}
                   <div className="form-group">
-                    <label className="form-label">Nombre Completo</label>
-                    <input type="text" className={`form-input ${errors.fullname ? "error" : ""}`} {...register("fullname")} />
+                    <label className="form-label" style={{ marginBottom: "2px" }}>Nombre Completo</label>
+                    <input type="text" className={`form-input ${errors.fullname ? "error" : ""}`} {...register("fullname")} style={{ height: "32px", padding: "0 8px" }} />
                     {errors.fullname && <span className="error-msg">{errors.fullname.message}</span>}
                   </div>
-
-                  {/* 3. Email */}
                   <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input type="email" className={`form-input ${errors.email ? "error" : ""}`} {...register("email")} />
+                    <label className="form-label" style={{ marginBottom: "2px" }}>Email</label>
+                    <input type="email" className={`form-input ${errors.email ? "error" : ""}`} {...register("email")} style={{ height: "32px", padding: "0 8px" }} />
                     {errors.email && <span className="error-msg">{errors.email.message}</span>}
                   </div>
-
-                  {/* 4. Checkboxes (Ocupando el espacio libre a la derecha del Email) */}
-                  <div style={{ 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    justifyContent: "flex-end", // Empuja hacia abajo para alinearse con los inputs
-                    gap: "12px",
-                    paddingBottom: "5px" // Un pequeño ajuste para que no pegue al borde inferior
-                  }}>
-                    
-                    {/* Admin */}
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                      <input 
-                        type="checkbox" 
-                        {...register("isadministrator")} 
-                        style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} 
-                      />
-                      <div style={{ display: "flex", flexDirection: "column", lineHeight: "1.1" }}>
-                         <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>Es Administrador</span>
-                         <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>(Acceso total)</span>
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: "5px", paddingBottom: "2px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                      <input type="checkbox" {...register("isadministrator")} style={{ width: "14px", height: "14px", margin: 0, cursor: "pointer" }} />
+                      <div style={{ display: "flex", flexDirection: "column", lineHeight: "1" }}>
+                          <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>Es Administrador</span>
+                          <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>(Acceso total)</span>
                       </div>
                     </label>
-
-                    {/* Reservados */}
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                      <input 
-                        type="checkbox" 
-                        {...register("canviewreserved")} 
-                        style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} 
-                      />
-                      <div style={{ display: "flex", flexDirection: "column", lineHeight: "1.1" }}>
-                         <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>Ver Reservados</span>
-                         <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>(Confidenciales)</span>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                      <input type="checkbox" {...register("canviewreserved")} style={{ width: "14px", height: "14px", margin: 0, cursor: "pointer" }} />
+                      <div style={{ display: "flex", flexDirection: "column", lineHeight: "1" }}>
+                          <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>Ver Reservados</span>
+                          <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>(Confidenciales)</span>
                       </div>
                     </label>
-
                   </div>
                 </div>
               </div>
 
               {/* --- ACCESOS Y RESTRICCIONES --- */}
               <div>
-                {/* Título pegado al contenido */}
-                <h4 className="section-title" style={{ marginBottom: "5px", marginTop: "5px" }}>
-                  Accesos y Restricciones
-                </h4>
-                
+                <h4 className="section-title" style={{ marginBottom: "5px", marginTop: "10px" }}>Accesos y Restricciones</h4>
                 <div className="selectors-row">
-                  
-                  {/* BLOQUE 1: SEDES */}
                   <div>
-                    <div style={{ 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      marginBottom: "2px", 
-                      alignItems: "center" 
-                    }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", alignItems: "center" }}>
                       <label className="form-label" style={{ margin: 0 }}>Sedes</label>
                       <label style={{ fontSize: "0.8rem", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
                         <input type="checkbox" {...register("canviewallbranches")} style={{ margin: 0, width: "13px", height: "13px", cursor: "pointer" }} /> 
                         <span style={{ position: "relative", bottom: "1px" }}>Ver Todas</span>
                       </label>
                     </div>
-
                      <AsyncSelector
-                      title="Sedes"
-                      queryKey="branches"
-                      fetchUrl="/branches"
-                      searchParamName="branch_name"
-                      isDisabled={watchAllBranches}
-                      selectedIds={branchIdList}
+                      title="Sedes" queryKey="branches" fetchUrl="/branches" searchParamName="branch_name"
+                      isDisabled={watchAllBranches} selectedIds={branchIdList}
                       onToggleItem={(item) => handleToggle(item, "branchidlist", branchIdList)}
+                      initialLabels={initialBranchLabels}
                     />
                   </div>
-
-                  {/* BLOQUE 2: CLIENTES */}
                   <div>
-                    
-                    <div style={{ 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      marginBottom: "2px", 
-                      alignItems: "center", 
-                      marginTop: "10px" 
-                    }}>
-                       <label className="form-label" style={{ margin: 0 }}>Clientes</label>
-                       
-                       <label style={{ fontSize: "0.8rem", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-                         <input type="checkbox" {...register("canviewallforwarders")} style={{ margin: 0, width: "13px", height: "13px", cursor: "pointer" }} /> 
-                         <span style={{ position: "relative", bottom: "1px" }}>Ver Todos</span>
-                       </label>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", alignItems: "center", marginTop: "10px" }}>
+                        <label className="form-label" style={{ margin: 0 }}>Clientes</label>
+                        <label style={{ fontSize: "0.8rem", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <input type="checkbox" {...register("canviewallforwarders")} style={{ margin: 0, width: "13px", height: "13px", cursor: "pointer" }} /> 
+                          <span style={{ position: "relative", bottom: "1px" }}>Ver Todos</span>
+                        </label>
                     </div>
-                    
                     <AsyncSelector
-                      title="Clientes"
-                      queryKey="forwarders"
-                      fetchUrl="/forwarders"
-                      searchParamName="forwarder_name"
-                      isDisabled={watchAllForwarders}
-                      selectedIds={forwarderIdList}
+                      title="Clientes" queryKey="forwarders" fetchUrl="/forwarders" searchParamName="forwarder_name"
+                      isDisabled={watchAllForwarders} selectedIds={forwarderIdList}
                       onToggleItem={(item) => handleToggle(item, "forwarderidlist", forwarderIdList)}
-                      
-                      hasConfiguration={true}
-                      configurations={forwarderServicesMap} 
+                      hasConfiguration={true} configurations={forwarderServicesMap} 
                       onConfigureItem={(item) => setConfiguringForwarder(item)} 
+                      initialLabels={initialForwarderLabels}
                     />
                   </div>
                 </div>
@@ -615,7 +545,30 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
 
             <div className="modal-footer">
                <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
-               <button type="submit" disabled={isSubmitting} className="btn-save"><FiSave /> Guardar</button>
+               
+               {/* 3. BOTÓN CON ANIMACIÓN DE CARGA */}
+               <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="btn-save"
+                style={{ 
+                  display: "flex", alignItems: "center", gap: "8px", 
+                  opacity: isSubmitting ? 0.7 : 1, 
+                  cursor: isSubmitting ? "not-allowed" : "pointer" 
+                }}
+               >
+                 {isSubmitting ? (
+                   <>
+                     <FiLoader style={{ animation: "spin 1s linear infinite" }} />
+                     {userToEdit ? "Actualizando..." : "Guardando..."}
+                   </>
+                 ) : (
+                   <>
+                     <FiSave /> {userToEdit ? "Actualizar" : "Guardar"}
+                   </>
+                 )}
+               </button>
+
             </div>
           </form>
 
@@ -623,8 +576,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
             <ServiceConfigModal 
               forwarderName={configuringForwarder.label}
               initialValue={forwarderServicesMap[configuringForwarder.id] || ""}
-              onSave={handleSaveServices}
-              onClose={() => setConfiguringForwarder(null)}
+              onSave={handleSaveServices} onClose={() => setConfiguringForwarder(null)}
             />
           )}
 
