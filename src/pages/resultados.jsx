@@ -4,8 +4,8 @@ import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
 import { getProtocolPdf } from "../services/protocols.service";
-import { ResponsiveToolbar } from "../components/ResponsiveToolbar"; 
-import { AdvancedPagination } from "../components/AdvancedPagination"; 
+import { ResponsiveToolbar } from "../components/ResponsiveToolbar";
+import { AdvancedPagination } from "../components/AdvancedPagination";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/ModalUsuario";
@@ -40,10 +40,10 @@ import {
   FiLayers,
   FiX,
   FiPlus,
-  FiAlertCircle, 
-  FiAlertTriangle, 
+  FiAlertCircle,
+  FiAlertTriangle,
   FiCheck,
-  FiWifiOff 
+  FiWifiOff,
 } from "react-icons/fi";
 
 // --- COMPONENTE VISUAL DE ERROR ---
@@ -52,18 +52,13 @@ const ErrorStateDisplay = ({ title, message, retryAction }) => (
     <div className="error-icon-wrapper">
       <FiAlertTriangle size={36} />
     </div>
-    <h3 className="error-title">
-      {title || "Error de Carga"}
-    </h3>
+    <h3 className="error-title">{title || "Error de Carga"}</h3>
     <p className="error-message">
-      {message || "Ocurrió un inconveniente al intentar obtener los datos. Por favor, verifique su conexión o intente nuevamente."}
+      {message ||
+        "Ocurrió un inconveniente al intentar obtener los datos. Por favor, verifique su conexión o intente nuevamente."}
     </p>
     {retryAction && (
-      <button 
-        onClick={retryAction}
-        className="btn-retry"
-        type="button"
-      >
+      <button onClick={retryAction} className="btn-retry" type="button">
         <FiActivity /> Reintentar
       </button>
     )}
@@ -428,13 +423,14 @@ export default function Resultados() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
   const { markRead, markUnread } = useProtocolMutations();
-  const { data, isLoading, isError, isFetching, refetch } = useProtocols(activeFilters);
+  const { data, isLoading, isError, isFetching, refetch } =
+    useProtocols(activeFilters);
 
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
-    refetch: refetchResults
+    refetch: refetchResults,
   } = useProtocolResults(selectedProtocol?.protocoloid);
 
   // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
@@ -463,22 +459,25 @@ export default function Resultados() {
         if (!isContextMenuClick) {
           setContextMenu(null);
         }
-        return; 
+        return;
       }
 
       if (selectedItems.length === 0) return;
 
-      const isRowClick = target.closest("tr"); 
+      const isRowClick = target.closest("tr");
       const isToolbarClick = target.closest(".toolbar-container");
-      const isModalClick = target.closest(".modal-overlay") || target.closest(".ReactModal__Content");
+      const isModalClick =
+        target.closest(".modal-overlay") ||
+        target.closest(".ReactModal__Content");
       const isDetailPanel = target.closest(".detail-panel");
       const isSafeDetailClick = isDetailPanel && selectedProtocol !== null;
 
-      if (!isRowClick && 
-          !isToolbarClick && 
-          !isModalClick && 
-          !isContextMenuClick &&
-          !isSafeDetailClick
+      if (
+        !isRowClick &&
+        !isToolbarClick &&
+        !isModalClick &&
+        !isContextMenuClick &&
+        !isSafeDetailClick
       ) {
         setSelectedItems([]);
         setSelectedProtocol(null);
@@ -591,39 +590,39 @@ export default function Resultados() {
     navigate("/login");
   };
 
- const handleRowClick = (e, item) => {
-    // 1. Lógica de Selección Múltiple (Ctrl/Meta Key)
+  const handleRowClick = (e, item) => {
+    // 1. Lógica de Selección Múltiple
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
-        const exists = prev.some((p) => String(p.protocoloid) === String(item.protocoloid));
-        
+        const exists = prev.some(
+          (p) => String(p.protocoloid) === String(item.protocoloid),
+        );
+
         if (exists) {
-          return prev.filter((p) => String(p.protocoloid) !== String(item.protocoloid));
+          return prev.filter(
+            (p) => String(p.protocoloid) !== String(item.protocoloid),
+          );
         } else {
           return [...prev, item];
         }
       });
-      // Si estamos seleccionando múltiples con Ctrl, quizás NO queremos cambiar el panel de detalle automáticamente
-      // para no volver loco al usuario. Opcional.
     } else {
-      // 2. Selección Simple (Comportamiento normal)
+      // 2. Selección Simple
       setSelectedItems([item]);
-      
+
       // 3. CARGAR RESULTADOS EN EL PANEL DERECHO
       setSelectedProtocol(item);
-      
-      // 4. MARCAR COMO LEÍDO (Si no lo está)
+
+      // 4. MARCAR COMO LEÍDO
       if (item.leido === "0") {
         markRead.mutate(item.protocoloid);
-        // Actualización optimista local para feedback instantáneo
-        item.leido = "1"; 
-        
-
+        item.leido = "1";
       }
     }
-  }
+  };
 
-  const isSelected = (id) => selectedItems.some((p) => String(p.protocoloid) === String(id));
+  const isSelected = (id) =>
+    selectedItems.some((p) => String(p.protocoloid) === String(id));
 
   const handleViewResults = (item = null) => {
     const target =
@@ -672,7 +671,7 @@ export default function Resultados() {
         link.href = url;
         link.setAttribute(
           "download",
-          `Protocolo_${protocolo.accessionnumber}.pdf`
+          `Protocolo_${protocolo.accessionnumber}.pdf`,
         );
         document.body.appendChild(link);
         link.click();
@@ -692,7 +691,7 @@ export default function Resultados() {
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(
           content,
-          `Resultados_${new Date().toISOString().slice(0, 10)}.zip`
+          `Resultados_${new Date().toISOString().slice(0, 10)}.zip`,
         );
       }
     } catch (error) {
@@ -745,6 +744,9 @@ export default function Resultados() {
           ) : (
             <h2>CentraLab</h2>
           )}
+        </div>
+
+        <div className="sidebar-scrollable-content">
           <div
             className={`filter-toggle-btn ${isGeneralOpen ? "active" : ""}`}
             onClick={handleToggleGeneral}
@@ -753,13 +755,9 @@ export default function Resultados() {
             <span>Filtros Grales.</span>
             <span className="arrow-icon">{isGeneralOpen ? "▲" : "▼"}</span>
           </div>
-        </div>
-
-        <div className="sidebar-scrollable-content">
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
-              {/* --- FECHAS (Apiladas pero compactas) --- */}
-              {/* Usamos un contenedor grid para que ocupen poco espacio vertical */}
+              {/* --- FECHAS --- */}
               <div className="compact-date-group">
                 <div className="date-item">
                   <label>Desde</label>
@@ -783,29 +781,33 @@ export default function Resultados() {
                 </div>
               </div>
 
-              {/* --- TOGGLES (Estilo Segmented Control: Título Arriba, Botones unidos abajo) --- */}
+              {/* --- TOGGLES --- */}
               <div className="toggles-stack-wrapper">
-                  <TriStateToggle
-                    label="Reservados"
-                    value={formValues.reserved}
-                    onChange={(val) => handleToggleState("reserved", val)}
-                    labels={{ true: "Sí", false: "No", all: "Todos" }}
-                  />
-                  <TriStateToggle
-                    label="Estado Protocolo" // Ahora sí entra el texto completo
-                    value={formValues.complete_only}
-                    onChange={(val) => handleToggleState("complete_only", val)}
-                    labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
-                  />
-                  <TriStateToggle
-                    label="Estado Lectura" // Texto completo
-                    value={formValues.unread_only}
-                    onChange={(val) => handleToggleState("unread_only", val)}
-                    labels={{ true: "No Leído", false: "Leído", all: "Todos" }}
-                  />
+                <TriStateToggle
+                  label="Reservados"
+                  value={formValues.reserved}
+                  onChange={(val) => handleToggleState("reserved", val)}
+                  labels={{ true: "Sí", false: "No", all: "Todos" }}
+                />
+                <TriStateToggle
+                  label="Estado Protocolo"
+                  value={formValues.complete_only}
+                  onChange={(val) => handleToggleState("complete_only", val)}
+                  labels={{
+                    true: "Completo",
+                    false: "En Proceso",
+                    all: "Todos",
+                  }}
+                />
+                <TriStateToggle
+                  label="Estado Lectura"
+                  value={formValues.unread_only}
+                  onChange={(val) => handleToggleState("unread_only", val)}
+                  labels={{ true: "No Leído", false: "Leído", all: "Todos" }}
+                />
               </div>
 
-              {/* --- RESTO DE INPUTS (Simplificados) --- */}
+              {/* --- RESTO DE INPUTS --- */}
               <div className="filter-group compact">
                 <label>DNI Paciente</label>
                 <input
@@ -817,7 +819,7 @@ export default function Resultados() {
                   placeholder="Ej: 25459633"
                 />
               </div>
-              
+
               <div className="filter-group compact">
                 <label>Apellido</label>
                 <input
@@ -871,16 +873,22 @@ export default function Resultados() {
                 </div>
               </div>
 
-              {/* --- BOTONES DE ACCIÓN (Lado a lado, como te gustó) --- */}
+              {/* --- BOTONES DE ACCIÓN --- */}
               <div className="filter-actions-row">
                 <button
                   type="submit"
                   className="btn-filtrar primary"
                   disabled={isLoading}
                 >
-                  {isLoading ? <span className="spinner-loader"></span> : <><FiSearch /> Buscar</>}
+                  {isLoading ? (
+                    <span className="spinner-loader"></span>
+                  ) : (
+                    <>
+                      <FiSearch /> Buscar
+                    </>
+                  )}
                 </button>
-                
+
                 <button
                   type="button"
                   className="btn-filtrar secondary"
@@ -917,16 +925,16 @@ export default function Resultados() {
           )}
         </div>
 
-       {showFooter && (
+        {showFooter && (
           <div className="sidebar-footer">
-            {/* Botón Admin (Si aplica) */}
+            {/* Botón Admin */}
             {user.isadministrator && (
               <div style={{ marginBottom: 15 }}>
                 <button
                   onClick={() => setIsAdminOpen(true)}
-                  className="btn-admin-premium" // <--- CLASE NUEVA
+                  className="btn-admin-premium"
                 >
-                  <FiUser size={18} /> 
+                  <FiUser size={18} />
                   <span>Administración</span>
                 </button>
               </div>
@@ -951,17 +959,20 @@ export default function Resultados() {
                 >
                   {user.fullname || user.username}
                 </p>
-                <span style={{ fontSize: "0.65rem", color: "#64748b", display: "block" }}>
+                <span
+                  style={{
+                    fontSize: "0.65rem",
+                    color: "#64748b",
+                    display: "block",
+                  }}
+                >
                   {user.email || "Usuario"}
                 </span>
               </div>
             </div>
 
             {/* Botón Logout */}
-            <button
-              onClick={handleLogout}
-              className="btn-logout-modern"
-            >
+            <button onClick={handleLogout} className="btn-logout-modern">
               <FiLogOut size={14} /> Cerrar Sesión
             </button>
           </div>
@@ -979,9 +990,9 @@ export default function Resultados() {
                   <div className="spinner"></div>
                 </div>
               )}
-              {/* --- IMPLEMENTACIÓN 1: ERROR EN LA TABLA PRINCIPAL --- */}
+              {/* --- ERROR EN LA TABLA PRINCIPAL --- */}
               {isError ? (
-                <ErrorStateDisplay 
+                <ErrorStateDisplay
                   title="No se pudieron cargar los protocolos"
                   message="Hubo un problema al conectar con el servidor para obtener la lista. Por favor, intente recargar."
                   retryAction={refetch}
@@ -1007,7 +1018,6 @@ export default function Resultados() {
                             isUnread ? "font-bold-unread" : ""
                           }`}
                           onClick={(e) => handleRowClick(e, item)}
-                          
                           onContextMenu={(e) => handleContextMenu(e, item)}
                         >
                           <td style={{ textAlign: "center" }}>
@@ -1065,12 +1075,12 @@ export default function Resultados() {
                 </table>
               )}
             </div>
-            
-            <AdvancedPagination 
-               page={Number(formValues.page)}
-               onPageChange={handlePageChange}
-               hasMoreData={hasMoreData}
-               isLoading={isLoading}
+
+            <AdvancedPagination
+              page={Number(formValues.page)}
+              onPageChange={handlePageChange}
+              hasMoreData={hasMoreData}
+              isLoading={isLoading}
             />
           </div>
         </section>
@@ -1079,173 +1089,182 @@ export default function Resultados() {
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <div className="modern-report-container">
-              {/* --- 1. CABECERA TIPO TARJETA DEL PACIENTE --- */}
+              {/* --- CABECERA DEL PACIENTE --- */}
               <div className="patient-header-card compact-linear">
-              <div className="patient-avatar-area small">
-                <div className="avatar-circle">
-                  <FiUser />
+                <div className="patient-avatar-area small">
+                  <div className="avatar-circle">
+                    <FiUser />
+                  </div>
+                </div>
+
+                <div className="patient-details-linear">
+                  {/* Fila 1: Nombre Principal */}
+                  <div className="linear-top-row">
+                    <h2 className="patient-name-linear">
+                      {selectedProtocol.apellidopaciente},{" "}
+                      {selectedProtocol.nombrepaciente}
+                    </h2>
+                  </div>
+
+                  {/* Fila 2: Datos secundarios */}
+                  <div className="linear-data-row">
+                    <span className="data-item">
+                      <span className="lbl">DNI:</span>
+                      <span className="val">{selectedProtocol.pacid}</span>
+                    </span>
+
+                    <span className="separator">•</span>
+
+                    <span className="data-item">
+                      <span className="lbl">Edad:</span>
+                      <span className="val">
+                        {selectedProtocol.pacage} años
+                        {selectedProtocol.birthdate &&
+                          ` (${formatDate(selectedProtocol.birthdate)})`}
+                      </span>
+                    </span>
+
+                    <span className="separator">•</span>
+
+                    <span className="data-item">
+                      <span className="lbl">Dr:</span>
+                      <span
+                        className="val doc-name"
+                        title={selectedProtocol.doctor_name}
+                      >
+                        {selectedProtocol.doctor_name || "No especificado"}
+                      </span>
+                    </span>
+
+                    <span className="separator highlight">•</span>
+                    <span className="data-item date-item">
+                      <FiClock size={11} style={{ marginRight: 3 }} />
+                      <span className="val">
+                        {formatDate(selectedProtocol.ordereddate)}
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="patient-details-linear">
-                {/* Fila 1: Nombre Principal */}
-                <div className="linear-top-row">
-                  <h2 className="patient-name-linear">
-                    {selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}
-                  </h2>
-                </div>
-
-                {/* Fila 2: Datos secundarios en una sola línea separados por puntos */}
-                <div className="linear-data-row">
-                  <span className="data-item">
-                    <span className="lbl">DNI:</span>
-                    <span className="val">{selectedProtocol.pacid}</span>
-                  </span>
-                  
-                  <span className="separator">•</span>
-                  
-                  <span className="data-item">
-                  <span className="lbl">Edad:</span>
-                  <span className="val">
-                    {selectedProtocol.pacage} años
-                    {/* Solo mostramos la fecha si existe */}
-                    {selectedProtocol.birthdate && ` (${formatDate(selectedProtocol.birthdate)})`}
-                  </span>
-                </span>
-
-                  <span className="separator">•</span>
-                  
-                  <span className="data-item">
-                    <span className="lbl">Dr:</span>
-                    <span className="val doc-name" title={selectedProtocol.doctor_name}>{selectedProtocol.doctor_name || "No especificado"}</span>
-                  </span>
-
-                  {/* Fecha destacada al final */}
-                  <span className="separator highlight">•</span>
-                  <span className="data-item date-item">
-                    <FiClock size={11} style={{ marginRight: 3 }} />
-                    <span className="val">{formatDate(selectedProtocol.ordereddate)}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-              {/* --- 2. LISTA DE RESULTADOS --- */}
+              {/* --- LISTA DE RESULTADOS --- */}
               <div className="results-scroll-area">
                 {isLoadingResults ? (
                   <div className="loading-results">
                     <div className="spinner"></div> Cargando resultados...
                   </div>
                 ) : isErrorResults ? (
-                  /* --- IMPLEMENTACIÓN 2: ERROR EN EL DETALLE DE RESULTADOS --- */
-                  <ErrorStateDisplay 
+                  /* --- ERROR EN EL DETALLE DE RESULTADOS --- */
+                  <ErrorStateDisplay
                     title="Error al cargar resultados"
                     message="No se pudieron obtener los detalles para este protocolo. Por favor, intente nuevamente."
                     retryAction={refetchResults}
                   />
                 ) : resultsData?.resultados?.length > 0 ? (
                   <div className="results-list-modern">
-                    
                     {/* Encabezados de columnas generales */}
                     <div className="results-cols-header">
-                        <span className="col-det">Determinación</span>
-                        <span className="col-res">Resultado</span>
-                        <span className="col-ref">Valores Ref.</span>
-                        <span className="col-unit">Unidad</span>
-                        <span className="col-status">Estado</span>
+                      <span className="col-det">Determinación</span>
+                      <span className="col-res">Resultado</span>
+                      <span className="col-ref">Valores Ref.</span>
+                      <span className="col-unit">Unidad</span>
+                      <span className="col-status">Estado</span>
                     </div>
 
                     {resultsData.resultados.map((res, index) => {
-                      const prevRes = index > 0 ? resultsData.resultados[index - 1] : null;
-                      
-                      // Detectar cambio de Grupo (Bioquímica, Hematología...)
-                      const isNewGroup = index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
-                      
-                      // Detectar cambio de Subtítulo/Analisis
-                      const isNewAnalysis = index === 0 || res.analisis !== prevRes?.analisis || isNewGroup;
+                      const prevRes =
+                        index > 0 ? resultsData.resultados[index - 1] : null;
+                      const isNewGroup =
+                        index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
 
-                      /* --- NUEVA LÓGICA ANTI-REDUNDANCIA --- */
-                      // Convertimos a minúsculas para comparar sin errores
-                      const analysisName = (res.analisis || "").toLowerCase().trim();
-                      const practiceName = (res.descripcionpractica || "").toLowerCase().trim();
+                      const isNewAnalysis =
+                        index === 0 ||
+                        res.analisis !== prevRes?.analisis ||
+                        isNewGroup;
 
-                      // Si el nombre de la práctica "empieza con" o "incluye" al nombre del análisis, es redundante.
-                      // Ej: Análisis "Glucosa" está en Práctica "Glucosa Enzimática" -> TRUE (Lo ocultamos)
-                      // Ej: Análisis "Hepatograma" está en Práctica "Bilirrubina" -> FALSE (Lo mostramos)
-                      const isRedundantHeader = practiceName.includes(analysisName);
+                      const analysisName = (res.analisis || "")
+                        .toLowerCase()
+                        .trim();
+                      const practiceName = (res.descripcionpractica || "")
+                        .toLowerCase()
+                        .trim();
 
-                      
-                       return (
+                      const isRedundantHeader =
+                        practiceName.includes(analysisName);
+
+                      return (
                         <React.Fragment key={index}>
-                          {/* GRUPO PRINCIPAL (Header Azul) */}
+                          {/* GRUPO PRINCIPAL */}
                           {res.grupotitulo && isNewGroup && (
                             <div className="group-header-modern">
                               {res.grupotitulo}
                             </div>
                           )}
 
-                          {/* SUBTITULO (Solo si aplica y NO es redundante) */}
-                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && !isRedundantHeader && (
-                             <div className="analysis-subheader-modern">
+                          {/* SUBTITULO*/}
+                          {isNewAnalysis &&
+                            res.analisis &&
+                            res.analisis !== res.grupotitulo &&
+                            !isRedundantHeader && (
+                              <div className="analysis-subheader-modern">
                                 {res.analisis}
-                             </div>
-                          )}
+                              </div>
+                            )}
 
                           {/* FILA DE RESULTADO */}
                           <div className="result-row-modern group-hover-trigger">
-                            
                             {/* Columna 1: Nombre y Badges */}
                             <div className="col-det">
-                                <span className="test-name">{res.descripcionpractica}</span>
-                                {/* Ejemplo de badges (puedes condicionarlos) */}
-                                {res.metodo && <span className="method-badge">{res.metodo}</span>}
-                                
-                                {/* TOOLTIP FLOTANTE (Como en la imagen) */}
-                                {res.observaciones && (
-                                    <div className="hover-tooltip">
-                                        <strong>Información:</strong>
-                                        <p>{res.observaciones}</p>
-                                    </div>
-                                )}
+                              <span className="test-name">
+                                {res.descripcionpractica}
+                              </span>
+                              {res.metodo && (
+                                <span className="method-badge">
+                                  {res.metodo}
+                                </span>
+                              )}
+
+                              {res.observaciones && (
+                                <div className="hover-tooltip">
+                                  <strong>Información:</strong>
+                                  <p>{res.observaciones}</p>
+                                </div>
+                              )}
                             </div>
 
                             {/* Columna 2: Resultado */}
                             <div className="col-res">
-                                <span className="res-value">{res.resultado}</span>
+                              <span className="res-value">{res.resultado}</span>
                             </div>
 
                             {/* Columna 3: Referencia */}
                             <div className="col-ref">
-                                {res.valoresreferencia || res.rangovalidacion || "-"}
+                              {res.valoresreferencia ||
+                                res.rangovalidacion ||
+                                "-"}
                             </div>
 
                             {/* Columna 4: Unidad */}
-                            <div className="col-unit">
-                                {res.unidadmedida}
-                            </div>
+                            <div className="col-unit">{res.unidadmedida}</div>
 
                             {/* Columna 5: Estado (Simulado visualmente) */}
                             <div className="col-status">
-                                {/* LÓGICA DE ESTADO: 
-                                    Aquí deberías usar una propiedad real de tu backend si existe (ej: res.flag).
-                                    Como ejemplo, renderizo 'Normal' por defecto. */}
-                                {res.flag === 'H' || res.flag === 'L' ? (
-                                    <span className="status-pill status-danger">
-                                        Elevado <FiAlertCircle />
-                                    </span>
-                                ) : (
-                                    <span className="status-pill status-success">
-                                        Normal <FiCheck />
-                                    </span>
-                                )}
+                              {res.flag === "H" || res.flag === "L" ? (
+                                <span className="status-pill status-danger">
+                                  Elevado <FiAlertCircle />
+                                </span>
+                              ) : (
+                                <span className="status-pill status-success">
+                                  Normal <FiCheck />
+                                </span>
+                              )}
                             </div>
                           </div>
-                          
-                          {/* Nota debajo del resultado si existe */}
+
                           {res.notaresultado && (
-                              <div className="result-note-row">
-                                  Nota: {res.notaresultado}
-                              </div>
+                            <div className="result-note-row">
+                              Nota: {res.notaresultado}
+                            </div>
                           )}
                         </React.Fragment>
                       );
@@ -1277,8 +1296,8 @@ export default function Resultados() {
                 <>
                   <FiEye size={50} style={{ opacity: 0.3 }} />
                   <p>
-                    Haga <strong>doble clic</strong> en un paciente para ver
-                    sus resultados
+                    Haga <strong>doble clic</strong> en un paciente para ver sus
+                    resultados
                   </p>
                 </>
               )}
@@ -1309,7 +1328,7 @@ export default function Resultados() {
             padding: "5px 0",
             minWidth: "180px",
           }}
-          onClick={(e) => e.stopPropagation()} 
+          onClick={(e) => e.stopPropagation()}
         >
           {contextMenu.item.leido === "1" ? (
             <div

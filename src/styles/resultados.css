@@ -182,13 +182,13 @@ body button:focus {
 }
 
 /* =========================================
-   SIDEBAR UI COMPONENTS (Buttons & Toggles)
+    FILTER TOGGLE BUTTONS
    ========================================= */
 
 .filter-toggle-btn,
 .sidebar-header-sub {
 
-  width: 90%;             
+  width: 100%;             
   max-width: 220px;         
   min-width: 0;             
   box-sizing: border-box;   
@@ -211,13 +211,13 @@ body button:focus {
 }
 
 /* Specific adjustment for header button margin */
-.sidebar-header .filter-toggle-btn {
+.filter-toggle-btn {
   margin-top: 5px;
   margin-bottom: 5px;
 }
 
 /* Active / Hover State (Celestial Gradient) */
-.sidebar-header .filter-toggle-btn:hover,
+.filter-toggle-btn:hover,
 .filter-toggle-btn.active,
 .sidebar-header-sub:hover,
 .filters-collapsible.show + .sidebar-header-sub {
@@ -256,7 +256,7 @@ body button:focus {
 }
 
 /* =========================================
-   FORMS & INPUTS (Compact Style)
+   FORMS & INPUTS
    ========================================= */
 .filters-form {
   display: flex;
@@ -366,14 +366,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-radius: 4px;
   overflow: hidden;
   height: 26px;
-  margin-top: 0; /* Removing excess margin */
+  margin-top: 0;
 }
 
 .tri-toggle-btn {
   flex: 1;
   border: none;
   border-right: 1px solid #cbd5e1;
-  padding: 0; /* Consolidated padding */
+  padding: 0;
   font-size: 0.65rem;
   font-weight: 500;
   cursor: pointer;
@@ -764,7 +764,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .status-pending { background: #FEF3C7; color: #B45309; }
 
 .font-mono { font-family: 'Consolas', monospace; color: var(--text-gray); letter-spacing: -0.5px; }
-.font-bold-unread .name-text { color: #1a3a4a !important; font-weight: 800 !important; }
+.font-bold-unread .name-text { color: #1a3a4a !important; font-weight: 700 !important; }
 .font-bold-unread { background-color: #ffffff; color: #1e293b; font-weight: 700 !important; }
 
 /* Patient Info Cell */
@@ -775,7 +775,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .patient-subdata { font-size: 0.75rem; color: #64748b; font-weight: 500; display: flex; align-items: center; gap: 6px; }
 
 /* =========================================
-   PAGINATION BAR (New)
+   PAGINATION BAR
    ========================================= */
 .pagination-bar {
   position: sticky;
@@ -814,7 +814,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .btn-page:disabled { opacity: 0.5; cursor: not-allowed; background-color: #f8fafc; }
 
 /* =========================================
-   DETAIL PANEL (Right Side)
+   DETAIL PANEL
    ========================================= */
 .detail-panel {
   flex: 1;

@@ -41,6 +41,7 @@ export default function Login() {
 
       if (loginResponse.token) {
         localStorage.setItem("token", loginResponse.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${loginResponse.token}`;
         const userIdentifier = formData.jwtusername;
 
         // --- ADMIN ---
