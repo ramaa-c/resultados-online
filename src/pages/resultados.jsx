@@ -1296,8 +1296,8 @@ export default function Resultados() {
                 <>
                   <FiEye size={50} style={{ opacity: 0.3 }} />
                   <p>
-                    Haga <strong>doble clic</strong> en un paciente para ver sus
-                    resultados
+                    Haga <strong>clic</strong> en un paciente para ver
+                    sus resultados
                   </p>
                 </>
               )}
