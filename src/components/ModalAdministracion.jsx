@@ -13,8 +13,8 @@ import {
   FiCheckCircle,
   FiEye
 } from "react-icons/fi";
-import ModalUsuario from "./ModalUsuario";
-import ModalEditarUsuario from "./ModalEditarUsuario";
+// 1. ELIMINAMOS ModalEditarUsuario de los imports
+import ModalUsuario from "./ModalUsuario"; 
 import ModalConfirmacion from "./ModalConfirmacion";
 import ModalDetalleUsuario from "./ModalDetalleUsuario";
 import ModalExito from "./ModalExito";
@@ -62,12 +62,10 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
   // --- FILTROS ---
   const initialFilters = {
     page: 1,
-    pageSize: 100,
+    pageSize: 200,
     searchTerm: "",
   };
   const [filters, setFilters] = useState(initialFilters);
-
-  // --- ESTADO FALTANTE CORREGIDO ---
   const [inputValue, setInputValue] = useState("");
 
   const {
@@ -107,9 +105,10 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
     refetchOnWindowFocus: false,
   });
 
-  // --- ESTADOS LOCALES PARA MODALES DE ACCIÓN ---
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  // --- ESTADOS LOCALES ---
+  
+  // 2. CAMBIO DE LÓGICA: UN SOLO ESTADO PARA LA MODAL DE USUARIO
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -125,8 +124,8 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
   const [showError, setShowError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [userToDetail, setUserToDetail] = useState(null); // Estado para el usuario seleccionado
-  const [isDetailOpen, setIsDetailOpen] = useState(false); // Estado para abrir/cerrar
+  const [userToDetail, setUserToDetail] = useState(null); 
+  const [isDetailOpen, setIsDetailOpen] = useState(false); 
 
   // --- MANEJADORES ---
 
@@ -144,18 +143,25 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
     setFilters(initialFilters);
   };
 
-  const handleViewDetail = (user) => {
-    setUserToDetail(user);
-    setIsDetailOpen(true);
+  // 3. MANEJADORES UNIFICADOS
+  const handleCreateClick = () => {
+    setUserToEdit(null); // Limpiamos para indicar que es "Crear"
+    setIsUserModalOpen(true);
+  };
+
+  const handleEditClick = (user) => {
+    setUserToEdit(user); // Pasamos el usuario para indicar que es "Editar"
+    setIsUserModalOpen(true);
   };
 
   const handleUserSaved = () => {
     queryClient.invalidateQueries(["usersList"]);
+    // No cerramos la modal aquí, lo hace el propio componente ModalUsuario al terminar
   };
 
-  const handleEditClick = (user) => {
-    setUserToEdit(user);
-    setIsEditOpen(true);
+  const handleViewDetail = (user) => {
+    setUserToDetail(user);
+    setIsDetailOpen(true);
   };
 
   // --- RESET PASSWORD ---
@@ -225,7 +231,6 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // --- ESTILOS ---
   const getPaginationBtnStyle = (isDisabled) => ({
     backgroundColor: isDisabled ? "#cbd5e1" : "#0198CC",
     color: "white",
@@ -279,7 +284,6 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
               gap: "10px",
             }}
           >
-            {/* FORMULARIO DE BÚSQUEDA */}
             <form
               onSubmit={handleSearch}
               style={{ flex: 1, maxWidth: "400px" }}
@@ -351,7 +355,7 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
 
             <button
               className="btn-save"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={handleCreateClick} // 4. USAMOS EL NUEVO MANEJADOR
               style={{
                 backgroundColor: "#0198CC",
                 border: "none",
@@ -385,115 +389,86 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
                 }}
               >
                 <tr>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      paddingLeft: "15px",
-                      width: "15%",
-                    }}
-                  >
-                    Usuario
-                  </th>
-                  <th style={{ textAlign: "left", width: "35%" }}>
-                    Nombre Completo
-                  </th>
+                  <th style={{ textAlign: "left", paddingLeft: "15px", width: "15%" }}>Usuario</th>
+                  <th style={{ textAlign: "left", width: "35%" }}>Nombre Completo</th>
                   <th style={{ textAlign: "center" }}>Email</th>
                   <th style={{ width: "80px", textAlign: "center" }}>Admin</th>
-                  <th style={{ width: "100px", textAlign: "center" }}>
-                    Estado
-                  </th>
-                  <th style={{ width: "140px", textAlign: "center" }}>
-                    Acciones
-                  </th>
+                  <th style={{ width: "100px", textAlign: "center" }}>Estado</th>
+                  <th style={{ width: "140px", textAlign: "center" }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td
-                      colSpan="6"
-                      style={{ textAlign: "center", padding: "40px" }}
-                    >
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px" }}>
                       Cargando usuarios...
                     </td>
                   </tr>
                 ) : isError ? (
                   <tr>
-                    <td
-                      colSpan="6"
-                      style={{
-                        textAlign: "center",
-                        padding: "40px",
-                        color: "red",
-                      }}
-                    >
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px", color: "red" }}>
                       Error al cargar datos.
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="6"
-                      style={{ textAlign: "center", padding: "40px" }}
-                    >
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px" }}>
                       No se encontraron resultados
                     </td>
                   </tr>
                 ) : (
-                 users.map((u) => {
-                  const isBlocked = u.status?.toLowerCase().includes("bloqueado") || u.status?.toLowerCase() === "suspendido";
-                  
-                  return (
-                    <tr 
-                      key={u.userid} 
-                      style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }} // <--- 1. Agregamos cursor pointer
-                      onDoubleClick={() => handleViewDetail(u)}                        // <--- 2. Agregamos el evento doble clic
-                    >
-                      <td style={{ fontWeight: "600", paddingLeft: "15px" }}>{u.username}</td>
-                      <td style={{ color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{u.fullname}</td>
-                      <td style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{u.email}</td>
-                      <td style={{ textAlign: "center" }}>
-                        {u.isadministrator && (
-                          <span style={{ color: "#7c3aed", background: "#f3e8ff", padding: "2px 8px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "bold" }}>Admin</span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: "center" }}>
-                        <span className={`status-badge ${isBlocked ? "status-pending" : "status-complete"}`}
-                          style={isBlocked ? { backgroundColor: "#fee2e2", color: "#dc2626" } : {}}
-                        >
-                          {u.status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "center" }}>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
-                          
-                          {/* --- 3. NUEVO BOTÓN VER DETALLE (LO AGREGAS AQUÍ AL PRINCIPIO) --- */}
-                          <button 
-                            className="btn-mini-action" 
-                            onClick={() => handleViewDetail(u)} 
-                            title="Ver Detalles"
-                            style={{ color: "#475569", borderColor: "#cbd5e1", backgroundColor: "#f8fafc" }}
+                  users.map((u) => {
+                    const isBlocked = u.status?.toLowerCase().includes("bloqueado") || u.status?.toLowerCase() === "suspendido";
+                    
+                    return (
+                      <tr 
+                        key={u.userid} 
+                        style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}
+                        onDoubleClick={() => handleViewDetail(u)}
+                      >
+                        <td style={{ fontWeight: "600", paddingLeft: "15px" }}>{u.username}</td>
+                        <td style={{ color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{u.fullname}</td>
+                        <td style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px" }}>{u.email}</td>
+                        <td style={{ textAlign: "center" }}>
+                          {u.isadministrator && (
+                            <span style={{ color: "#7c3aed", background: "#f3e8ff", padding: "2px 8px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "bold" }}>Admin</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <span className={`status-badge ${isBlocked ? "status-pending" : "status-complete"}`}
+                            style={isBlocked ? { backgroundColor: "#fee2e2", color: "#dc2626" } : {}}
                           >
-                            <FiEye size={16} />
-                          </button>
-                          {/* --------------------------------------------------------------- */}
+                            {u.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                            
+                            <button 
+                              className="btn-mini-action" 
+                              onClick={() => handleViewDetail(u)} 
+                              title="Ver Detalles"
+                              style={{ color: "#475569", borderColor: "#cbd5e1", backgroundColor: "#f8fafc" }}
+                            >
+                              <FiEye size={16} />
+                            </button>
 
-                          <button className="btn-mini-action" onClick={() => handleEditClick(u)} title="Editar">
-                            <FiEdit size={16} />
-                          </button>
-                          
-                          <button className="btn-mini-action" onClick={() => handleResetClick(u)} title="Reset Password" style={{ color: "#0198CC", borderColor: "#BAE6FD", backgroundColor: "#F0F9FF" }}>
-                            <FiKey size={16} />
-                          </button>
-                          
-                          <button className="btn-mini-action" onClick={() => handleStatusClick(u)} title={isBlocked ? "Desbloquear" : "Bloquear"} style={{ color: isBlocked ? "#16a34a" : "#ef4444", borderColor: isBlocked ? "#bbf7d0" : "#fecaca", backgroundColor: isBlocked ? "#f0fdf4" : "#fef2f2" }}>
-                            {isBlocked ? <FiCheckCircle size={16} /> : <FiSlash size={16} />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                            <button className="btn-mini-action" onClick={() => handleEditClick(u)} title="Editar">
+                              <FiEdit size={16} />
+                            </button>
+                            
+                            <button className="btn-mini-action" onClick={() => handleResetClick(u)} title="Reset Password" style={{ color: "#0198CC", borderColor: "#BAE6FD", backgroundColor: "#F0F9FF" }}>
+                              <FiKey size={16} />
+                            </button>
+                            
+                            <button className="btn-mini-action" onClick={() => handleStatusClick(u)} title={isBlocked ? "Desbloquear" : "Bloquear"} style={{ color: isBlocked ? "#16a34a" : "#ef4444", borderColor: isBlocked ? "#bbf7d0" : "#fecaca", backgroundColor: isBlocked ? "#f0fdf4" : "#fef2f2" }}>
+                              {isBlocked ? <FiCheckCircle size={16} /> : <FiSlash size={16} />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -537,17 +512,12 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* MODALES */}
+      {/* 5. MODALES ACTUALIZADAS: SOLO UNA LLAMADA A MODALUSUARIO */}
       <ModalUsuario
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        userToEdit={userToEdit} // Aquí está la magia: si es null, crea; si tiene datos, edita
         onUserSaved={handleUserSaved}
-      />
-      <ModalEditarUsuario
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        user={userToEdit}
-        onUserUpdated={handleUserSaved}
       />
 
       <ModalConfirmacion
