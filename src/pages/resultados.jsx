@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -25,7 +25,6 @@ import {
   FiFileText,
   FiEye,
   FiDownload,
-  FiPrinter,
   FiActivity,
   FiCheckCircle,
   FiClock,
@@ -36,17 +35,17 @@ import {
   FiBookmark,
   FiLogOut,
   FiUser,
-  FiMapPin,
+  FiUsers,
   FiLayers,
   FiX,
   FiPlus,
   FiAlertCircle,
   FiAlertTriangle,
   FiCheck,
-  FiWifiOff,
+  FiArrowUp,
+  FiArrowDown,
 } from "react-icons/fi";
 
-// --- COMPONENTE VISUAL DE ERROR ---
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
   <div className="error-state-container">
     <div className="error-icon-wrapper">
@@ -377,8 +376,31 @@ const AsyncFilterSection = ({
   );
 };
 
+// --- FUNCIÓN HELPER PARA CALCULAR ESTADO ---
+const getAnalysisStatus = (resultado, referencia) => {
+  if (!resultado || !referencia) return null;
+
+  const valClean = resultado.toString().replace(",", ".");
+  const val = parseFloat(valClean);
+  if (isNaN(val)) return null;
+
+  if (!referencia.includes("-")) return null;
+
+  const partes = referencia.split("-");
+  if (partes.length !== 2) return null;
+
+  const min = parseFloat(partes[0]);
+  const max = parseFloat(partes[1]);
+
+  if (isNaN(min) || isNaN(max)) return null;
+
+  if (val < min) return { type: "low", label: "Bajo" };
+  if (val >= max) return { type: "high", label: "Alto" };
+
+  return { type: "normal", label: "Normal" };
+};
+
 export default function Resultados() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // --- ESTADO DEL FORMULARIO ---
@@ -423,9 +445,10 @@ export default function Resultados() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isDownloadLoading, setIsDownloadLoading] = useState(false);
   const { markRead, markUnread } = useProtocolMutations();
+  const lastValidPageRef = useRef(1);
+  const [knownEndPage, setKnownEndPage] = useState(null);
   const { data, isLoading, isError, isFetching, refetch } =
     useProtocols(activeFilters);
-
   const {
     data: resultsData,
     isLoading: isLoadingResults,
@@ -437,6 +460,27 @@ export default function Resultados() {
   const currentCount = data?.protocolos?.length || 0;
   const pageSize = Number(formValues.page_size);
   const hasMoreData = currentCount === pageSize;
+
+  // --- EFFECT (DISCOVERY + ROLLBACK) ---
+  useEffect(() => {
+    if (!isFetching && !isError && data?.protocolos) {
+      if (data.protocolos.length === 0 && Number(formValues.page) > 1) {
+        const emptyPage = Number(formValues.page);
+        setKnownEndPage((prev) =>
+          prev === null || emptyPage < prev ? emptyPage : prev,
+        );
+
+        const fallbackPage = lastValidPageRef.current;
+        setFormValues((prev) => ({ ...prev, page: fallbackPage }));
+        setActiveFilters((prev) => ({ ...prev, page: fallbackPage }));
+      } else if (data.protocolos.length > 0) {
+        lastValidPageRef.current = Number(formValues.page);
+        if (knownEndPage !== null && Number(formValues.page) >= knownEndPage) {
+          setKnownEndPage(null);
+        }
+      }
+    }
+  }, [data, isFetching, isError, formValues.page, knownEndPage]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -454,16 +498,11 @@ export default function Resultados() {
     const handleClickOutside = (event) => {
       const target = event.target;
       const isContextMenuClick = target.closest(".context-menu");
-
       if (contextMenu) {
-        if (!isContextMenuClick) {
-          setContextMenu(null);
-        }
+        if (!isContextMenuClick) setContextMenu(null);
         return;
       }
-
       if (selectedItems.length === 0) return;
-
       const isRowClick = target.closest("tr");
       const isToolbarClick = target.closest(".toolbar-container");
       const isModalClick =
@@ -483,7 +522,6 @@ export default function Resultados() {
         setSelectedProtocol(null);
       }
     };
-
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setSelectedItems([]);
@@ -491,10 +529,8 @@ export default function Resultados() {
         setContextMenu(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
@@ -512,6 +548,7 @@ export default function Resultados() {
       ...prev,
       branch_id: branchFilter,
       private_healthcare_id: forwarderFilter,
+      page: 1,
     }));
   }, [branchFilter, forwarderFilter]);
 
@@ -523,15 +560,16 @@ export default function Resultados() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setActiveFilters((prev) => ({
-      ...prev,
-      ...formValues,
-      page: 1,
-    }));
+    setKnownEndPage(null);
+    lastValidPageRef.current = 1;
+    setFormValues((prev) => ({ ...prev, page: 1 }));
+    setActiveFilters((prev) => ({ ...prev, ...formValues, page: 1 }));
   };
 
   const handleToggleState = (key, value) => {
-    setFormValues((prev) => ({ ...prev, [key]: value }));
+    setKnownEndPage(null);
+    lastValidPageRef.current = 1;
+    setFormValues((prev) => ({ ...prev, [key]: value, page: 1 }));
     setActiveFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
 
@@ -551,6 +589,8 @@ export default function Resultados() {
       unread_only: "",
       complete_only: "",
     };
+    setKnownEndPage(null);
+    lastValidPageRef.current = 1;
     setFormValues(resetValues);
     setActiveFilters(resetValues);
     setSelectedItems([]);
@@ -563,10 +603,14 @@ export default function Resultados() {
   };
 
   const handleBranchChange = useCallback((ids) => {
+    setKnownEndPage(null);
+    lastValidPageRef.current = 1;
     setBranchFilter((prev) => (prev === ids ? prev : ids));
   }, []);
 
   const handleForwarderChange = useCallback((ids) => {
+    setKnownEndPage(null);
+    lastValidPageRef.current = 1;
     setForwarderFilter((prev) => (prev === ids ? prev : ids));
   }, []);
 
@@ -591,29 +635,20 @@ export default function Resultados() {
   };
 
   const handleRowClick = (e, item) => {
-    // 1. Lógica de Selección Múltiple
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
         const exists = prev.some(
           (p) => String(p.protocoloid) === String(item.protocoloid),
         );
-
-        if (exists) {
-          return prev.filter(
-            (p) => String(p.protocoloid) !== String(item.protocoloid),
-          );
-        } else {
-          return [...prev, item];
-        }
+        return exists
+          ? prev.filter(
+              (p) => String(p.protocoloid) !== String(item.protocoloid),
+            )
+          : [...prev, item];
       });
     } else {
-      // 2. Selección Simple
       setSelectedItems([item]);
-
-      // 3. CARGAR RESULTADOS EN EL PANEL DERECHO
       setSelectedProtocol(item);
-
-      // 4. MARCAR COMO LEÍDO
       if (item.leido === "0") {
         markRead.mutate(item.protocoloid);
         item.leido = "1";
@@ -623,18 +658,6 @@ export default function Resultados() {
 
   const isSelected = (id) =>
     selectedItems.some((p) => String(p.protocoloid) === String(id));
-
-  const handleViewResults = (item = null) => {
-    const target =
-      item || (selectedItems.length === 1 ? selectedItems[0] : null);
-    if (target) {
-      setSelectedProtocol(target);
-      if (target.leido === "0") {
-        markRead.mutate(target.protocoloid);
-        target.leido = "1";
-      }
-    }
-  };
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
@@ -702,7 +725,6 @@ export default function Resultados() {
     }
   };
 
-  // Variable helper
   const isPdfDisabled =
     selectedItems.length !== 1 ||
     selectedItems[0]?.completo === "" ||
@@ -725,7 +747,6 @@ export default function Resultados() {
       onClick: () => handleViewPDF(selectedItems[0]?.protocoloid),
       disabled: isPdfDisabled,
     },
-
     {
       id: "download",
       label: selectedItems.length > 1 ? "Descargar Todo" : "Descargar",
@@ -752,7 +773,7 @@ export default function Resultados() {
             onClick={handleToggleGeneral}
           >
             <FiFilter />
-            <span>Filtros Grales.</span>
+            <span>Filtros Generales</span>
             <span className="arrow-icon">{isGeneralOpen ? "▲" : "▼"}</span>
           </div>
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
@@ -807,7 +828,7 @@ export default function Resultados() {
                 />
               </div>
 
-              {/* --- RESTO DE INPUTS --- */}
+              {/* --- INPUTS --- */}
               <div className="filter-group compact">
                 <label>DNI Paciente</label>
                 <input
@@ -819,7 +840,6 @@ export default function Resultados() {
                   placeholder="Ej: 25459633"
                 />
               </div>
-
               <div className="filter-group compact">
                 <label>Apellido</label>
                 <input
@@ -831,7 +851,6 @@ export default function Resultados() {
                   placeholder="Buscar..."
                 />
               </div>
-
               <div className="filter-group compact">
                 <label>ID Petición</label>
                 <input
@@ -861,7 +880,21 @@ export default function Resultados() {
                   <select
                     name="page_size"
                     value={formValues.page_size}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      setKnownEndPage(null);
+                      lastValidPageRef.current = 1;
+                      setFormValues((prev) => ({
+                        ...prev,
+                        page: 1,
+                        page_size: e.target.value,
+                      }));
+                      setActiveFilters((prev) => ({
+                        ...prev,
+                        page: 1,
+                        page_size: e.target.value,
+                      }));
+                    }}
                     className="input-modern compact"
                   >
                     <option value={15}>15</option>
@@ -873,7 +906,7 @@ export default function Resultados() {
                 </div>
               </div>
 
-              {/* --- BOTONES DE ACCIÓN --- */}
+              {/* --- BOTONES --- */}
               <div className="filter-actions-row">
                 <button
                   type="submit"
@@ -888,7 +921,6 @@ export default function Resultados() {
                     </>
                   )}
                 </button>
-
                 <button
                   type="button"
                   className="btn-filtrar secondary"
@@ -901,7 +933,7 @@ export default function Resultados() {
             </form>
           </div>
 
-          {shouldShowBranch && (
+          {/* {shouldShowBranch && (
             <AsyncFilterSection
               title="Sedes"
               icon={FiMapPin}
@@ -911,7 +943,7 @@ export default function Resultados() {
               isOpen={openLocations.branch}
               onToggle={() => toggleLocation("branch")}
             />
-          )}
+          )} */}
           {shouldShowForwarder && (
             <AsyncFilterSection
               title="Clientes"
@@ -927,20 +959,16 @@ export default function Resultados() {
 
         {showFooter && (
           <div className="sidebar-footer">
-            {/* Botón Admin */}
             {user.isadministrator && (
               <div style={{ marginBottom: 15 }}>
                 <button
                   onClick={() => setIsAdminOpen(true)}
                   className="btn-admin-premium"
                 >
-                  <FiUser size={18} />
-                  <span>Administración</span>
+                  <FiUsers size={18} /> <span>Administración</span>
                 </button>
               </div>
             )}
-
-            {/* Tarjeta de Usuario */}
             <div className="user-card-info">
               <div className="user-avatar-footer">
                 <FiUser />
@@ -970,8 +998,6 @@ export default function Resultados() {
                 </span>
               </div>
             </div>
-
-            {/* Botón Logout */}
             <button onClick={handleLogout} className="btn-logout-modern">
               <FiLogOut size={14} /> Cerrar Sesión
             </button>
@@ -982,7 +1008,6 @@ export default function Resultados() {
       <main className="split-view">
         <section className="list-panel">
           <ResponsiveToolbar actions={toolbarActions} />
-
           <div className="table-wrapper">
             <div className="table-scroll">
               {isFetching && !isLoading && (
@@ -990,7 +1015,6 @@ export default function Resultados() {
                   <div className="spinner"></div>
                 </div>
               )}
-              {/* --- ERROR EN LA TABLA PRINCIPAL --- */}
               {isError ? (
                 <ErrorStateDisplay
                   title="No se pudieron cargar los protocolos"
@@ -1014,17 +1038,13 @@ export default function Resultados() {
                       return (
                         <tr
                           key={item.protocoloid}
-                          className={`${selected ? "selected-row" : ""} ${
-                            isUnread ? "font-bold-unread" : ""
-                          }`}
+                          className={`${selected ? "selected-row" : ""} ${isUnread ? "font-bold-unread" : ""}`}
                           onClick={(e) => handleRowClick(e, item)}
                           onContextMenu={(e) => handleContextMenu(e, item)}
                         >
                           <td style={{ textAlign: "center" }}>
                             <span
-                              className={`indicator-dot ${
-                                item.debe ? "dot-red" : "dot-green"
-                              }`}
+                              className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`}
                               title={item.debe ? "Posee Deuda" : "Sin Deuda"}
                             ></span>
                           </td>
@@ -1076,66 +1096,48 @@ export default function Resultados() {
               )}
             </div>
 
+            {/* MODIFICADO: Paginación Inteligente */}
             <AdvancedPagination
               page={Number(formValues.page)}
               onPageChange={handlePageChange}
               hasMoreData={hasMoreData}
-              isLoading={isLoading}
+              isLoading={isFetching}
+              knownEndPage={knownEndPage} // <--- Pasamos el límite descubierto
             />
           </div>
         </section>
 
-        {/* DETAIL PANEL */}
+        {/* DETAIL PANEL (Sin cambios lógicos, solo se mantiene el render) */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <div className="modern-report-container">
-              {/* --- CABECERA DEL PACIENTE --- */}
               <div className="patient-header-card compact-linear">
                 <div className="patient-avatar-area small">
                   <div className="avatar-circle">
                     <FiUser />
                   </div>
                 </div>
-
                 <div className="patient-details-linear">
-                  {/* Fila 1: Nombre Principal */}
                   <div className="linear-top-row">
                     <h2 className="patient-name-linear">
                       {selectedProtocol.apellidopaciente},{" "}
                       {selectedProtocol.nombrepaciente}
                     </h2>
                   </div>
-
-                  {/* Fila 2: Datos secundarios */}
                   <div className="linear-data-row">
                     <span className="data-item">
                       <span className="lbl">DNI:</span>
                       <span className="val">{selectedProtocol.pacid}</span>
                     </span>
-
                     <span className="separator">•</span>
-
                     <span className="data-item">
                       <span className="lbl">Edad:</span>
                       <span className="val">
-                        {selectedProtocol.pacage} años
+                        {selectedProtocol.pacage} años{" "}
                         {selectedProtocol.birthdate &&
                           ` (${formatDate(selectedProtocol.birthdate)})`}
                       </span>
                     </span>
-
-                    <span className="separator">•</span>
-
-                    <span className="data-item">
-                      <span className="lbl">Dr:</span>
-                      <span
-                        className="val doc-name"
-                        title={selectedProtocol.doctor_name}
-                      >
-                        {selectedProtocol.doctor_name || "No especificado"}
-                      </span>
-                    </span>
-
                     <span className="separator highlight">•</span>
                     <span className="data-item date-item">
                       <FiClock size={11} style={{ marginRight: 3 }} />
@@ -1147,22 +1149,19 @@ export default function Resultados() {
                 </div>
               </div>
 
-              {/* --- LISTA DE RESULTADOS --- */}
               <div className="results-scroll-area">
                 {isLoadingResults ? (
                   <div className="loading-results">
                     <div className="spinner"></div> Cargando resultados...
                   </div>
                 ) : isErrorResults ? (
-                  /* --- ERROR EN EL DETALLE DE RESULTADOS --- */
                   <ErrorStateDisplay
                     title="Error al cargar resultados"
-                    message="No se pudieron obtener los detalles para este protocolo. Por favor, intente nuevamente."
+                    message="No se pudieron obtener los detalles."
                     retryAction={refetchResults}
                   />
                 ) : resultsData?.resultados?.length > 0 ? (
                   <div className="results-list-modern">
-                    {/* Encabezados de columnas generales */}
                     <div className="results-cols-header">
                       <span className="col-det">Determinación</span>
                       <span className="col-res">Resultado</span>
@@ -1170,38 +1169,31 @@ export default function Resultados() {
                       <span className="col-unit">Unidad</span>
                       <span className="col-status">Estado</span>
                     </div>
-
                     {resultsData.resultados.map((res, index) => {
                       const prevRes =
                         index > 0 ? resultsData.resultados[index - 1] : null;
                       const isNewGroup =
                         index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
-
                       const isNewAnalysis =
                         index === 0 ||
                         res.analisis !== prevRes?.analisis ||
                         isNewGroup;
-
                       const analysisName = (res.analisis || "")
                         .toLowerCase()
                         .trim();
                       const practiceName = (res.descripcionpractica || "")
                         .toLowerCase()
                         .trim();
-
                       const isRedundantHeader =
                         practiceName.includes(analysisName);
 
                       return (
                         <React.Fragment key={index}>
-                          {/* GRUPO PRINCIPAL */}
                           {res.grupotitulo && isNewGroup && (
                             <div className="group-header-modern">
                               {res.grupotitulo}
                             </div>
                           )}
-
-                          {/* SUBTITULO*/}
                           {isNewAnalysis &&
                             res.analisis &&
                             res.analisis !== res.grupotitulo &&
@@ -1210,10 +1202,7 @@ export default function Resultados() {
                                 {res.analisis}
                               </div>
                             )}
-
-                          {/* FILA DE RESULTADO */}
                           <div className="result-row-modern group-hover-trigger">
-                            {/* Columna 1: Nombre y Badges */}
                             <div className="col-det">
                               <span className="test-name">
                                 {res.descripcionpractica}
@@ -1223,7 +1212,6 @@ export default function Resultados() {
                                   {res.metodo}
                                 </span>
                               )}
-
                               {res.observaciones && (
                                 <div className="hover-tooltip">
                                   <strong>Información:</strong>
@@ -1231,36 +1219,65 @@ export default function Resultados() {
                                 </div>
                               )}
                             </div>
-
-                            {/* Columna 2: Resultado */}
                             <div className="col-res">
                               <span className="res-value">{res.resultado}</span>
                             </div>
-
-                            {/* Columna 3: Referencia */}
                             <div className="col-ref">
                               {res.valoresreferencia ||
                                 res.rangovalidacion ||
                                 "-"}
                             </div>
-
-                            {/* Columna 4: Unidad */}
                             <div className="col-unit">{res.unidadmedida}</div>
-
-                            {/* Columna 5: Estado (Simulado visualmente) */}
                             <div className="col-status">
-                              {res.flag === "H" || res.flag === "L" ? (
-                                <span className="status-pill status-danger">
-                                  Elevado <FiAlertCircle />
-                                </span>
-                              ) : (
-                                <span className="status-pill status-success">
-                                  Normal <FiCheck />
-                                </span>
-                              )}
+                              {(() => {
+                                const calculated = getAnalysisStatus(
+                                  res.resultado,
+                                  res.valoresreferencia,
+                                );
+
+                                if (res.flag === "H") {
+                                  return (
+                                    <span className="status-pill status-danger">
+                                      Alto <FiArrowUp  />
+                                    </span>
+                                  );
+                                }
+                                if (res.flag === "L") {
+                                  return (
+                                    <span className="status-pill status-danger">
+                                      Bajo <FiArrowDown  />
+                                    </span>
+                                  );
+                                }
+
+                                if (calculated) {
+                                  if (calculated.type === "high") {
+                                    return (
+                                      <span className="status-pill status-danger">
+                                        Alto <FiArrowUp  />
+                                      </span>
+                                    );
+                                  }
+                                  if (calculated.type === "low") {
+                                    return (
+                                      <span className="status-pill status-warning">
+                                        Bajo <FiArrowDown  />
+                                      </span>
+                                    );
+                                  }
+                                  if (calculated.type === "normal") {
+                                    return (
+                                      <span className="status-pill status-success">
+                                        Normal <FiCheck />
+                                      </span>
+                                    );
+                                  }
+                                }
+
+                                return null;
+                              })()}
                             </div>
                           </div>
-
                           {res.notaresultado && (
                             <div className="result-note-row">
                               Nota: {res.notaresultado}
@@ -1296,8 +1313,8 @@ export default function Resultados() {
                 <>
                   <FiEye size={50} style={{ opacity: 0.3 }} />
                   <p>
-                    Haga <strong>clic</strong> en un paciente para ver
-                    sus resultados
+                    Haga <strong>click</strong> en un paciente para ver sus
+                    resultados
                   </p>
                 </>
               )}
@@ -1311,8 +1328,6 @@ export default function Resultados() {
         onClose={() => setIsEmailModalOpen(false)}
         protocolo={selectedItems[0]}
       />
-
-      {/* Context Menu y Modales */}
       {contextMenu && (
         <div
           className="context-menu"
