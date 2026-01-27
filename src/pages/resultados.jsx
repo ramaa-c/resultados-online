@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -36,13 +36,14 @@ import {
   FiLogOut,
   FiUser,
   FiUsers,
-  FiMapPin,
   FiLayers,
   FiX,
   FiPlus,
   FiAlertCircle,
   FiAlertTriangle,
   FiCheck,
+  FiArrowUp,
+  FiArrowDown,
 } from "react-icons/fi";
 
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
@@ -377,33 +378,26 @@ const AsyncFilterSection = ({
 
 // --- FUNCIÓN HELPER PARA CALCULAR ESTADO ---
 const getAnalysisStatus = (resultado, referencia) => {
-  // 1. Validaciones básicas: Si falta info, no mostrar nada
   if (!resultado || !referencia) return null;
-  
-  // 2. Si el resultado no es un número (ej: "TITULO", "NEGATIVO"), no calcular
-  // Reemplazamos comas por puntos por si acaso vienen en formato español
-  const valClean = resultado.toString().replace(',', '.');
+
+  const valClean = resultado.toString().replace(",", ".");
   const val = parseFloat(valClean);
   if (isNaN(val)) return null;
 
-  // 3. Validar referencia: Buscamos formato "min-max" (ej: "70-110" o ".5-1.2")
-  // Si la referencia es texto (ej: "Menor a 20"), esto devolverá null y no pintará nada.
-  if (!referencia.includes('-')) return null;
-  
-  const partes = referencia.split('-');
-  if (partes.length !== 2) return null; // Debe tener exactamente 2 partes
+  if (!referencia.includes("-")) return null;
+
+  const partes = referencia.split("-");
+  if (partes.length !== 2) return null;
 
   const min = parseFloat(partes[0]);
   const max = parseFloat(partes[1]);
 
-  // Si los rangos no son números válidos, salir
   if (isNaN(min) || isNaN(max)) return null;
 
-  // 4. Determinar estado
-  if (val < min) return { type: 'low', label: 'Bajo' };
-  if (val > max) return { type: 'high', label: 'Alto' };
-  
-  return { type: 'normal', label: 'Normal' };
+  if (val < min) return { type: "low", label: "Bajo" };
+  if (val >= max) return { type: "high", label: "Alto" };
+
+  return { type: "normal", label: "Normal" };
 };
 
 export default function Resultados() {
@@ -470,16 +464,16 @@ export default function Resultados() {
   // --- EFFECT (DISCOVERY + ROLLBACK) ---
   useEffect(() => {
     if (!isFetching && !isError && data?.protocolos) {
-        if (data.protocolos.length === 0 && Number(formValues.page) > 1) {
+      if (data.protocolos.length === 0 && Number(formValues.page) > 1) {
         const emptyPage = Number(formValues.page);
-        setKnownEndPage(prev => (prev === null || emptyPage < prev) ? emptyPage : prev);
+        setKnownEndPage((prev) =>
+          prev === null || emptyPage < prev ? emptyPage : prev,
+        );
 
         const fallbackPage = lastValidPageRef.current;
         setFormValues((prev) => ({ ...prev, page: fallbackPage }));
         setActiveFilters((prev) => ({ ...prev, page: fallbackPage }));
-      
-      } 
-      else if (data.protocolos.length > 0) {
+      } else if (data.protocolos.length > 0) {
         lastValidPageRef.current = Number(formValues.page);
         if (knownEndPage !== null && Number(formValues.page) >= knownEndPage) {
           setKnownEndPage(null);
@@ -487,7 +481,6 @@ export default function Resultados() {
       }
     }
   }, [data, isFetching, isError, formValues.page, knownEndPage]);
-
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -512,11 +505,19 @@ export default function Resultados() {
       if (selectedItems.length === 0) return;
       const isRowClick = target.closest("tr");
       const isToolbarClick = target.closest(".toolbar-container");
-      const isModalClick = target.closest(".modal-overlay") || target.closest(".ReactModal__Content");
+      const isModalClick =
+        target.closest(".modal-overlay") ||
+        target.closest(".ReactModal__Content");
       const isDetailPanel = target.closest(".detail-panel");
       const isSafeDetailClick = isDetailPanel && selectedProtocol !== null;
 
-      if (!isRowClick && !isToolbarClick && !isModalClick && !isContextMenuClick && !isSafeDetailClick) {
+      if (
+        !isRowClick &&
+        !isToolbarClick &&
+        !isModalClick &&
+        !isContextMenuClick &&
+        !isSafeDetailClick
+      ) {
         setSelectedItems([]);
         setSelectedProtocol(null);
       }
@@ -636,8 +637,14 @@ export default function Resultados() {
   const handleRowClick = (e, item) => {
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
-        const exists = prev.some((p) => String(p.protocoloid) === String(item.protocoloid));
-        return exists ? prev.filter((p) => String(p.protocoloid) !== String(item.protocoloid)) : [...prev, item];
+        const exists = prev.some(
+          (p) => String(p.protocoloid) === String(item.protocoloid),
+        );
+        return exists
+          ? prev.filter(
+              (p) => String(p.protocoloid) !== String(item.protocoloid),
+            )
+          : [...prev, item];
       });
     } else {
       setSelectedItems([item]);
@@ -651,7 +658,6 @@ export default function Resultados() {
 
   const isSelected = (id) =>
     selectedItems.some((p) => String(p.protocoloid) === String(id));
-
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
@@ -686,7 +692,10 @@ export default function Resultados() {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.setAttribute("download", `Protocolo_${protocolo.accessionnumber}.pdf`);
+        link.setAttribute(
+          "download",
+          `Protocolo_${protocolo.accessionnumber}.pdf`,
+        );
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
@@ -697,11 +706,16 @@ export default function Resultados() {
           try {
             const blob = await getProtocolPdf(p.protocoloid);
             zip.file(`Protocolo_${p.accessionnumber}.pdf`, blob);
-          } catch (e) { console.error(e); }
+          } catch (e) {
+            console.error(e);
+          }
         });
         await Promise.all(promesas);
         const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `Resultados_${new Date().toISOString().slice(0, 10)}.zip`);
+        saveAs(
+          content,
+          `Resultados_${new Date().toISOString().slice(0, 10)}.zip`,
+        );
       }
     } catch (error) {
       console.error(error);
@@ -711,7 +725,10 @@ export default function Resultados() {
     }
   };
 
-  const isPdfDisabled = selectedItems.length !== 1 || selectedItems[0]?.completo === "" || isPdfLoading;
+  const isPdfDisabled =
+    selectedItems.length !== 1 ||
+    selectedItems[0]?.completo === "" ||
+    isPdfLoading;
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
   const formatDate = (d) => (!d ? "-" : d);
 
@@ -743,11 +760,18 @@ export default function Resultados() {
     <div className="dashboard-container">
       <aside className="sidebar-filters" data-click-safe="true">
         <div className="sidebar-header">
-          {centraLabLogo ? <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" /> : <h2>CentraLab</h2>}
+          {centraLabLogo ? (
+            <img src={centraLabLogo} alt="CentraLab" className="sidebar-logo" />
+          ) : (
+            <h2>CentraLab</h2>
+          )}
         </div>
 
         <div className="sidebar-scrollable-content">
-          <div className={`filter-toggle-btn ${isGeneralOpen ? "active" : ""}`} onClick={handleToggleGeneral}>
+          <div
+            className={`filter-toggle-btn ${isGeneralOpen ? "active" : ""}`}
+            onClick={handleToggleGeneral}
+          >
             <FiFilter />
             <span>Filtros Generales</span>
             <span className="arrow-icon">{isGeneralOpen ? "▲" : "▼"}</span>
@@ -758,11 +782,23 @@ export default function Resultados() {
               <div className="compact-date-group">
                 <div className="date-item">
                   <label>Desde</label>
-                  <input type="date" name="date_from" value={formValues.date_from} onChange={handleInputChange} className="input-modern compact" />
+                  <input
+                    type="date"
+                    name="date_from"
+                    value={formValues.date_from}
+                    onChange={handleInputChange}
+                    className="input-modern compact"
+                  />
                 </div>
                 <div className="date-item">
                   <label>Hasta</label>
-                  <input type="date" name="date_to" value={formValues.date_to} onChange={handleInputChange} className="input-modern compact" />
+                  <input
+                    type="date"
+                    name="date_to"
+                    value={formValues.date_to}
+                    onChange={handleInputChange}
+                    className="input-modern compact"
+                  />
                 </div>
               </div>
 
@@ -778,7 +814,11 @@ export default function Resultados() {
                   label="Estado Protocolo"
                   value={formValues.complete_only}
                   onChange={(val) => handleToggleState("complete_only", val)}
-                  labels={{ true: "Completo", false: "En Proceso", all: "Todos" }}
+                  labels={{
+                    true: "Completo",
+                    false: "En Proceso",
+                    all: "Todos",
+                  }}
                 />
                 <TriStateToggle
                   label="Estado Lectura"
@@ -791,21 +831,49 @@ export default function Resultados() {
               {/* --- INPUTS --- */}
               <div className="filter-group compact">
                 <label>DNI Paciente</label>
-                <input type="text" name="patient_id_number" value={formValues.patient_id_number} onChange={handleInputChange} className="input-modern compact" placeholder="Ej: 25459633" />
+                <input
+                  type="text"
+                  name="patient_id_number"
+                  value={formValues.patient_id_number}
+                  onChange={handleInputChange}
+                  className="input-modern compact"
+                  placeholder="Ej: 25459633"
+                />
               </div>
               <div className="filter-group compact">
                 <label>Apellido</label>
-                <input type="text" name="apellido_paciente" value={formValues.apellido_paciente} onChange={handleInputChange} className="input-modern compact" placeholder="Buscar..." />
+                <input
+                  type="text"
+                  name="apellido_paciente"
+                  value={formValues.apellido_paciente}
+                  onChange={handleInputChange}
+                  className="input-modern compact"
+                  placeholder="Buscar..."
+                />
               </div>
               <div className="filter-group compact">
                 <label>ID Petición</label>
-                <input type="text" name="accession_number" value={formValues.accession_number} onChange={handleInputChange} className="input-modern compact" placeholder="Protocolo / ID" />
+                <input
+                  type="text"
+                  name="accession_number"
+                  value={formValues.accession_number}
+                  onChange={handleInputChange}
+                  className="input-modern compact"
+                  placeholder="Protocolo / ID"
+                />
               </div>
 
               <div className="filter-row compact-row">
                 <div className="filter-group half">
                   <label>Pág.</label>
-                  <input type="number" name="page" value={formValues.page} onChange={(e) => handlePageChange(e.target.value)} className="input-modern compact" min={1} />
+                  <input
+                    type="number"
+                    name="page"
+                    value={formValues.page}
+                    onChange={(e) => handlePageChange(e.target.value)}
+                    className="input-modern compact"
+                    min={1}
+                  />
                 </div>
                 <div className="filter-group half">
                   <label>Filas</label>
@@ -816,8 +884,16 @@ export default function Resultados() {
                       handleInputChange(e);
                       setKnownEndPage(null);
                       lastValidPageRef.current = 1;
-                      setFormValues(prev => ({ ...prev, page: 1, page_size: e.target.value }));
-                      setActiveFilters(prev => ({ ...prev, page: 1, page_size: e.target.value }));
+                      setFormValues((prev) => ({
+                        ...prev,
+                        page: 1,
+                        page_size: e.target.value,
+                      }));
+                      setActiveFilters((prev) => ({
+                        ...prev,
+                        page: 1,
+                        page_size: e.target.value,
+                      }));
                     }}
                     className="input-modern compact"
                   >
@@ -832,10 +908,25 @@ export default function Resultados() {
 
               {/* --- BOTONES --- */}
               <div className="filter-actions-row">
-                <button type="submit" className="btn-filtrar primary" disabled={isLoading}>
-                  {isLoading ? <span className="spinner-loader"></span> : <><FiSearch /> Buscar</>}
+                <button
+                  type="submit"
+                  className="btn-filtrar primary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="spinner-loader"></span>
+                  ) : (
+                    <>
+                      <FiSearch /> Buscar
+                    </>
+                  )}
                 </button>
-                <button type="button" className="btn-filtrar secondary" onClick={handleReset} disabled={isLoading}>
+                <button
+                  type="button"
+                  className="btn-filtrar secondary"
+                  onClick={handleReset}
+                  disabled={isLoading}
+                >
                   <FiTrash2 />
                 </button>
               </div>
@@ -870,18 +961,39 @@ export default function Resultados() {
           <div className="sidebar-footer">
             {user.isadministrator && (
               <div style={{ marginBottom: 15 }}>
-                <button onClick={() => setIsAdminOpen(true)} className="btn-admin-premium">
+                <button
+                  onClick={() => setIsAdminOpen(true)}
+                  className="btn-admin-premium"
+                >
                   <FiUsers size={18} /> <span>Administración</span>
                 </button>
               </div>
             )}
             <div className="user-card-info">
-              <div className="user-avatar-footer"><FiUser /></div>
+              <div className="user-avatar-footer">
+                <FiUser />
+              </div>
               <div style={{ overflow: "hidden" }}>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "#334155", whiteSpace: "nowrap", textOverflow: "ellipsis", maxWidth: 130 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    color: "#334155",
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    maxWidth: 130,
+                  }}
+                >
                   {user.fullname || user.username}
                 </p>
-                <span style={{ fontSize: "0.65rem", color: "#64748b", display: "block" }}>
+                <span
+                  style={{
+                    fontSize: "0.65rem",
+                    color: "#64748b",
+                    display: "block",
+                  }}
+                >
                   {user.email || "Usuario"}
                 </span>
               </div>
@@ -898,7 +1010,11 @@ export default function Resultados() {
           <ResponsiveToolbar actions={toolbarActions} />
           <div className="table-wrapper">
             <div className="table-scroll">
-              {isFetching && !isLoading && <div className="loading-overlay"><div className="spinner"></div></div>}
+              {isFetching && !isLoading && (
+                <div className="loading-overlay">
+                  <div className="spinner"></div>
+                </div>
+              )}
               {isError ? (
                 <ErrorStateDisplay
                   title="No se pudieron cargar los protocolos"
@@ -927,27 +1043,49 @@ export default function Resultados() {
                           onContextMenu={(e) => handleContextMenu(e, item)}
                         >
                           <td style={{ textAlign: "center" }}>
-                            <span className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`} title={item.debe ? "Posee Deuda" : "Sin Deuda"}></span>
+                            <span
+                              className={`indicator-dot ${item.debe ? "dot-red" : "dot-green"}`}
+                              title={item.debe ? "Posee Deuda" : "Sin Deuda"}
+                            ></span>
                           </td>
                           <td className="patient-info-cell">
                             <div className="patient-main-info">
                               <div className="name-with-dot">
-                                {item.leido === "0" && <span className="unread-dot-inline" title="No leído"></span>}
-                                <span className="name-text">{item.apellidopaciente}, {item.nombrepaciente}</span>
+                                {item.leido === "0" && (
+                                  <span
+                                    className="unread-dot-inline"
+                                    title="No leído"
+                                  ></span>
+                                )}
+                                <span className="name-text">
+                                  {item.apellidopaciente}, {item.nombrepaciente}
+                                </span>
                               </div>
                               <div className="patient-subdata">
-                                <span>DNI: {item.pacid.toString().replace(/DNI/gi, "").trim()}</span>
+                                <span>
+                                  DNI:{" "}
+                                  {item.pacid
+                                    .toString()
+                                    .replace(/DNI/gi, "")
+                                    .trim()}
+                                </span>
                                 <span className="separator">•</span>
-                                <span>Ingreso: {formatDate(item.ordereddate)}</span>
+                                <span>
+                                  Ingreso: {formatDate(item.ordereddate)}
+                                </span>
                               </div>
                             </div>
                           </td>
                           <td className="font-mono">{item.protocoloid}</td>
                           <td>
                             {item.completo !== "" ? (
-                              <span className="status-badge status-complete"><FiCheckCircle /> Completo</span>
+                              <span className="status-badge status-complete">
+                                <FiCheckCircle /> Completo
+                              </span>
                             ) : (
-                              <span className="status-badge status-pending"><FiClock /> En proceso</span>
+                              <span className="status-badge status-pending">
+                                <FiClock /> En proceso
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -975,99 +1113,185 @@ export default function Resultados() {
             <div className="modern-report-container">
               <div className="patient-header-card compact-linear">
                 <div className="patient-avatar-area small">
-                  <div className="avatar-circle"><FiUser /></div>
+                  <div className="avatar-circle">
+                    <FiUser />
+                  </div>
                 </div>
                 <div className="patient-details-linear">
                   <div className="linear-top-row">
-                    <h2 className="patient-name-linear">{selectedProtocol.apellidopaciente}, {selectedProtocol.nombrepaciente}</h2>
+                    <h2 className="patient-name-linear">
+                      {selectedProtocol.apellidopaciente},{" "}
+                      {selectedProtocol.nombrepaciente}
+                    </h2>
                   </div>
                   <div className="linear-data-row">
-                    <span className="data-item"><span className="lbl">DNI:</span><span className="val">{selectedProtocol.pacid}</span></span>
+                    <span className="data-item">
+                      <span className="lbl">DNI:</span>
+                      <span className="val">{selectedProtocol.pacid}</span>
+                    </span>
                     <span className="separator">•</span>
                     <span className="data-item">
                       <span className="lbl">Edad:</span>
-                      <span className="val">{selectedProtocol.pacage} años {selectedProtocol.birthdate && ` (${formatDate(selectedProtocol.birthdate)})`}</span>
+                      <span className="val">
+                        {selectedProtocol.pacage} años{" "}
+                        {selectedProtocol.birthdate &&
+                          ` (${formatDate(selectedProtocol.birthdate)})`}
+                      </span>
                     </span>
                     <span className="separator highlight">•</span>
-                    <span className="data-item date-item"><FiClock size={11} style={{ marginRight: 3 }} /><span className="val">{formatDate(selectedProtocol.ordereddate)}</span></span>
+                    <span className="data-item date-item">
+                      <FiClock size={11} style={{ marginRight: 3 }} />
+                      <span className="val">
+                        {formatDate(selectedProtocol.ordereddate)}
+                      </span>
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="results-scroll-area">
                 {isLoadingResults ? (
-                  <div className="loading-results"><div className="spinner"></div> Cargando resultados...</div>
+                  <div className="loading-results">
+                    <div className="spinner"></div> Cargando resultados...
+                  </div>
                 ) : isErrorResults ? (
-                  <ErrorStateDisplay title="Error al cargar resultados" message="No se pudieron obtener los detalles." retryAction={refetchResults} />
+                  <ErrorStateDisplay
+                    title="Error al cargar resultados"
+                    message="No se pudieron obtener los detalles."
+                    retryAction={refetchResults}
+                  />
                 ) : resultsData?.resultados?.length > 0 ? (
                   <div className="results-list-modern">
                     <div className="results-cols-header">
-                      <span className="col-det">Determinación</span><span className="col-res">Resultado</span><span className="col-ref">Valores Ref.</span><span className="col-unit">Unidad</span><span className="col-status">Estado</span>
+                      <span className="col-det">Determinación</span>
+                      <span className="col-res">Resultado</span>
+                      <span className="col-ref">Valores Ref.</span>
+                      <span className="col-unit">Unidad</span>
+                      <span className="col-status">Estado</span>
                     </div>
                     {resultsData.resultados.map((res, index) => {
-                      const prevRes = index > 0 ? resultsData.resultados[index - 1] : null;
-                      const isNewGroup = index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
-                      const isNewAnalysis = index === 0 || res.analisis !== prevRes?.analisis || isNewGroup;
-                      const analysisName = (res.analisis || "").toLowerCase().trim();
-                      const practiceName = (res.descripcionpractica || "").toLowerCase().trim();
-                      const isRedundantHeader = practiceName.includes(analysisName);
+                      const prevRes =
+                        index > 0 ? resultsData.resultados[index - 1] : null;
+                      const isNewGroup =
+                        index === 0 || res.grupotitulo !== prevRes?.grupotitulo;
+                      const isNewAnalysis =
+                        index === 0 ||
+                        res.analisis !== prevRes?.analisis ||
+                        isNewGroup;
+                      const analysisName = (res.analisis || "")
+                        .toLowerCase()
+                        .trim();
+                      const practiceName = (res.descripcionpractica || "")
+                        .toLowerCase()
+                        .trim();
+                      const isRedundantHeader =
+                        practiceName.includes(analysisName);
 
                       return (
                         <React.Fragment key={index}>
-                          {res.grupotitulo && isNewGroup && <div className="group-header-modern">{res.grupotitulo}</div>}
-                          {isNewAnalysis && res.analisis && res.analisis !== res.grupotitulo && !isRedundantHeader && (
-                            <div className="analysis-subheader-modern">{res.analisis}</div>
+                          {res.grupotitulo && isNewGroup && (
+                            <div className="group-header-modern">
+                              {res.grupotitulo}
+                            </div>
                           )}
+                          {isNewAnalysis &&
+                            res.analisis &&
+                            res.analisis !== res.grupotitulo &&
+                            !isRedundantHeader && (
+                              <div className="analysis-subheader-modern">
+                                {res.analisis}
+                              </div>
+                            )}
                           <div className="result-row-modern group-hover-trigger">
                             <div className="col-det">
                               <span className="test-name">
                                 {(res.descripcionpractica || "").replace(/\s*%$/, "")}
                               </span>
-                              {res.metodo && <span className="method-badge">{res.metodo}</span>}
-                              {res.observaciones && <div className="hover-tooltip"><strong>Información:</strong><p>{res.observaciones}</p></div>}
+                              {res.metodo && (
+                                <span className="method-badge">
+                                  {res.metodo}
+                                </span>
+                              )}
+                              {res.observaciones && (
+                                <div className="hover-tooltip">
+                                  <strong>Información:</strong>
+                                  <p>{res.observaciones}</p>
+                                </div>
+                              )}
                             </div>
-                            <div className="col-res"><span className="res-value">{res.resultado}</span></div>
-                            <div className="col-ref">{res.valoresreferencia || res.rangovalidacion || "-"}</div>
+                            <div className="col-res">
+                              <span className="res-value">{res.resultado}</span>
+                            </div>
+                            <div className="col-ref">
+                              {res.valoresreferencia ||
+                                res.rangovalidacion ||
+                                "-"}
+                            </div>
                             <div className="col-unit">{res.unidadmedida}</div>
-<div className="col-status">
-  {(() => {
-    // 1. Intentamos calcular el estado dinámicamente
-    const calculated = getAnalysisStatus(res.resultado, res.valoresreferencia);
+                            <div className="col-status">
+                              {(() => {
+                                const calculated = getAnalysisStatus(
+                                  res.resultado,
+                                  res.valoresreferencia,
+                                );
 
-    // 2. Si hay un flag del backend (H o L), tiene prioridad visual
-    if (res.flag === "H") {
-      return <span className="status-pill status-danger">Alto <FiAlertCircle /></span>;
-    }
-    if (res.flag === "L") {
-      return <span className="status-pill status-danger">Bajo <FiAlertTriangle /></span>; // Usé otro ícono para variar
-    }
+                                if (res.flag === "H") {
+                                  return (
+                                    <span className="status-pill status-danger">
+                                      Alto <FiArrowUp  />
+                                    </span>
+                                  );
+                                }
+                                if (res.flag === "L") {
+                                  return (
+                                    <span className="status-pill status-danger">
+                                      Bajo <FiArrowDown  />
+                                    </span>
+                                  );
+                                }
 
-    // 3. Si no hay flag, usamos nuestro cálculo
-    if (calculated) {
-      if (calculated.type === 'high') {
-        return <span className="status-pill status-danger">Alto <FiAlertCircle /></span>;
-      }
-      if (calculated.type === 'low') {
-        // Puedes crear una clase 'status-warning' en tu CSS si quieres amarillo
-        return <span className="status-pill status-danger">Bajo <FiAlertCircle /></span>;
-      }
-      if (calculated.type === 'normal') {
-        return <span className="status-pill status-success">Normal <FiCheck /></span>;
-      }
-    }
+                                if (calculated) {
+                                  if (calculated.type === "high") {
+                                    return (
+                                      <span className="status-pill status-danger">
+                                        Alto <FiArrowUp  />
+                                      </span>
+                                    );
+                                  }
+                                  if (calculated.type === "low") {
+                                    return (
+                                      <span className="status-pill status-warning">
+                                        Bajo <FiArrowDown  />
+                                      </span>
+                                    );
+                                  }
+                                  if (calculated.type === "normal") {
+                                    return (
+                                      <span className="status-pill status-success">
+                                        Normal <FiCheck />
+                                      </span>
+                                    );
+                                  }
+                                }
 
-    // 4. Si no es numérico, ni tiene rango, ni flag (ej: Títulos, Texto)... NO MUESTRA NADA.
-    return null; 
-  })()}
-</div>
+                                return null;
+                              })()}
+                            </div>
                           </div>
-                          {res.notaresultado && <div className="result-note-row">Nota: {res.notaresultado}</div>}
+                          {res.notaresultado && (
+                            <div className="result-note-row">
+                              Nota: {res.notaresultado}
+                            </div>
+                          )}
                         </React.Fragment>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="no-data-message"><FiInfo size={30} /><p>No hay resultados visualizables.</p></div>
+                  <div className="no-data-message">
+                    <FiInfo size={30} />
+                    <p>No hay resultados visualizables.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -1075,36 +1299,127 @@ export default function Resultados() {
             <div className="no-selection-message">
               {selectedItems.length > 1 ? (
                 <>
-                  <FiCheckCircle size={50} style={{ opacity: 0.3, color: "#2563eb" }} />
+                  <FiCheckCircle
+                    size={50}
+                    style={{ opacity: 0.3, color: "#2563eb" }}
+                  />
                   <p>{selectedItems.length} protocolos seleccionados</p>
-                  <small>Presione "Descargar Todo" para bajar los protocolos completados.</small>
+                  <small>
+                    Presione "Descargar Todo" para bajar los protocolos
+                    completados.
+                  </small>
                 </>
               ) : (
-                <><FiEye size={50} style={{ opacity: 0.3 }} /><p>Haga <strong>click</strong> en un paciente para ver sus resultados</p></>
+                <>
+                  <FiEye size={50} style={{ opacity: 0.3 }} />
+                  <p>
+                    Haga <strong>click</strong> en un paciente para ver sus
+                    resultados
+                  </p>
+                </>
               )}
             </div>
           )}
         </section>
       </main>
 
-      <Email isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} protocolo={selectedItems[0]} />
+      <Email
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        protocolo={selectedItems[0]}
+      />
       {contextMenu && (
-        <div className="context-menu" style={{ position: "fixed", zIndex: 9999, top: contextMenu.mouseY, left: contextMenu.mouseX, backgroundColor: "white", border: "1px solid #ccc", borderRadius: "4px", boxShadow: "0 2px 10px rgba(0,0,0,0.2)", padding: "5px 0", minWidth: "180px" }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="context-menu"
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            top: contextMenu.mouseY,
+            left: contextMenu.mouseX,
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            padding: "5px 0",
+            minWidth: "180px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {contextMenu.item.leido === "1" ? (
-            <div className="context-menu-item" style={{ padding: "8px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", fontSize: "0.9rem", color: "#333" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")} onClick={() => { markUnread.mutate(contextMenu.item.protocoloid); contextMenu.item.leido = "0"; setContextMenu(null); }}>
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markUnread.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "0";
+                setContextMenu(null);
+              }}
+            >
               <FiBookmark /> Marcar como no leído
             </div>
           ) : (
-            <div className="context-menu-item" style={{ padding: "8px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", fontSize: "0.9rem", color: "#333" }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")} onClick={() => { markRead.mutate(contextMenu.item.protocoloid); contextMenu.item.leido = "1"; setContextMenu(null); }}>
+            <div
+              className="context-menu-item"
+              style={{
+                padding: "8px 15px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "0.9rem",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f0f0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "white")
+              }
+              onClick={() => {
+                markRead.mutate(contextMenu.item.protocoloid);
+                contextMenu.item.leido = "1";
+                setContextMenu(null);
+              }}
+            >
               <FiBookOpen /> Marcar como leído
             </div>
           )}
         </div>
       )}
-      <ModalUsuario isOpen={isCreateUserModalOpen} onClose={() => setIsCreateUserModalOpen(false)} onUserSaved={() => alert("¡Usuario creado exitosamente!")} />
-      <ModalBuscarUsuario isOpen={isSearchUserModalOpen} onClose={() => setIsSearchUserModalOpen(false)} onUserFound={handleUserFound} />
-      <ModalAdministracion isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
-      <ModalEditarUsuario isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} user={userToEdit} onUserUpdated={() => alert("Usuario actualizado correctamente")} />
+      <ModalUsuario
+        isOpen={isCreateUserModalOpen}
+        onClose={() => setIsCreateUserModalOpen(false)}
+        onUserSaved={() => alert("¡Usuario creado exitosamente!")}
+      />
+      <ModalBuscarUsuario
+        isOpen={isSearchUserModalOpen}
+        onClose={() => setIsSearchUserModalOpen(false)}
+        onUserFound={handleUserFound}
+      />
+      <ModalAdministracion
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+      />
+      <ModalEditarUsuario
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        user={userToEdit}
+        onUserUpdated={() => alert("Usuario actualizado correctamente")}
+      />
     </div>
   );
 }
