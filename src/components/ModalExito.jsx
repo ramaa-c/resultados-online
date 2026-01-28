@@ -14,7 +14,7 @@ const ModalExito = ({ isOpen, onClose, message }) => {
           maxWidth: "90%", 
           padding: "20px",
           textAlign: "center",
-          borderTop: "5px solid #10b981" // Verde éxito
+          borderTop: "5px solid #10b981"
         }}
       >
         <div style={{ marginTop: "10px", marginBottom: "15px", color: "#10b981" }}>

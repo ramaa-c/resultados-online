@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
@@ -9,8 +15,6 @@ import { AdvancedPagination } from "../components/AdvancedPagination";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import ModalUsuario from "../components/ModalUsuario";
-import ModalEditarUsuario from "../components/ModalEditarUsuario";
-import ModalBuscarUsuario from "../components/ModalBuscarUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
@@ -117,14 +121,25 @@ const AsyncFilterSection = ({
   const [inputValue, setInputValue] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+
   const containerRef = useRef(null);
 
-  const canViewAll =
-    type === "branch" ? user.canviewallbranches : user.canviewallforwarders;
-  const restrictedList =
-    type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
-  const useChipsMode =
-    !canViewAll && restrictedList.length > 0 && restrictedList.length <= 10;
+  const canViewAll = type === "branch" ? false : user.canviewallforwarders;
+
+  const localOptions = useMemo(() => {
+    if (type === "branch") return [];
+    const ids = user.forwarderidlist || [];
+    const names = user.forwardernamelist || [];
+
+    return ids.map((id, index) => ({
+      id: String(id),
+      label: names[index] || id,
+    }));
+  }, [type, user]);
+
+  const useApiSearchMode = canViewAll;
+  const useLocalChipsMode = !canViewAll && localOptions.length <= 10;
+  const useLocalSelectMode = !canViewAll && localOptions.length > 10;
 
   useEffect(() => {
     const ids = selectedItems.map((i) => i.id).join(",");
@@ -151,222 +166,280 @@ const AsyncFilterSection = ({
     queryFn: async () => {
       const endpoint = type === "branch" ? "/branches" : "/forwarders";
       const paramName = type === "branch" ? "branch_name" : "forwarder_name";
-      const res = await api.get(endpoint, {
-        params: { [paramName]: queryTerm, page_size: 5 },
-      });
-      const raw = res.data.items || res.data;
-      if (Array.isArray(raw))
-        return raw.map((item) => ({
-          id: item.id,
-          label: item.name || item.business_name || item.label || item.id,
-        }));
-      if (typeof raw === "object" && raw !== null)
-        return Object.entries(raw).map(([id, name]) => ({ id, label: name }));
-      return [];
+
+      try {
+        const res = await api.get(endpoint, {
+          params: { [paramName]: queryTerm, page_size: 5 },
+        });
+
+        const raw = res.data.items || res.data;
+
+        if (Array.isArray(raw)) {
+          return raw.map((item) => ({
+            id: String(item.id),
+            label: item.name || item.business_name || item.label || item.id,
+          }));
+        }
+
+        if (typeof raw === "object" && raw !== null) {
+          return Object.entries(raw).map(([id, name]) => ({
+            id: String(id),
+            label: name,
+          }));
+        }
+
+        return [];
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        throw err;
+      }
     },
-    enabled: !!queryTerm && !useChipsMode && queryTerm.trim().length >= 1,
+    enabled:
+      !!queryTerm &&
+      queryTerm.trim().length >= 1 &&
+      (type === "branch" ? !user.branchidlist : canViewAll),
     staleTime: 1000 * 60,
     retry: false,
   });
 
+  // --- HANDLERS ---
+
+  const handleSelect = (item) => {
+    if (!selectedItems.some((i) => String(i.id) === String(item.id))) {
+      setSelectedItems((prev) => [...prev, item]);
+    }
+    setInputValue("");
+    setQueryTerm("");
+    setShowDropdown(false);
+  };
+
+  const handleRemove = (id) =>
+    setSelectedItems((prev) => prev.filter((i) => String(i.id) !== String(id)));
+
+  // --- HANDLERS API ---
   const handleTriggerSearch = () => {
     if (inputValue.trim().length >= 1) {
       setQueryTerm(inputValue.toUpperCase());
       setShowDropdown(true);
     }
   };
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleTriggerSearch();
     }
   };
-  const handleSelect = (item) => {
-    if (!selectedItems.some((i) => i.id === item.id))
-      setSelectedItems((prev) => [...prev, item]);
-    setInputValue("");
-    setQueryTerm("");
-    setShowDropdown(false);
+
+  // --- HANDLER LOCAL SELECT ---
+  const handleLocalSelectChange = (e) => {
+    const selectedId = e.target.value;
+    if (!selectedId) return;
+
+    const itemFound = localOptions.find(
+      (op) => String(op.id) === String(selectedId),
+    );
+    if (itemFound) {
+      handleSelect(itemFound);
+    }
+    e.target.value = "";
   };
-  const handleRemove = (id) =>
-    setSelectedItems((prev) => prev.filter((i) => i.id !== id));
 
-  const idNameMap = React.useMemo(() => {
-    const ids =
-      type === "branch" ? user.branchidlist || [] : user.forwarderidlist || [];
-    const names =
-      type === "branch"
-        ? user.branchnamelist || []
-        : user.forwardernamelist || [];
-    const map = {};
-    ids.forEach((id, index) => {
-      map[id] = names[index] || id;
-    });
-    return map;
-  }, [type, user]);
+  // --- RENDERERS ---
 
+  // RENDERER CHIPS ESTATICOS
   const renderStaticChips = () => (
     <div className="chips-grid">
-      {restrictedList.map((id) => {
-        const isSelected = selectedItems.some((i) => i.id === id);
-        const label = idNameMap[id] || id;
+      {localOptions.map((item) => {
+        const isSelected = selectedItems.some(
+          (i) => String(i.id) === String(item.id),
+        );
         return (
           <div
-            key={id}
+            key={item.id}
             className={`filter-chip ${isSelected ? "active" : ""}`}
             onClick={() =>
-              isSelected ? handleRemove(id) : handleSelect({ id, label })
+              isSelected ? handleRemove(item.id) : handleSelect(item)
             }
           >
             {isSelected && <FiCheckCircle size={12} />}
-            <span title={label}>{label}</span>
+            <span title={item.label}>{item.label}</span>
           </div>
         );
       })}
     </div>
   );
 
+  // RENDERER SELECT LOCAL
+  const renderLocalSelect = () => (
+    <div className="local-select-container">
+      <div className="input-wrapper">
+        <select
+          className="input-modern"
+          onChange={handleLocalSelectChange}
+          defaultValue=""
+          style={{ width: "100%", cursor: "pointer" }}
+        >
+          <option value="" disabled>
+            Seleccione una opción...
+          </option>
+          {localOptions.map((opt) => {
+            const isSelected = selectedItems.some(
+              (i) => String(i.id) === String(opt.id),
+            );
+            return (
+              <option key={opt.id} value={opt.id} disabled={isSelected}>
+                {opt.label} {isSelected ? "(Seleccionado)" : ""}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+    </div>
+  );
+
+  // RENDERER INPUT ASINCRONO
+  const renderAsyncSearch = () => (
+    <div
+      className="async-search-container"
+      ref={containerRef}
+      style={{ position: "relative" }}
+    >
+      <div className="input-wrapper">
+        <input
+          type="text"
+          className="input-modern"
+          placeholder={`Buscar ${title.toLowerCase()}...`}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          style={{ paddingRight: 35 }}
+        />
+        {inputValue || queryTerm ? (
+          <button
+            type="button"
+            onClick={() => {
+              setInputValue("");
+              setQueryTerm("");
+              setShowDropdown(false);
+            }}
+            className="search-icon-btn"
+            style={{
+              position: "absolute",
+              right: "5px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "#dc2626",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <FiX size={18} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleTriggerSearch}
+            className="search-icon-btn"
+            style={{
+              position: "absolute",
+              right: "5px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "#0198CC",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <FiSearch size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* Dropdown de resultados de API */}
+      {showDropdown && queryTerm && (
+        <div className="search-dropdown">
+          {isFetching && (
+            <div className="dropdown-item loading">
+              <span className="spinner-loader"></span> Buscando...
+            </div>
+          )}
+          {!isFetching && searchResults.length === 0 && !isError && (
+            <div
+              className="dropdown-item loading"
+              style={{ fontStyle: "italic", color: "#999" }}
+            >
+              No se encontraron resultados
+            </div>
+          )}
+          {isError && (
+            <div className="dropdown-item" style={{ color: "red" }}>
+              Error en búsqueda
+            </div>
+          )}
+          {!isFetching &&
+            searchResults.map((item) => (
+              <div
+                key={item.id}
+                className="dropdown-item"
+                onClick={() => handleSelect(item)}
+              >
+                <span>{item.label}</span>
+                <FiPlus className="add-icon" />
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="sidebar-section">
       <div className="sidebar-header-sub" onClick={onToggle}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Icon />
-          <span>{title}</span>
-        </div>
+        <Icon />
+        <span style={{ flex: 1, textAlign: "center" }}>{title}</span>
         <span className="arrow-icon">{isOpen ? "▲" : "▼"}</span>
       </div>
+
       <div className={`filters-collapsible ${isOpen ? "show" : ""}`}>
         <div className="location-filter-body">
-          {useChipsMode ? (
-            renderStaticChips()
-          ) : (
-            <div
-              className="async-search-container"
-              ref={containerRef}
-              style={{ position: "relative" }}
-            >
-              <div className="input-wrapper">
-                <input
-                  type="text"
-                  className="input-modern"
-                  placeholder={`Buscar ${title.toLowerCase()}...`}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  style={{ paddingRight: 35 }}
-                />
-                {inputValue || queryTerm ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("");
-                      setQueryTerm("");
-                      setShowDropdown(false);
-                    }}
-                    className="search-icon-btn"
+          {/* Modo Chips Locales */}
+          {useLocalChipsMode && renderStaticChips()}
+
+          {/* Modo Select Local */}
+          {useLocalSelectMode && renderLocalSelect()}
+
+          {/* Modo Buscador API */}
+          {useApiSearchMode && renderAsyncSearch()}
+
+          {!useLocalChipsMode && selectedItems.length > 0 && (
+            <div className="selected-chips-area">
+              {selectedItems.map((item) => (
+                <div key={item.id} className="selected-chip">
+                  <span className={`chip-dot ${type}`}></span>
+                  <span
+                    title={item.label}
                     style={{
-                      position: "absolute",
-                      right: "5px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#dc2626",
-                      display: "flex",
-                      alignItems: "center",
+                      maxWidth: 130,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <FiX size={18} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleTriggerSearch}
-                    className="search-icon-btn"
-                    style={{
-                      position: "absolute",
-                      right: "5px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#0198CC",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <FiSearch size={18} />
-                  </button>
-                )}
-              </div>
-              {showDropdown && queryTerm && (
-                <div className="search-dropdown">
-                  {isFetching && (
-                    <div className="dropdown-item loading">
-                      <span
-                        className="spinner-loader"
-                        style={{
-                          width: 12,
-                          height: 12,
-                          border: "2px solid #ccc",
-                          borderTopColor: "#0198CC",
-                        }}
-                      ></span>{" "}
-                      Buscando...
-                    </div>
-                  )}
-                  {!isFetching && searchResults.length === 0 && !isError && (
-                    <div
-                      className="dropdown-item loading"
-                      style={{ fontStyle: "italic", color: "#999" }}
-                    >
-                      No se encontraron resultados
-                    </div>
-                  )}
-                  {isError && (
-                    <div className="dropdown-item" style={{ color: "red" }}>
-                      Error: {error?.message || "Falló la búsqueda"}
-                    </div>
-                  )}
-                  {!isFetching &&
-                    searchResults.map((item) => (
-                      <div
-                        key={item.id}
-                        className="dropdown-item"
-                        onClick={() => handleSelect(item)}
-                      >
-                        <span>{item.label}</span>
-                        <FiPlus className="add-icon" />
-                      </div>
-                    ))}
+                    {item.label}
+                  </span>
+                  <FiX
+                    className="remove-icon"
+                    onClick={() => handleRemove(item.id)}
+                  />
                 </div>
-              )}
-              {selectedItems.length > 0 && (
-                <div className="selected-chips-area">
-                  {selectedItems.map((item) => (
-                    <div key={item.id} className="selected-chip">
-                      <span className={`chip-dot ${type}`}></span>
-                      <span
-                        title={item.label}
-                        style={{
-                          maxWidth: 130,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {item.label}
-                      </span>
-                      <FiX
-                        className="remove-icon"
-                        onClick={() => handleRemove(item.id)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -375,7 +448,7 @@ const AsyncFilterSection = ({
   );
 };
 
-// --- FUNCIÓN HELPER PARA CALCULAR ESTADO ---
+// --- HELPER ESTADO ---
 const getAnalysisStatus = (resultado, referencia) => {
   if (!resultado || !referencia) return null;
 
@@ -1204,7 +1277,10 @@ export default function Resultados() {
                           <div className="result-row-modern group-hover-trigger">
                             <div className="col-det">
                               <span className="test-name">
-                                {(res.descripcionpractica || "").replace(/\s*%$/, "")}
+                                {(res.descripcionpractica || "").replace(
+                                  /\s*%$/,
+                                  "",
+                                )}
                               </span>
                               {res.metodo && (
                                 <span className="method-badge">
@@ -1237,14 +1313,14 @@ export default function Resultados() {
                                 if (res.flag === "H") {
                                   return (
                                     <span className="status-pill status-danger">
-                                      Alto <FiArrowUp  />
+                                      Alto <FiArrowUp />
                                     </span>
                                   );
                                 }
                                 if (res.flag === "L") {
                                   return (
                                     <span className="status-pill status-danger">
-                                      Bajo <FiArrowDown  />
+                                      Bajo <FiArrowDown />
                                     </span>
                                   );
                                 }
@@ -1253,14 +1329,14 @@ export default function Resultados() {
                                   if (calculated.type === "high") {
                                     return (
                                       <span className="status-pill status-danger">
-                                        Alto <FiArrowUp  />
+                                        Alto <FiArrowUp />
                                       </span>
                                     );
                                   }
                                   if (calculated.type === "low") {
                                     return (
                                       <span className="status-pill status-warning">
-                                        Bajo <FiArrowDown  />
+                                        Bajo <FiArrowDown />
                                       </span>
                                     );
                                   }
@@ -1404,20 +1480,9 @@ export default function Resultados() {
         onClose={() => setIsCreateUserModalOpen(false)}
         onUserSaved={() => alert("¡Usuario creado exitosamente!")}
       />
-      <ModalBuscarUsuario
-        isOpen={isSearchUserModalOpen}
-        onClose={() => setIsSearchUserModalOpen(false)}
-        onUserFound={handleUserFound}
-      />
       <ModalAdministracion
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
-      />
-      <ModalEditarUsuario
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        user={userToEdit}
-        onUserUpdated={() => alert("Usuario actualizado correctamente")}
       />
     </div>
   );

@@ -14,10 +14,9 @@ const ModalError = ({ isOpen, onClose, message }) => {
           maxWidth: "90%", 
           padding: "20px",
           textAlign: "center",
-          borderTop: "5px solid #ef4444" // Rojo Error
+          borderTop: "5px solid #ef4444"
         }}
       >
-        {/* Botón X para cerrar rápido */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button className="modal-close-btn" onClick={onClose}>
                 <FiX />

@@ -14,14 +14,20 @@ import {
   FiCheck,
   FiSave,
   FiEdit3,
-  FiLoader // <--- 1. Importamos el icono de carga
+  FiLoader 
 } from "react-icons/fi";
 import "../styles/modalUsuario.css";
 
 // --- ESQUEMA DE VALIDACIÓN ---
 const schema = z.object({
-  username: z.string().min(3, "Usuario debe tener al menos 3 caracteres"),
-  fullname: z.string().min(1, "El nombre completo es obligatorio"),
+  username: z.string()
+    .min(3, "Usuario debe tener al menos 3 caracteres")
+    .transform(val => val.toUpperCase()),
+
+  fullname: z.string()
+    .min(1, "El nombre completo es obligatorio")
+    .transform(val => val.toUpperCase()),
+
   email: z.string().email("Formato de email inválido"),
 
   isadministrator: z.boolean(),
@@ -106,7 +112,8 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
             Cancelar
           </button>
           <button 
-            type="button" onClick={() => onSave(textValue)} 
+            type="button" 
+            onClick={() => onSave(textValue.toUpperCase())} 
             style={{ 
               background: "linear-gradient(135deg, #0198CC 0%, #006b8f 100%)", 
               color: "white", border: "none", padding: "6px 16px", 
@@ -172,7 +179,11 @@ const AsyncSelector = ({
     }
   }, [data]);
 
-  const triggerSearch = () => { setSearchQuery(inputValue); setPage(1); };
+  const triggerSearch = () => { 
+    setSearchQuery(inputValue.toUpperCase()); 
+    setPage(1); 
+  };
+  
   const handleKeyDown = (e) => {
     if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); triggerSearch(); }
   };
@@ -199,7 +210,8 @@ const AsyncSelector = ({
           <input
             type="text" className="selector-input-search"
             placeholder={`Buscar ${title}... (Enter)`}
-            value={inputValue} onChange={(e) => setInputValue(e.target.value)}
+            value={inputValue} 
+            onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
           />
           <button type="button" className="selector-btn-search" onClick={triggerSearch}><FiSearch /></button>
@@ -388,7 +400,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
     if (configuringForwarder) {
       setForwarderServicesMap(prev => ({
         ...prev,
-        [configuringForwarder.id]: textValue
+        [configuringForwarder.id]: textValue ? textValue.toUpperCase() : ""
       }));
       setConfiguringForwarder(null); 
     }
@@ -408,6 +420,8 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
 
       const payload = {
         ...data,
+        username: (data.username || "").toUpperCase(),
+        fullname: (data.fullname || "").toUpperCase(),
         userid: userToEdit ? userToEdit.userid : 0,
         status: userToEdit ? userToEdit.status : "activo",
         mustchangepassword: data.mustchangepassword,
@@ -441,8 +455,6 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
 
   return (
     <div className="modal-usuario-overlay">
-      
-      {/* 2. AGREGAMOS EL CSS KEYFRAME AQUÍ MISMO PARA QUE FUNCIONE DIRECTO */}
       <style>
         {`
           @keyframes spin {
@@ -471,12 +483,24 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: "15px", rowGap: "5px", marginBottom: "-15px" }}>
                   <div className="form-group">
                     <label className="form-label" style={{ marginBottom: "2px" }}>Usuario</label>
-                    <input type="text" className={`form-input ${errors.username ? "error" : ""}`} {...register("username")} style={{ height: "32px", padding: "0 8px" }} />
+                    <input 
+                      type="text" 
+                      className={`form-input ${errors.username ? "error" : ""}`} 
+                      {...register("username")} 
+                      onInput={(e) => e.target.value = e.target.value}
+                      style={{ height: "32px", padding: "0 8px" }} 
+                    />
                     {errors.username && <span className="error-msg">{errors.username.message}</span>}
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ marginBottom: "2px" }}>Nombre Completo</label>
-                    <input type="text" className={`form-input ${errors.fullname ? "error" : ""}`} {...register("fullname")} style={{ height: "32px", padding: "0 8px" }} />
+                    <input 
+                      type="text" 
+                      className={`form-input ${errors.fullname ? "error" : ""}`} 
+                      {...register("fullname")} 
+                      onInput={(e) => e.target.value = e.target.value()}
+                      style={{ height: "32px", padding: "0 8px" }} 
+                    />
                     {errors.fullname && <span className="error-msg">{errors.fullname.message}</span>}
                   </div>
                   <div className="form-group">
@@ -496,7 +520,6 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                       <input type="checkbox" {...register("canviewreserved")} style={{ width: "14px", height: "14px", margin: 0, cursor: "pointer" }} />
                       <div style={{ display: "flex", flexDirection: "column", lineHeight: "1" }}>
                           <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>Ver Reservados</span>
-                          <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>(Confidenciales)</span>
                       </div>
                     </label>
                   </div>
@@ -515,12 +538,12 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                         <span style={{ position: "relative", bottom: "1px" }}>Ver Todas</span>
                       </label>
                     </div>
-                     <AsyncSelector
-                      title="Sedes" queryKey="branches" fetchUrl="/branches" searchParamName="branch_name"
-                      isDisabled={watchAllBranches} selectedIds={branchIdList}
-                      onToggleItem={(item) => handleToggle(item, "branchidlist", branchIdList)}
-                      initialLabels={initialBranchLabels}
-                    />
+                      <AsyncSelector
+                       title="Sedes" queryKey="branches" fetchUrl="/branches" searchParamName="branch_name"
+                       isDisabled={watchAllBranches} selectedIds={branchIdList}
+                       onToggleItem={(item) => handleToggle(item, "branchidlist", branchIdList)}
+                       initialLabels={initialBranchLabels}
+                     />
                   </div>
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", alignItems: "center", marginTop: "10px" }}>
@@ -546,7 +569,6 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
             <div className="modal-footer">
                <button type="button" onClick={onClose} className="btn-cancel">Cancelar</button>
                
-               {/* 3. BOTÓN CON ANIMACIÓN DE CARGA */}
                <button 
                 type="submit" 
                 disabled={isSubmitting} 
