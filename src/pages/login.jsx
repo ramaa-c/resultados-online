@@ -36,6 +36,9 @@ export default function Login() {
     setError(null);
     setIsLoading(true);
 
+    localStorage.removeItem("token");
+    delete api.defaults.headers.common["Authorization"];
+
     try {
       const loginResponse = await loginUser(formData);
 

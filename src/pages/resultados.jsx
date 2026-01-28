@@ -39,7 +39,6 @@ import {
   FiLayers,
   FiX,
   FiPlus,
-  FiAlertCircle,
   FiAlertTriangle,
   FiCheck,
   FiArrowUp,
@@ -172,7 +171,7 @@ const AsyncFilterSection = ({
 
   const handleTriggerSearch = () => {
     if (inputValue.trim().length >= 1) {
-      setQueryTerm(inputValue);
+      setQueryTerm(inputValue.toUpperCase());
       setShowDropdown(true);
     }
   };
