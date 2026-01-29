@@ -188,21 +188,16 @@ body button:focus {
 
 .filter-toggle-btn,
 .sidebar-header-sub {
-
   width: 100%;
   max-width: 220px;
   min-width: 0;
   box-sizing: border-box;
-
   padding: 10px 15px;
   border-radius: 50px;
-
   margin: 10px auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  /* Estética Base */
   background-color: white;
   color: #64748b;
   border: 1px solid #e2e8f0;
@@ -211,13 +206,11 @@ body button:focus {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Specific adjustment for header button margin */
 .filter-toggle-btn {
   margin-top: 5px;
   margin-bottom: 5px;
 }
 
-/* Active / Hover State (Celestial Gradient) */
 .filter-toggle-btn:hover,
 .filter-toggle-btn.active,
 .sidebar-header-sub:hover,

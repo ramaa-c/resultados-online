@@ -13,7 +13,6 @@ import {
   FiCheckCircle,
   FiEye
 } from "react-icons/fi";
-// 1. ELIMINAMOS ModalEditarUsuario de los imports
 import ModalUsuario from "./ModalUsuario"; 
 import ModalConfirmacion from "./ModalConfirmacion";
 import ModalDetalleUsuario from "./ModalDetalleUsuario";

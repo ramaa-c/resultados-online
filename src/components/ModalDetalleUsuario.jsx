@@ -62,7 +62,7 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
         {/* BODY CON SCROLL */}
         <div className="modal-body" style={{ padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "15px" }}>
           
-          {/* SECCIÓN 1: DATOS PRINCIPALES (GRID DE 4 COLUMNAS PARA AHORRAR ESPACIO) */}
+          {/* SECCIÓN 1: DATOS PRINCIPALES */}
           <div style={{ 
               display: "grid", 
               gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", 
@@ -104,17 +104,17 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
             </div>
           </div>
 
-          {/* SECCIÓN 2: PERMISOS Y LISTAS (SUBEN AL ESTAR PEGADAS AL GRID) */}
+          {/* SECCIÓN 2: PERMISOS Y LISTAS */}
           <div style={{ display: "flex", flexDirection: "column", gap: "15px", marginTop: "5px" }}>
             
             {/* BRANCHES */}
             <div>
                 <h4 style={{ fontSize: "0.85rem", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid #f1f5f9", paddingBottom: "5px" }}>
-                    <FiMapPin size={16} color="#0198CC" /> Sedes Habilitadas
+                    <FiMapPin size={16} color="#0198CC" /> Sedes
                 </h4>
                 {user.canviewallbranches ? (
                     <div style={{ background: "#ecfdf5", color: "#047857", padding: "6px 10px", borderRadius: "6px", fontSize: "0.8rem", border: "1px solid #d1fae5", display: "inline-block" }}>
-                        🌍 Acceso Total (Todas las sedes)
+                        🌍 Acceso Total
                     </div>
                 ) : (
                     renderList(user.branchnamelist) 
@@ -124,11 +124,11 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
             {/* FORWARDERS */}
             <div>
                 <h4 style={{ fontSize: "0.85rem", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid #f1f5f9", paddingBottom: "5px" }}>
-                    <FiActivity size={16} color="#0198CC" /> Derivadores
+                    <FiActivity size={16} color="#0198CC" /> Clientes
                 </h4>
                 {user.canviewallforwarders ? (
                     <div style={{ background: "#ecfdf5", color: "#047857", padding: "6px 10px", borderRadius: "6px", fontSize: "0.8rem", border: "1px solid #d1fae5", display: "inline-block" }}>
-                         🏥 Acceso Total (Todas las O.S.)
+                         🏥 Acceso Total
                     </div>
                 ) : (
                     renderList(user.forwardernamelist)
@@ -144,14 +144,14 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
           <button 
             type="button" 
             onClick={onClose} 
-            className="btn-save" // Reutilizamos tu clase de botón azul si existe, o aplicamos estilo directo
+            className="btn-save"
             style={{ 
                 width: "120px", 
                 backgroundColor: "#0198CC", 
                 border: "none", 
                 height: "36px", 
                 fontSize: "0.9rem",
-                borderRadius: "20px", // Un toque más moderno redondeado
+                borderRadius: "20px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
