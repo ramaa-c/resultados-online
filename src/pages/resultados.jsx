@@ -851,7 +851,9 @@ export default function Resultados() {
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               {/* --- FECHAS --- */}
-              <div className="compact-date-group">
+              <div className="compact-date-group"
+                style={{ marginTop: "15px" }}
+                >
                 <div className="date-item">
                   <label>Desde</label>
                   <input
@@ -876,12 +878,7 @@ export default function Resultados() {
 
               {/* --- TOGGLES --- */}
               <div className="toggles-stack-wrapper">
-                <TriStateToggle
-                  label="Reservados"
-                  value={formValues.reserved}
-                  onChange={(val) => handleToggleState("reserved", val)}
-                  labels={{ true: "Sí", false: "No", all: "Todos" }}
-                />
+              
                 <TriStateToggle
                   label="Estado Protocolo"
                   value={formValues.complete_only}

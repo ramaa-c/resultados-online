@@ -15,15 +15,21 @@ export const getProtocols = async (filters) => {
   }
   delete processedFilters.apellido_paciente;
 
-  Object.entries(processedFilters).forEach(([key, value]) => {
+Object.entries(processedFilters).forEach(([key, value]) => {
+    // 1. Verificamos que el valor exista (que no sea null ni undefined). 
+    // OJO: 'false' pasa esta validación, lo cual es correcto.
     if (value !== undefined && value !== "" && value !== null) {
       let valorFinal = value;
 
       if (key === "unread_only" || key === "complete_only") {
-        if (value === true) params.append(key, "true");
-        return;
+        // 2. CORRECCIÓN CLAVE:
+        // Eliminamos el 'if (value === true)' para que no discrimine a los falsos.
+        // Convertimos el booleano a string ("true" o "false") y lo enviamos.
+        params.append(key, String(value)); 
+        return; // Salimos aquí porque ya lo agregamos
       }
 
+      // Lógica para fechas
       if (
         (key === "date_from" || key === "date_to") &&
         typeof value === "string"
@@ -31,10 +37,10 @@ export const getProtocols = async (filters) => {
         valorFinal = value.replaceAll("-", "");
       }
 
+      // Para el resto de filtros
       params.append(key, valorFinal);
     }
   });
-
   const response = await api.get("/protocols", { params });
   return response.data;
 };
