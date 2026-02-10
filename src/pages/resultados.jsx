@@ -391,7 +391,6 @@ const AsyncFilterSection = ({
                 onClick={() => handleSelect(item)}
               >
                 <span>{item.label}</span>
-                <FiPlus className="add-icon" />
               </div>
             ))}
         </div>
@@ -486,7 +485,7 @@ export default function Resultados() {
     page: 1,
     page_size: 20,
     branch_id: "",
-    private_healthcare_id: "",
+    forwarder_list: "",
     reserved: "",
     unread_only: "",
     complete_only: "",
@@ -613,13 +612,13 @@ export default function Resultados() {
     setActiveFilters((prev) => ({
       ...prev,
       branch_id: branchFilter,
-      private_healthcare_id: forwarderFilter,
+      forwarder_list: forwarderFilter,
       page: 1,
     }));
     setFormValues((prev) => ({
       ...prev,
       branch_id: branchFilter,
-      private_healthcare_id: forwarderFilter,
+      forwarder_list: forwarderFilter,
       page: 1,
     }));
   }, [branchFilter, forwarderFilter]);
@@ -656,7 +655,7 @@ export default function Resultados() {
       page: 1,
       page_size: 20,
       branch_id: "",
-      private_healthcare_id: "",
+      forwarder_list: "",
       reserved: "",
       unread_only: "",
       complete_only: "",
