@@ -169,7 +169,7 @@ const AsyncFilterSection = ({
 
       try {
         const res = await api.get(endpoint, {
-          params: { [paramName]: queryTerm, page_size: 5 },
+          params: { [paramName]: queryTerm },
         });
 
         const raw = res.data.items || res.data;
@@ -920,14 +920,14 @@ export default function Resultados() {
                 />
               </div>
               <div className="filter-group compact">
-                <label>ID Petición</label>
+                <label>ID Protocolo</label>
                 <input
                   type="text"
                   name="accession_number"
                   value={formValues.accession_number}
                   onChange={handleInputChange}
                   className="input-modern compact"
-                  placeholder="Protocolo / ID"
+                  placeholder="ID:"
                 />
               </div>
 
@@ -1144,7 +1144,7 @@ export default function Resultados() {
                               </div>
                             </div>
                           </td>
-                          <td className="font-mono">{item.protocoloid}</td>
+                          <td className="font-mono">{item.idexterno || item.accessionnumber}</td>
                           <td>
                             {item.completo !== "" ? (
                               <span className="status-badge status-complete">
