@@ -1144,7 +1144,7 @@ export default function Resultados() {
                               </div>
                             </div>
                           </td>
-                          <td className="font-mono">{item.idexterno || item.accessionnumber}</td>
+                          <td className="font-mono">{item[window.APP_CONFIG?.campo_id_visible]}</td>
                           <td>
                             {item.completo !== "" ? (
                               <span className="status-badge status-complete">
