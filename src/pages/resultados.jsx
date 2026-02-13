@@ -805,21 +805,32 @@ export default function Resultados() {
  const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    
-    // Validación de seguridad: si no es una fecha válida, devuelve el texto original
     if (isNaN(date.getTime())) return dateString;
 
-    // Formateador nativo (se adapta a la región, ej: es-AR)
-    return new Intl.DateTimeFormat("es-AR", {
+    const fecha = new Intl.DateTimeFormat("es-AR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+    }).format(date);
+
+    const horas = date.getHours();
+    const minutos = date.getMinutes();
+
+
+    if ((horas === 0 && minutos === 0) || (horas === 21 && minutos === 0)) {
+     
+      return `${fecha} -`; 
+    }
+
+ 
+    const hora = new Intl.DateTimeFormat("es-AR", {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false, // Pon en true si prefieres AM/PM
+      hour12: false,
     }).format(date);
-  };
 
+    return `${fecha} ${hora}`;
+  };
   const toolbarActions = [
     {
       id: "email",
