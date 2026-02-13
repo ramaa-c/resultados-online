@@ -467,7 +467,7 @@ const getAnalysisStatus = (resultado, referencia) => {
   if (isNaN(min) || isNaN(max)) return null;
 
   if (val < min) return { type: "low", label: "Bajo" };
-  if (val >= max) return { type: "high", label: "Alto" };
+  if (val > max) return { type: "high", label: "Alto" };
 
   return { type: "normal", label: "Normal" };
 };
@@ -802,7 +802,23 @@ export default function Resultados() {
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
-  const formatDate = (d) => (!d ? "-" : d);
+ const formatDateTime = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    
+    // Validación de seguridad: si no es una fecha válida, devuelve el texto original
+    if (isNaN(date.getTime())) return dateString;
+
+    // Formateador nativo (se adapta a la región, ej: es-AR)
+    return new Intl.DateTimeFormat("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false, // Pon en true si prefieres AM/PM
+    }).format(date);
+  };
 
   const toolbarActions = [
     {
@@ -1130,19 +1146,39 @@ export default function Resultados() {
                                   {item.apellidopaciente}, {item.nombrepaciente}
                                 </span>
                               </div>
-                              <div className="patient-subdata">
-                                <span>
-                                  DNI:{" "}
-                                  {item.pacid
-                                    .toString()
-                                    .replace(/DNI/gi, "")
-                                    .trim()}
-                                </span>
-                                <span className="separator">•</span>
-                                <span>
-                                  Ingreso: {formatDate(item.ordereddate)}
-                                </span>
-                              </div>
+                              <div 
+                              className="patient-subdata" 
+                              style={{ 
+                                display: "flex", 
+                                alignItems: "center", 
+                                gap: "2px",              
+                                whiteSpace: "nowrap", 
+                                overflow: "hidden", 
+                                textOverflow: "ellipsis",
+                                fontSize: "0.75rem",     
+                                lineHeight: "1"          
+                              }}
+                            >
+                              {/* DNI */}
+                              <span title="DNI del paciente" style={{ color: "#334155" }}>
+                                <strong style={{ fontWeight: 600, color: "#94a3b8" }}>DNI:</strong> {item.pacid.toString().replace(/DNI/gi, "").trim()}
+                              </span>
+                              {/* Separador */}
+                              <span style={{ color: "#cbd5e1", fontSize: "0.7rem", margin: "0 1px", position: "relative", top: "-1px" }}>|</span>
+                              {/* Fecha y Hora */}
+                              <span 
+                                style={{ 
+                                  display: "flex", 
+                                  alignItems: "center", 
+                                  gap: "2px",            
+                                  color: "#64748b" 
+                                }}
+                              >
+                                <FiClock size={10} />  
+                                {formatDateTime(item.ordereddate)}
+                              </span>
+                            </div>
+
                             </div>
                           </td>
                           <td className="font-mono">{item.protocoloid}</td>
