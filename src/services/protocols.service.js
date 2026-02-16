@@ -20,7 +20,7 @@ export const getProtocols = async (filters) => {
       let valorFinal = value;
 
       if (key === "unread_only" || key === "complete_only") {
-        if (value === true) params.append(key, "true");
+        params.append(key, String(value));
         return;
       }
 
@@ -34,7 +34,6 @@ export const getProtocols = async (filters) => {
       params.append(key, valorFinal);
     }
   });
-
   const response = await api.get("/protocols", { params });
   return response.data;
 };
