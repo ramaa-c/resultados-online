@@ -723,12 +723,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .resultados-table th:nth-child(2),
 .resultados-table td:nth-child(2) {
-  width: 55%;
+  width: 58%;
 }
 
 .resultados-table th:nth-child(3),
 .resultados-table td:nth-child(3) {
-  width: 18%;
+  width: 15%;
   text-align: left;
 }
 
@@ -856,7 +856,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.3rem;
 }
 
 /* =========================================
