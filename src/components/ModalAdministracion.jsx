@@ -434,7 +434,7 @@ const ModalAdministracion = ({ isOpen, onClose }) => {
                           )}
                         </td>
                         <td style={{ textAlign: "center" }}>
-                          <span className={`status-badge ${isBlocked ? "status-pending" : "status-complete"}`}
+                          <span className={`status-badge-modal ${isBlocked ? "status-pending" : "status-complete"}`}
                             style={isBlocked ? { backgroundColor: "#fee2e2", color: "#dc2626" } : {}}
                           >
                             {u.status}

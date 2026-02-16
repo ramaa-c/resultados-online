@@ -6,8 +6,12 @@ export const useProtocols = (filters) => {
     queryKey: ['protocols', filters],
     queryFn: () => getProtocols(filters),
     
-    placeholderData: keepPreviousData,
+    placeholderData: keepPreviousData, 
     
-    staleTime: 1000 * 60 * 5,
+    staleTime: 5000, 
+    
+    refetchInterval: 15000, 
+    
+    refetchIntervalInBackground: true,
   });
 };

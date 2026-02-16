@@ -42,11 +42,11 @@ import {
   FiUsers,
   FiLayers,
   FiX,
-  FiPlus,
   FiAlertTriangle,
   FiCheck,
   FiArrowUp,
   FiArrowDown,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
@@ -61,7 +61,7 @@ const ErrorStateDisplay = ({ title, message, retryAction }) => (
     </p>
     {retryAction && (
       <button onClick={retryAction} className="btn-retry" type="button">
-        <FiActivity /> Reintentar
+        <FiRefreshCw /> Reintentar
       </button>
     )}
   </div>
@@ -449,24 +449,28 @@ const AsyncFilterSection = ({
 
 // --- HELPER ESTADO ---
 const getAnalysisStatus = (resultado, referencia) => {
-  if (!resultado || !referencia) return null;
+  if (resultado === null || resultado === undefined || !referencia) return null;
 
   const valClean = resultado.toString().replace(",", ".");
   const val = parseFloat(valClean);
   if (isNaN(val)) return null;
 
-  if (!referencia.includes("-")) return null;
+  const refClean = referencia.toString().replace(/,/g, ".").trim();
 
-  const partes = referencia.split("-");
-  if (partes.length !== 2) return null;
+  const regex =
+    /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*-\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/;
 
-  const min = parseFloat(partes[0]);
-  const max = parseFloat(partes[1]);
+  const match = refClean.match(regex);
+
+  if (!match) return null;
+
+  const min = parseFloat(match[1]);
+  const max = parseFloat(match[2]);
 
   if (isNaN(min) || isNaN(max)) return null;
 
   if (val < min) return { type: "low", label: "Bajo" };
-  if (val >= max) return { type: "high", label: "Alto" };
+  if (val > max) return { type: "high", label: "Alto" };
 
   return { type: "normal", label: "Normal" };
 };
@@ -518,7 +522,7 @@ export default function Resultados() {
   const { markRead, markUnread } = useProtocolMutations();
   const lastValidPageRef = useRef(1);
   const [knownEndPage, setKnownEndPage] = useState(null);
-  const { data, isLoading, isError, isFetching, refetch } =
+  const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } =
     useProtocols(activeFilters);
   const {
     data: resultsData,
@@ -801,7 +805,23 @@ export default function Resultados() {
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
-  const formatDate = (d) => (!d ? "-" : d);
+
+  const formatDateTime = (isoString) => {
+    if (!isoString) return "-";
+
+    const date = new Date(isoString);
+
+    if (isNaN(date.getTime())) return isoString;
+
+    return new Intl.DateTimeFormat("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  };
 
   const toolbarActions = [
     {
@@ -850,9 +870,7 @@ export default function Resultados() {
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               {/* --- FECHAS --- */}
-              <div className="compact-date-group"
-                style={{ marginTop: "15px" }}
-                >
+              <div className="compact-date-group" style={{ marginTop: "15px" }}>
                 <div className="date-item">
                   <label>Desde</label>
                   <input
@@ -877,14 +895,13 @@ export default function Resultados() {
 
               {/* --- TOGGLES --- */}
               <div className="toggles-stack-wrapper">
-              
                 <TriStateToggle
                   label="Estado Protocolo"
                   value={formValues.complete_only}
                   onChange={(val) => handleToggleState("complete_only", val)}
                   labels={{
                     true: "Completo",
-                    false: "En Proceso",
+                    false: "Incompleto",
                     all: "Todos",
                   }}
                 />
@@ -1078,7 +1095,7 @@ export default function Resultados() {
           <ResponsiveToolbar actions={toolbarActions} />
           <div className="table-wrapper">
             <div className="table-scroll">
-              {isFetching && !isLoading && (
+              {(isLoading || isPlaceholderData) && (
                 <div className="loading-overlay">
                   <div className="spinner"></div>
                 </div>
@@ -1139,16 +1156,22 @@ export default function Resultados() {
                                 </span>
                                 <span className="separator">•</span>
                                 <span>
-                                  Ingreso: {formatDate(item.ordereddate)}
+                                  Ingreso: {formatDateTime(item.ordereddate)}
                                 </span>
                               </div>
                             </div>
                           </td>
-                          <td className="font-mono">{item[window.APP_CONFIG?.campo_id_visible]}</td>
-                          <td>
+                          <td className="font-mono">
+                            {item[window.APP_CONFIG?.campo_id_visible]}
+                          </td>
+                          <td style={{ textAlign: "center" }}>
                             {item.completo !== "" ? (
                               <span className="status-badge status-complete">
                                 <FiCheckCircle /> Completo
+                              </span>
+                            ) : item.sinresultados ? (
+                              <span className="status-badge status-entered">
+                                <FiActivity /> Ingresado
                               </span>
                             ) : (
                               <span className="status-badge status-pending">
@@ -1164,18 +1187,18 @@ export default function Resultados() {
               )}
             </div>
 
-            {/* MODIFICADO: Paginación Inteligente */}
+            {/* Paginación Inteligente */}
             <AdvancedPagination
               page={Number(formValues.page)}
               onPageChange={handlePageChange}
               hasMoreData={hasMoreData}
-              isLoading={isFetching}
-              knownEndPage={knownEndPage} // <--- Pasamos el límite descubierto
+              isLoading={isLoading || isPlaceholderData}
+              knownEndPage={knownEndPage}
             />
           </div>
         </section>
 
-        {/* DETAIL PANEL (Sin cambios lógicos, solo se mantiene el render) */}
+        {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <div className="modern-report-container">
@@ -1203,14 +1226,14 @@ export default function Resultados() {
                       <span className="val">
                         {selectedProtocol.pacage} años{" "}
                         {selectedProtocol.birthdate &&
-                          ` (${formatDate(selectedProtocol.birthdate)})`}
+                          ` (${formatDateTime(selectedProtocol.birthdate)})`}
                       </span>
                     </span>
                     <span className="separator highlight">•</span>
                     <span className="data-item date-item">
                       <FiClock size={11} style={{ marginRight: 3 }} />
                       <span className="val">
-                        {formatDate(selectedProtocol.ordereddate)}
+                        {formatDateTime(selectedProtocol.ordereddate)}
                       </span>
                     </span>
                   </div>
