@@ -1,6 +1,6 @@
 import api from "../api/axios";
 
-export const getProtocols = async (filters) => {
+export const getProtocols = async (filters, signal) => {
   const params = new URLSearchParams();
   let processedFilters = { ...filters };
 
@@ -34,7 +34,7 @@ export const getProtocols = async (filters) => {
       params.append(key, valorFinal);
     }
   });
-  const response = await api.get("/protocols", { params });
+  const response = await api.get("/protocols", { params, signal });
   return response.data;
 };
 

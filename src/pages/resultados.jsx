@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -160,7 +160,6 @@ const AsyncFilterSection = ({
     data: searchResults = [],
     isFetching,
     isError,
-    error,
   } = useQuery({
     queryKey: ["searchLocation", type, queryTerm],
     queryFn: async () => {
@@ -448,6 +447,8 @@ const AsyncFilterSection = ({
 };
 
 // --- HELPER ESTADO ---
+const RANGE_REGEX =
+  /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*-\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/;
 const getAnalysisStatus = (resultado, referencia) => {
   if (resultado === null || resultado === undefined || !referencia) return null;
 
@@ -457,10 +458,7 @@ const getAnalysisStatus = (resultado, referencia) => {
 
   const refClean = referencia.toString().replace(/,/g, ".").trim();
 
-  const regex =
-    /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*-\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/;
-
-  const match = refClean.match(regex);
+  const match = refClean.match(RANGE_REGEX);
 
   if (!match) return null;
 
@@ -476,6 +474,7 @@ const getAnalysisStatus = (resultado, referencia) => {
 };
 
 export default function Resultados() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // --- ESTADO DEL FORMULARIO ---
@@ -522,14 +521,31 @@ export default function Resultados() {
   const { markRead, markUnread } = useProtocolMutations();
   const lastValidPageRef = useRef(1);
   const [knownEndPage, setKnownEndPage] = useState(null);
-  const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } =
-    useProtocols(activeFilters);
+
+  const shouldFetchResults = useMemo(() => {
+    if (!selectedProtocol) return false;
+
+    const isEmptyState = selectedProtocol.sinresultados;
+
+    const resultCount = Number(selectedProtocol.cantidadresultados || 0);
+
+    return !isEmptyState && resultCount > 0;
+  }, [selectedProtocol]);
+
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
+    isFetching: isFetchingResults,
     refetch: refetchResults,
-  } = useProtocolResults(selectedProtocol?.protocoloid);
+  } = useProtocolResults(
+    shouldFetchResults ? selectedProtocol?.protocoloid : null,
+  );
+
+  const shouldPollList = !isFetchingResults;
+
+  const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } =
+    useProtocols(activeFilters, { isPollingEnabled: shouldPollList });
 
   // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
   const currentCount = data?.protocolos?.length || 0;
@@ -677,12 +693,6 @@ export default function Resultados() {
     setActiveFilters((p) => ({ ...p, page }));
   };
 
-  const handleBranchChange = useCallback((ids) => {
-    setKnownEndPage(null);
-    lastValidPageRef.current = 1;
-    setBranchFilter((prev) => (prev === ids ? prev : ids));
-  }, []);
-
   const handleForwarderChange = useCallback((ids) => {
     setKnownEndPage(null);
     lastValidPageRef.current = 1;
@@ -693,23 +703,18 @@ export default function Resultados() {
   const toggleLocation = (key) =>
     setOpenLocations((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const shouldShowBranch =
-    !isGeneralOpen || (branchFilter && branchFilter.length > 0);
   const shouldShowForwarder =
     !isGeneralOpen || (forwarderFilter && forwarderFilter.length > 0);
   const showFooter =
     !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
 
-  const handleUserFound = (userData) => {
-    setUserToEdit(userData);
-    setIsEditOpen(true);
-  };
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  const handleRowClick = (e, item) => {
+  const handleRowClick = async (e, item) => {
+    await queryClient.cancelQueries({ queryKey: ["protocols"] });
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
         const exists = prev.some(
@@ -736,8 +741,16 @@ export default function Resultados() {
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
-    setSelectedItems([item]);
-    setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    const isClickInsideSelection = selectedItems.some(
+      (selected) => String(selected.protocoloid) === String(item.protocoloid),
+    );
+
+    if (isClickInsideSelection) {
+      setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    } else {
+      setSelectedItems([item]);
+      setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    }
   };
 
   const handleViewPDF = async (protocolId) => {
@@ -901,7 +914,7 @@ export default function Resultados() {
                   onChange={(val) => handleToggleState("complete_only", val)}
                   labels={{
                     true: "Completo",
-                    false: "Incompleto",
+                    false: "Parcial",
                     all: "Todos",
                   }}
                 />
