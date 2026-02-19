@@ -18,6 +18,7 @@ import ModalUsuario from "../components/ModalUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
+import vademecumIcon from "../assets/images/CL-logo.ico";
 import "../styles/email.css";
 import JSZip from "jszip";
 import Email from "../pages/email";
@@ -48,6 +49,8 @@ import {
   FiArrowDown,
   FiRefreshCw,
 } from "react-icons/fi";
+
+import { FaBookMedical } from "react-icons/fa";
 
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
   <div className="error-state-container">
@@ -507,6 +510,7 @@ export default function Resultados() {
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isWebModalOpen, setIsWebModalOpen] = useState(false); // <-- AÑADIDO: Estado para la web
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -618,6 +622,7 @@ export default function Resultados() {
         setSelectedItems([]);
         setSelectedProtocol(null);
         setContextMenu(null);
+        setIsWebModalOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -857,6 +862,13 @@ export default function Resultados() {
       icon: <FiDownload />,
       onClick: handleDownloadAction,
       disabled: !hasDownloadableItems || isDownloadLoading,
+    },
+    {
+      id: "web",
+      label: "Vademecum",
+      icon: <FaBookMedical />,
+      onClick: () => setIsWebModalOpen(true),
+      disabled: false,
     },
   ];
 
@@ -1507,6 +1519,89 @@ export default function Resultados() {
           )}
         </div>
       )}
+
+      {/* ---  Modal Web Embebida --- */}
+      {isWebModalOpen && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onClick={() => setIsWebModalOpen(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              width: "60vw",
+              height: "80vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  color: "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <img
+                  src={vademecumIcon}
+                  alt="Vademecum"
+                  width="24"
+                  height="24"
+                />{" "}
+                Vademecum
+              </h3>
+              <button
+                onClick={() => setIsWebModalOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            <iframe
+              src="https://centra.centralab.com.ar/Vademecum.php?acces=med"
+              style={{
+                flex: 1,
+                border: "1px solid #e2e8f0",
+                borderRadius: "4px",
+              }}
+              title="Web Embebida"
+            />
+          </div>
+        </div>
+      )}
+
       <ModalUsuario
         isOpen={isCreateUserModalOpen}
         onClose={() => setIsCreateUserModalOpen(false)}
