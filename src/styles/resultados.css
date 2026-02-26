@@ -723,12 +723,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .resultados-table th:nth-child(2),
 .resultados-table td:nth-child(2) {
-  width: 55%;
+  width: 58%;
 }
 
 .resultados-table th:nth-child(3),
 .resultados-table td:nth-child(3) {
-  width: 18%;
+  width: 15%;
   text-align: left;
 }
 
@@ -791,6 +791,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
+  min-width: 4.8rem;
 }
 
 .status-complete {
@@ -801,6 +802,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .status-pending {
   background: #FEF3C7;
   color: #B45309;
+}
+
+.status-entered {
+  background-color: #e0f2fe;
+  color: #0284c7;
 }
 
 .font-mono {
@@ -850,7 +856,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.3rem;
 }
 
 /* =========================================
@@ -1141,7 +1147,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  min-width: 3.5rem;
 }
 
 .status-success {

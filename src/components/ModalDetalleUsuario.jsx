@@ -81,7 +81,7 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
             {/* Estado */}
             <div>
               <label style={{ fontSize: "0.7rem", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>Estado</label>
-              <span className={`status-badge ${user.status?.toLowerCase().includes("bloqueado") ? "status-pending" : "status-complete"}`} style={{ fontSize: "0.75rem", padding: "2px 8px" }}>
+              <span className={`status-badge-modal ${user.status?.toLowerCase().includes("bloqueado") ? "status-pending" : "status-complete"}`} style={{ fontSize: "0.75rem", padding: "2px 8px" }}>
                   {user.status}
               </span>
             </div>
@@ -137,29 +137,6 @@ const ModalDetalleUsuario = ({ isOpen, onClose, user }) => {
 
           </div>
 
-        </div>
-
-        {/* FOOTER - BOTÓN CELESTIAL BLUE, PEQUEÑO Y CENTRADO */}
-        <div className="modal-footer" style={{ borderTop: "1px solid #f1f5f9", padding: "15px", display: "flex", justifyContent: "center" }}>
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="btn-save"
-            style={{ 
-                width: "120px", 
-                backgroundColor: "#0198CC", 
-                border: "none", 
-                height: "36px", 
-                fontSize: "0.9rem",
-                borderRadius: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 4px rgba(1, 152, 204, 0.3)"
-            }}
-          >
-            Cerrar
-          </button>
         </div>
 
       </div>

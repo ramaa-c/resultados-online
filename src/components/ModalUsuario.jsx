@@ -94,7 +94,7 @@ const ServiceConfigModal = ({ forwarderName, initialValue = "", onSave, onClose 
             }}
           />
           <span style={{ fontSize: "0.7rem", color: "#94a3b8", display: "block", marginTop: "4px" }}>
-            Separar con coma
+            Debe ingresarlos separados por coma
           </span>
         </div>
 
@@ -520,6 +520,7 @@ const ModalUsuario = ({ isOpen, onClose, userToEdit = null, onUserSaved }) => {
                       <input type="checkbox" {...register("canviewreserved")} style={{ width: "14px", height: "14px", margin: 0, cursor: "pointer" }} />
                       <div style={{ display: "flex", flexDirection: "column", lineHeight: "1" }}>
                           <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>Ver Reservados</span>
+                          <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>(Acceso a reservados)</span>
                       </div>
                     </label>
                   </div>

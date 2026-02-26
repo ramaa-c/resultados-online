@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProtocols } from "../hooks/useProtocols";
 import { useProtocolResults } from "../hooks/useProtocolResults";
 import { useProtocolMutations } from "../hooks/useProtocolMutations";
@@ -18,6 +18,7 @@ import ModalUsuario from "../components/ModalUsuario";
 import ModalAdministracion from "../components/ModalAdministracion";
 import "../styles/resultados.css";
 import centraLabLogo from "../assets/centraLab_nuevo.png";
+import vademecumIcon from "../assets/images/CL-logo.ico";
 import "../styles/email.css";
 import JSZip from "jszip";
 import Email from "../pages/email";
@@ -42,12 +43,14 @@ import {
   FiUsers,
   FiLayers,
   FiX,
-  FiPlus,
   FiAlertTriangle,
   FiCheck,
   FiArrowUp,
   FiArrowDown,
+  FiRefreshCw,
 } from "react-icons/fi";
+
+import { FaBookMedical } from "react-icons/fa";
 
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
   <div className="error-state-container">
@@ -61,7 +64,7 @@ const ErrorStateDisplay = ({ title, message, retryAction }) => (
     </p>
     {retryAction && (
       <button onClick={retryAction} className="btn-retry" type="button">
-        <FiActivity /> Reintentar
+        <FiRefreshCw /> Reintentar
       </button>
     )}
   </div>
@@ -79,14 +82,7 @@ const TriStateToggle = ({
       <label>{label}</label>
 
       <div className="tri-toggle-container">
-        <button
-          type="button"
-          className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
-          onClick={() => onChange("")}
-        >
-          {labels.all}
-        </button>
-
+        {/* 1. Botón TRUE (Completo / No Leído) */}
         <button
           type="button"
           className={`tri-toggle-btn ${value === true ? "active" : ""}`}
@@ -95,12 +91,22 @@ const TriStateToggle = ({
           {labels.true}
         </button>
 
+        {/* 2. Botón FALSE (Parcial / Leído) */}
         <button
           type="button"
           className={`tri-toggle-btn ${value === false ? "active" : ""}`}
           onClick={() => onChange(false)}
         >
           {labels.false}
+        </button>
+
+        {/* 3. Botón ALL (Todos) */}
+        <button
+          type="button"
+          className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
+          onClick={() => onChange("")}
+        >
+          {labels.all}
         </button>
       </div>
     </div>
@@ -160,7 +166,6 @@ const AsyncFilterSection = ({
     data: searchResults = [],
     isFetching,
     isError,
-    error,
   } = useQuery({
     queryKey: ["searchLocation", type, queryTerm],
     queryFn: async () => {
@@ -169,7 +174,7 @@ const AsyncFilterSection = ({
 
       try {
         const res = await api.get(endpoint, {
-          params: { [paramName]: queryTerm, page_size: 5 },
+          params: { [paramName]: queryTerm },
         });
 
         const raw = res.data.items || res.data;
@@ -391,7 +396,6 @@ const AsyncFilterSection = ({
                 onClick={() => handleSelect(item)}
               >
                 <span>{item.label}</span>
-                <FiPlus className="add-icon" />
               </div>
             ))}
         </div>
@@ -449,20 +453,23 @@ const AsyncFilterSection = ({
 };
 
 // --- HELPER ESTADO ---
+const RANGE_REGEX =
+  /^(-?(?:\d+(?:\.\d+)?|\.\d+))\s*-\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/;
 const getAnalysisStatus = (resultado, referencia) => {
-  if (!resultado || !referencia) return null;
+  if (resultado === null || resultado === undefined || !referencia) return null;
 
   const valClean = resultado.toString().replace(",", ".");
   const val = parseFloat(valClean);
   if (isNaN(val)) return null;
 
-  if (!referencia.includes("-")) return null;
+  const refClean = referencia.toString().replace(/,/g, ".").trim();
 
-  const partes = referencia.split("-");
-  if (partes.length !== 2) return null;
+  const match = refClean.match(RANGE_REGEX);
 
-  const min = parseFloat(partes[0]);
-  const max = parseFloat(partes[1]);
+  if (!match) return null;
+
+  const min = parseFloat(match[1]);
+  const max = parseFloat(match[2]);
 
   if (isNaN(min) || isNaN(max)) return null;
 
@@ -473,6 +480,7 @@ const getAnalysisStatus = (resultado, referencia) => {
 };
 
 export default function Resultados() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // --- ESTADO DEL FORMULARIO ---
@@ -486,10 +494,10 @@ export default function Resultados() {
     page: 1,
     page_size: 20,
     branch_id: "",
-    private_healthcare_id: "",
+    forwarder_list: "",
     reserved: "",
     unread_only: "",
-    complete_only: "",
+    complete_only: true,
   });
 
   // --- ESTADO DE FILTROS ACTIVOS ---
@@ -505,6 +513,7 @@ export default function Resultados() {
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isWebModalOpen, setIsWebModalOpen] = useState(false); // <-- AÑADIDO: Estado para la web
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -519,14 +528,48 @@ export default function Resultados() {
   const { markRead, markUnread } = useProtocolMutations();
   const lastValidPageRef = useRef(1);
   const [knownEndPage, setKnownEndPage] = useState(null);
-  const { data, isLoading, isError, isFetching, refetch } =
-    useProtocols(activeFilters);
+
+  const shouldFetchResults = useMemo(() => {
+    if (!selectedProtocol) return false;
+
+    const isEmptyState = selectedProtocol.sinresultados;
+
+    const resultCount = Number(selectedProtocol.cantidadresultados || 0);
+
+    return !isEmptyState && resultCount > 0;
+  }, [selectedProtocol]);
+
   const {
     data: resultsData,
     isLoading: isLoadingResults,
     isError: isErrorResults,
+    isFetching: isFetchingResults,
     refetch: refetchResults,
-  } = useProtocolResults(selectedProtocol?.protocoloid);
+  } = useProtocolResults(
+    shouldFetchResults ? selectedProtocol?.protocoloid : null,
+  );
+
+  const shouldFetchExtras = selectedProtocol && selectedProtocol.completo === "";
+
+  const {
+    data: extrasData,
+    isLoading: isLoadingExtras,
+  } = useQuery({
+    queryKey: ["protocolExtras", selectedProtocol?.accessionnumber],
+    queryFn: async () => {
+      if (!selectedProtocol?.accessionnumber) return null;
+      // Usamos el accessionnumber como indicó el backend
+      const res = await api.get(`/protocols/${selectedProtocol.accessionnumber}:extras`);
+      return res.data;
+    },
+    enabled: !!shouldFetchExtras, // Solo dispara si es necesario
+    staleTime: 1000 * 60, // Mantiene cache por 1 minuto
+  });
+
+  const shouldPollList = !isFetchingResults;
+
+  const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } =
+    useProtocols(activeFilters, { isPollingEnabled: shouldPollList });
 
   // --- CÁLCULO DE PAGINACIÓN SIN TOTAL ---
   const currentCount = data?.protocolos?.length || 0;
@@ -599,6 +642,7 @@ export default function Resultados() {
         setSelectedItems([]);
         setSelectedProtocol(null);
         setContextMenu(null);
+        setIsWebModalOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -613,13 +657,13 @@ export default function Resultados() {
     setActiveFilters((prev) => ({
       ...prev,
       branch_id: branchFilter,
-      private_healthcare_id: forwarderFilter,
+      forwarder_list: forwarderFilter,
       page: 1,
     }));
     setFormValues((prev) => ({
       ...prev,
       branch_id: branchFilter,
-      private_healthcare_id: forwarderFilter,
+      forwarder_list: forwarderFilter,
       page: 1,
     }));
   }, [branchFilter, forwarderFilter]);
@@ -656,10 +700,10 @@ export default function Resultados() {
       page: 1,
       page_size: 20,
       branch_id: "",
-      private_healthcare_id: "",
+      forwarder_list: "",
       reserved: "",
       unread_only: "",
-      complete_only: "",
+      complete_only: true,
     };
     setKnownEndPage(null);
     lastValidPageRef.current = 1;
@@ -674,12 +718,6 @@ export default function Resultados() {
     setActiveFilters((p) => ({ ...p, page }));
   };
 
-  const handleBranchChange = useCallback((ids) => {
-    setKnownEndPage(null);
-    lastValidPageRef.current = 1;
-    setBranchFilter((prev) => (prev === ids ? prev : ids));
-  }, []);
-
   const handleForwarderChange = useCallback((ids) => {
     setKnownEndPage(null);
     lastValidPageRef.current = 1;
@@ -690,23 +728,18 @@ export default function Resultados() {
   const toggleLocation = (key) =>
     setOpenLocations((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const shouldShowBranch =
-    !isGeneralOpen || (branchFilter && branchFilter.length > 0);
   const shouldShowForwarder =
     !isGeneralOpen || (forwarderFilter && forwarderFilter.length > 0);
   const showFooter =
     !isGeneralOpen && !openLocations.branch && !openLocations.forwarder;
 
-  const handleUserFound = (userData) => {
-    setUserToEdit(userData);
-    setIsEditOpen(true);
-  };
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  const handleRowClick = (e, item) => {
+  const handleRowClick = async (e, item) => {
+    await queryClient.cancelQueries({ queryKey: ["protocols"] });
     if (e.ctrlKey || e.metaKey) {
       setSelectedItems((prev) => {
         const exists = prev.some(
@@ -733,8 +766,16 @@ export default function Resultados() {
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
-    setSelectedItems([item]);
-    setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    const isClickInsideSelection = selectedItems.some(
+      (selected) => String(selected.protocoloid) === String(item.protocoloid),
+    );
+
+    if (isClickInsideSelection) {
+      setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    } else {
+      setSelectedItems([item]);
+      setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, item });
+    }
   };
 
   const handleViewPDF = async (protocolId) => {
@@ -802,7 +843,7 @@ export default function Resultados() {
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
- const formatDateTime = (dateString) => {
+const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
@@ -813,24 +854,20 @@ export default function Resultados() {
       year: "numeric",
     }).format(date);
 
-    const horas = date.getHours();
-    const minutos = date.getMinutes();
-
-
-    if ((horas === 0 && minutos === 0) || (horas === 21 && minutos === 0)) {
-     
-      return `${fecha} -`; 
-    }
-
- 
     const hora = new Intl.DateTimeFormat("es-AR", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     }).format(date);
 
+    // Mantenemos la lógica de poner guion si justo es medianoche (00:00)
+    if (hora === "00:00" || hora === "24:00") {
+      return `${fecha} -`;
+    }
+
     return `${fecha} ${hora}`;
   };
+
   const toolbarActions = [
     {
       id: "email",
@@ -852,6 +889,13 @@ export default function Resultados() {
       icon: <FiDownload />,
       onClick: handleDownloadAction,
       disabled: !hasDownloadableItems || isDownloadLoading,
+    },
+    {
+      id: "web",
+      label: "Vademecum",
+      icon: <FaBookMedical />,
+      onClick: () => setIsWebModalOpen(true),
+      disabled: false,
     },
   ];
 
@@ -878,9 +922,7 @@ export default function Resultados() {
           <div className={`filters-collapsible ${isGeneralOpen ? "show" : ""}`}>
             <form className="filters-form" onSubmit={handleSearch}>
               {/* --- FECHAS --- */}
-              <div className="compact-date-group"
-                style={{ marginTop: "15px" }}
-                >
+              <div className="compact-date-group" style={{ marginTop: "15px" }}>
                 <div className="date-item">
                   <label>Desde</label>
                   <input
@@ -905,14 +947,13 @@ export default function Resultados() {
 
               {/* --- TOGGLES --- */}
               <div className="toggles-stack-wrapper">
-              
                 <TriStateToggle
                   label="Estado Protocolo"
                   value={formValues.complete_only}
                   onChange={(val) => handleToggleState("complete_only", val)}
                   labels={{
                     true: "Completo",
-                    false: "En Proceso",
+                    false: "Parcial",
                     all: "Todos",
                   }}
                 />
@@ -948,14 +989,14 @@ export default function Resultados() {
                 />
               </div>
               <div className="filter-group compact">
-                <label>ID Petición</label>
+                <label>ID Protocolo</label>
                 <input
                   type="text"
                   name="accession_number"
                   value={formValues.accession_number}
                   onChange={handleInputChange}
                   className="input-modern compact"
-                  placeholder="Protocolo / ID"
+                  placeholder="ID:"
                 />
               </div>
 
@@ -1106,7 +1147,7 @@ export default function Resultados() {
           <ResponsiveToolbar actions={toolbarActions} />
           <div className="table-wrapper">
             <div className="table-scroll">
-              {isFetching && !isLoading && (
+              {(isLoading || isPlaceholderData) && (
                 <div className="loading-overlay">
                   <div className="spinner"></div>
                 </div>
@@ -1157,12 +1198,12 @@ export default function Resultados() {
                                   {item.apellidopaciente}, {item.nombrepaciente}
                                 </span>
                               </div>
-                              <div 
+                            <div 
                               className="patient-subdata" 
                               style={{ 
                                 display: "flex", 
                                 alignItems: "center", 
-                                gap: "2px",              
+                                gap: "3px",              
                                 whiteSpace: "nowrap", 
                                 overflow: "hidden", 
                                 textOverflow: "ellipsis",
@@ -1170,33 +1211,30 @@ export default function Resultados() {
                                 lineHeight: "1"          
                               }}
                             >
-                              {/* DNI */}
                               <span title="DNI del paciente" style={{ color: "#334155" }}>
                                 <strong style={{ fontWeight: 600, color: "#94a3b8" }}>DNI:</strong> {item.pacid.toString().replace(/DNI/gi, "").trim()}
                               </span>
-                              {/* Separador */}
-                              <span style={{ color: "#cbd5e1", fontSize: "0.7rem", margin: "0 1px", position: "relative", top: "-1px" }}>|</span>
-                              {/* Fecha y Hora */}
-                              <span 
-                                style={{ 
-                                  display: "flex", 
-                                  alignItems: "center", 
-                                  gap: "2px",            
-                                  color: "#64748b" 
-                                }}
-                              >
-                                <FiClock size={10} />  
+
+                              <span style={{ color: "#cbd5e1", fontSize: "0.7rem", margin: "0 2px", position: "relative", top: "-1px" }}>|</span>
+
+                              <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#64748b" }}>
+                                <FiClock size={11} />
                                 {formatDateTime(item.ordereddate)}
                               </span>
                             </div>
-
                             </div>
                           </td>
-                          <td className="font-mono">{item.protocoloid}</td>
-                          <td>
+                          <td className="font-mono">
+                            {item[window.APP_CONFIG?.campo_id_visible]}
+                          </td>
+                          <td style={{ textAlign: "center" }}>
                             {item.completo !== "" ? (
                               <span className="status-badge status-complete">
                                 <FiCheckCircle /> Completo
+                              </span>
+                            ) : item.sinresultados ? (
+                              <span className="status-badge status-entered">
+                                <FiActivity /> Ingresado
                               </span>
                             ) : (
                               <span className="status-badge status-pending">
@@ -1212,18 +1250,18 @@ export default function Resultados() {
               )}
             </div>
 
-            {/* MODIFICADO: Paginación Inteligente */}
+            {/* Paginación Inteligente */}
             <AdvancedPagination
               page={Number(formValues.page)}
               onPageChange={handlePageChange}
               hasMoreData={hasMoreData}
-              isLoading={isFetching}
-              knownEndPage={knownEndPage} // <--- Pasamos el límite descubierto
+              isLoading={isLoading || isPlaceholderData}
+              knownEndPage={knownEndPage}
             />
           </div>
         </section>
 
-        {/* DETAIL PANEL (Sin cambios lógicos, solo se mantiene el render) */}
+        {/* DETAIL PANEL */}
         <section className="detail-panel" data-click-safe="true">
           {selectedProtocol ? (
             <div className="modern-report-container">
@@ -1234,31 +1272,71 @@ export default function Resultados() {
                   </div>
                 </div>
                 <div className="patient-details-linear">
-                  <div className="linear-top-row">
+                <div className="linear-top-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
                     <h2 className="patient-name-linear">
                       {selectedProtocol.apellidopaciente},{" "}
                       {selectedProtocol.nombrepaciente}
                     </h2>
+
+                    
+                    {selectedProtocol.completo === "" && (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "4px 10px",
+                      border: "1px solid #bae6fd",
+                      borderRadius: "6px",
+                      backgroundColor: "#f0f9ff", 
+                      color: "#0198CC",         
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                    }}>
+                      {isLoadingExtras ? (
+                        <span>Consultando estado...</span>
+                      ) : extrasData ? (
+                        <>
+                          <span>Estado: {extrasData.estado || "Desconocido"}</span>
+                          <span style={{ color: "#7dd3fc" }}>|</span>
+                          <span style={{ fontWeight: "400", color: "#0284c7" }}>
+                            Actualizado: {extrasData.momento ? formatDateTime(extrasData.momento) : "-"}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Estado no disponible</span>
+                      )}
+                    </div>
+                  )}
+                  {/* ----------------------------------------------------- */}
+                    
                   </div>
                   <div className="linear-data-row">
                     <span className="data-item">
-                      <span className="lbl">DNI:</span>
-                      <span className="val">{selectedProtocol.pacid}</span>
+                    <span className="lbl">DNI:</span>
+                    <span className="val">
+                      {selectedProtocol.pacid
+                        ?.toString()
+                        .replace(/DNI/gi, "")
+                        .trim() || "-"}
                     </span>
+                  </span>
                     <span className="separator">•</span>
                     <span className="data-item">
                       <span className="lbl">Edad:</span>
                       <span className="val">
                         {selectedProtocol.pacage} años{" "}
                         {selectedProtocol.birthdate &&
-                          ` (${formatDate(selectedProtocol.birthdate)})`}
+                          ` (${formatDateTime(selectedProtocol.birthdate)})`}
                       </span>
                     </span>
                     <span className="separator highlight">•</span>
-                    <span className="data-item date-item">
-                      <FiClock size={11} style={{ marginRight: 3 }} />
-                      <span className="val">
-                        {formatDate(selectedProtocol.ordereddate)}
+                    <span className="data-item" style={{ display: "flex", alignItems: "center" }}>
+                      <FiLayers size={11} style={{ marginRight: 4, color: "#64748b" }} />
+                      <span className="lbl">Origen:</span>
+                      <span className="val" style={{ marginLeft: "4px" }}>
+                        {/* Mostramos el derivadorid si existe. Si viene vacío o null, ponemos un guion o "Sede" */}
+                        {resultsData?.derivadorid ? resultsData.derivadorid : "-"}
                       </span>
                     </span>
                   </div>
@@ -1519,6 +1597,89 @@ export default function Resultados() {
           )}
         </div>
       )}
+
+      {/* ---  Modal Web Embebida --- */}
+      {isWebModalOpen && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onClick={() => setIsWebModalOpen(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "8px",
+              width: "60vw",
+              height: "80vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  color: "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <img
+                  src={vademecumIcon}
+                  alt="Vademecum"
+                  width="24"
+                  height="24"
+                />{" "}
+                Vademecum
+              </h3>
+              <button
+                onClick={() => setIsWebModalOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            <iframe
+              src="https://centra.centralab.com.ar/Vademecum.php?acces=med"
+              style={{
+                flex: 1,
+                border: "1px solid #e2e8f0",
+                borderRadius: "4px",
+              }}
+              title="Web Embebida"
+            />
+          </div>
+        </div>
+      )}
+
       <ModalUsuario
         isOpen={isCreateUserModalOpen}
         onClose={() => setIsCreateUserModalOpen(false)}

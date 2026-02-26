@@ -1,6 +1,6 @@
 import api from "../api/axios";
 
-export const getProtocols = async (filters) => {
+export const getProtocols = async (filters, signal) => {
   const params = new URLSearchParams();
   let processedFilters = { ...filters };
 
@@ -15,12 +15,12 @@ export const getProtocols = async (filters) => {
   }
   delete processedFilters.apellido_paciente;
 
-Object.entries(processedFilters).forEach(([key, value]) => {
+  Object.entries(processedFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "" && value !== null) {
       let valorFinal = value;
 
       if (key === "unread_only" || key === "complete_only") {
-        params.append(key, String(value)); 
+        params.append(key, String(value));
         return;
       }
 
@@ -33,7 +33,7 @@ Object.entries(processedFilters).forEach(([key, value]) => {
       params.append(key, valorFinal);
     }
   });
-  const response = await api.get("/protocols", { params });
+  const response = await api.get("/protocols", { params, signal });
   return response.data;
 };
 
