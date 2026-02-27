@@ -50,7 +50,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 
-import { FaBookMedical } from "react-icons/fa";
+import { FaBookMedical, FaClinicMedical  } from "react-icons/fa";
 
 const ErrorStateDisplay = ({ title, message, retryAction }) => (
   <div className="error-state-container">
@@ -82,7 +82,7 @@ const TriStateToggle = ({
       <label>{label}</label>
 
       <div className="tri-toggle-container">
-        {/* 1. Botón TRUE (Completo / No Leído) */}
+        {/* Botón TRUE (Completo / No Leído) */}
         <button
           type="button"
           className={`tri-toggle-btn ${value === true ? "active" : ""}`}
@@ -91,7 +91,7 @@ const TriStateToggle = ({
           {labels.true}
         </button>
 
-        {/* 2. Botón FALSE (Parcial / Leído) */}
+        {/* Botón FALSE (Parcial / Leído) */}
         <button
           type="button"
           className={`tri-toggle-btn ${value === false ? "active" : ""}`}
@@ -100,7 +100,7 @@ const TriStateToggle = ({
           {labels.false}
         </button>
 
-        {/* 3. Botón ALL (Todos) */}
+        {/* Botón ALL (Todos) */}
         <button
           type="button"
           className={`tri-toggle-btn ${value === "" ? "active" : ""}`}
@@ -513,7 +513,7 @@ export default function Resultados() {
 
   const [user, setUser] = useState({ fullname: "Usuario" });
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [isWebModalOpen, setIsWebModalOpen] = useState(false); // <-- AÑADIDO: Estado para la web
+  const [isWebModalOpen, setIsWebModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -549,21 +549,20 @@ export default function Resultados() {
     shouldFetchResults ? selectedProtocol?.protocoloid : null,
   );
 
-  const shouldFetchExtras = selectedProtocol && selectedProtocol.completo === "";
+  const shouldFetchExtras =
+    selectedProtocol && selectedProtocol.completo === "";
 
-  const {
-    data: extrasData,
-    isLoading: isLoadingExtras,
-  } = useQuery({
+  const { data: extrasData, isLoading: isLoadingExtras } = useQuery({
     queryKey: ["protocolExtras", selectedProtocol?.accessionnumber],
     queryFn: async () => {
       if (!selectedProtocol?.accessionnumber) return null;
-      // Usamos el accessionnumber como indicó el backend
-      const res = await api.get(`/protocols/${selectedProtocol.accessionnumber}:extras`);
+      const res = await api.get(
+        `/protocols/${selectedProtocol.accessionnumber}:extras`,
+      );
       return res.data;
     },
-    enabled: !!shouldFetchExtras, // Solo dispara si es necesario
-    staleTime: 1000 * 60, // Mantiene cache por 1 minuto
+    enabled: !!shouldFetchExtras,
+    staleTime: 1000 * 60,
   });
 
   const shouldPollList = !isFetchingResults;
@@ -843,7 +842,7 @@ export default function Resultados() {
     selectedItems[0]?.completo === "" ||
     isPdfLoading;
   const hasDownloadableItems = selectedItems.some((i) => i.completo !== "");
-const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
@@ -1084,7 +1083,7 @@ const formatDateTime = (dateString) => {
           {shouldShowForwarder && (
             <AsyncFilterSection
               title="Clientes"
-              icon={FiLayers}
+              icon={FaClinicMedical }
               type="forwarder"
               user={user}
               onSelectionChange={handleForwarderChange}
@@ -1198,30 +1197,61 @@ const formatDateTime = (dateString) => {
                                   {item.apellidopaciente}, {item.nombrepaciente}
                                 </span>
                               </div>
-                            <div 
-                              className="patient-subdata" 
-                              style={{ 
-                                display: "flex", 
-                                alignItems: "center", 
-                                gap: "3px",              
-                                whiteSpace: "nowrap", 
-                                overflow: "hidden", 
-                                textOverflow: "ellipsis",
-                                fontSize: "0.75rem",     
-                                lineHeight: "1"          
-                              }}
-                            >
-                              <span title="DNI del paciente" style={{ color: "#334155" }}>
-                                <strong style={{ fontWeight: 600, color: "#94a3b8" }}>DNI:</strong> {item.pacid.toString().replace(/DNI/gi, "").trim()}
-                              </span>
+                              <div
+                                className="patient-subdata"
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "3px",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  fontSize: "0.75rem",
+                                  lineHeight: "1",
+                                }}
+                              >
+                                <span
+                                  title="DNI del paciente"
+                                  style={{ color: "#334155" }}
+                                >
+                                  <strong
+                                    style={{
+                                      fontWeight: 600,
+                                      color: "#94a3b8",
+                                    }}
+                                  >
+                                    DNI:
+                                  </strong>{" "}
+                                  {item.pacid
+                                    .toString()
+                                    .replace(/DNI/gi, "")
+                                    .trim()}
+                                </span>
 
-                              <span style={{ color: "#cbd5e1", fontSize: "0.7rem", margin: "0 2px", position: "relative", top: "-1px" }}>|</span>
+                                <span
+                                  style={{
+                                    color: "#cbd5e1",
+                                    fontSize: "0.7rem",
+                                    margin: "0 2px",
+                                    position: "relative",
+                                    top: "-1px",
+                                  }}
+                                >
+                                  |
+                                </span>
 
-                              <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#64748b" }}>
-                                <FiClock size={11} />
-                                {formatDateTime(item.ordereddate)}
-                              </span>
-                            </div>
+                                <span
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                    color: "#64748b",
+                                  }}
+                                >
+                                  <FiClock size={11} />
+                                  {formatDateTime(item.ordereddate)}
+                                </span>
+                              </div>
                             </div>
                           </td>
                           <td className="font-mono">
@@ -1272,55 +1302,82 @@ const formatDateTime = (dateString) => {
                   </div>
                 </div>
                 <div className="patient-details-linear">
-                <div className="linear-top-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+                  <div
+                    className="linear-top-row"
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      width: "100%",
+                    }}
+                  >
                     <h2 className="patient-name-linear">
                       {selectedProtocol.apellidopaciente},{" "}
                       {selectedProtocol.nombrepaciente}
                     </h2>
 
-                    
                     {selectedProtocol.completo === "" && (
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "4px 10px",
-                      border: "1px solid #bae6fd",
-                      borderRadius: "6px",
-                      backgroundColor: "#f0f9ff", 
-                      color: "#0198CC",         
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                    }}>
-                      {isLoadingExtras ? (
-                        <span>Consultando estado...</span>
-                      ) : extrasData ? (
-                        <>
-                          <span>Estado: {extrasData.estado || "Desconocido"}</span>
-                          <span style={{ color: "#7dd3fc" }}>|</span>
-                          <span style={{ fontWeight: "400", color: "#0284c7" }}>
-                            Actualizado: {extrasData.momento ? formatDateTime(extrasData.momento) : "-"}
-                          </span>
-                        </>
-                      ) : (
-                        <span>Estado no disponible</span>
-                      )}
-                    </div>
-                  )}
-                  {/* ----------------------------------------------------- */}
-                    
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "4px 10px",
+                          border: "1px solid #bae6fd",
+                          borderRadius: "6px",
+                          backgroundColor: "#f0f9ff",
+                          color: "#0198CC",
+                          fontSize: "0.75rem",
+                          fontWeight: "600",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                        }}
+                      >
+                        {isLoadingExtras ? (
+                          <span>Consultando estado...</span>
+                        ) : extrasData ? (
+                          <>
+                            {/* ESTADO */}
+                            <span>
+                              <span style={{ fontWeight: "650" }}>Estado:</span>{" "}
+                              <span
+                                style={{ fontWeight: "450", color: "#0284c7" }}
+                              >
+                                {extrasData.estado || "Desconocido"}
+                              </span>
+                            </span>
+
+                            <span style={{ color: "#7dd3fc" }}>|</span>
+
+                            {/* ACTUALIZADO */}
+                            <span>
+                              <span style={{ fontWeight: "650" }}>
+                                Actualizado:
+                              </span>{" "}
+                              <span
+                                style={{ fontWeight: "450", color: "#0284c7" }}
+                              >
+                                {extrasData.momento
+                                  ? formatDateTime(extrasData.momento)
+                                  : "-"}
+                              </span>
+                            </span>
+                          </>
+                        ) : (
+                          <span>Estado no disponible</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="linear-data-row">
                     <span className="data-item">
-                    <span className="lbl">DNI:</span>
-                    <span className="val">
-                      {selectedProtocol.pacid
-                        ?.toString()
-                        .replace(/DNI/gi, "")
-                        .trim() || "-"}
+                      <span className="lbl">DNI:</span>
+                      <span className="val">
+                        {selectedProtocol.pacid
+                          ?.toString()
+                          .replace(/DNI/gi, "")
+                          .trim() || "-"}
+                      </span>
                     </span>
-                  </span>
                     <span className="separator">•</span>
                     <span className="data-item">
                       <span className="lbl">Edad:</span>
@@ -1330,13 +1387,16 @@ const formatDateTime = (dateString) => {
                           ` (${formatDateTime(selectedProtocol.birthdate)})`}
                       </span>
                     </span>
-                    <span className="separator highlight">•</span>
-                    <span className="data-item" style={{ display: "flex", alignItems: "center" }}>
-                      <FiLayers size={11} style={{ marginRight: 4, color: "#64748b" }} />
+                    <span className="separator">•</span>
+                    <span
+                      className="data-item"
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
                       <span className="lbl">Origen:</span>
                       <span className="val" style={{ marginLeft: "4px" }}>
-                        {/* Mostramos el derivadorid si existe. Si viene vacío o null, ponemos un guion o "Sede" */}
-                        {resultsData?.derivadorid ? resultsData.derivadorid : "-"}
+                        {selectedProtocol?.descripcionsucursal
+                          ? selectedProtocol.sucursalid
+                          : "-"}
                       </span>
                     </span>
                   </div>
